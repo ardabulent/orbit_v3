@@ -71,31 +71,49 @@ Son doğrulama: **2026-09-19**, hesap geçişi turu.
 > **Devrin sessizce kırdığı iki şey ölçüldü ve biri düzeltildi:**
 >
 > - `secret_scanning` ve `secret_scanning_push_protection` **kapanmıştı**. Devir bu ayarları taşımıyor. İkisi de geri açıldı — public repoda ücretsiz ve yanlışlıkla anahtar commit'lemeyi push anında durduruyorlar.
-> - Supabase→GitHub ve Supabase→Vercel entegrasyonları **koptu**. Kopmaları beklenen ve doğru; GitHub App kurulumları hesaba bağlıdır, repoya değil. Yeniden kurulmaları gerekiyor (aşağıdaki bekleyenler).
+> - Supabase→GitHub ve Supabase→Vercel entegrasyonları **koptu**. Kopmaları beklenen ve doğru; GitHub App kurulumları hesaba bağlıdır, repoya değil. **GitHub entegrasyonu aynı gün yeniden kuruldu ve çalıştığı ölçülerek kabul edildi** (aşağı). Vercel env senkronizasyonu **bilinçli olarak kapalı kalıyor** — açıkken `SUPABASE_SERVICE_ROLE_KEY` dahil on altı sunucu değişkenini Vercel derleme ortamına basıyordu.
 
-### ⏳ Bekleyenler — panelden yapılacak, henüz YAPILMADI
+### ✅ Kurulum tamamlandı — bekleyen yok (2026-09-19)
 
-Bu satırlar **ölçülmüş eksiklerdir**, tahmin değil. Kaynak: `supabase config diff`, 2026-09-19.
+Hesap geçişinin panel tarafı kapandı. Her satır `supabase config diff` ile ölçülerek doğrulandı.
 
-| Nerede        | Ayar                      | Şu an                  | Olması gereken                      |
-| ------------- | ------------------------- | ---------------------- | ----------------------------------- |
-| Supabase Auth | **Site URL**              | 🔴 `localhost:3000`    | `https://orbit-v3-kappa.vercel.app` |
-| Supabase Auth | `minimum_password_length` | 6                      | 8                                   |
-| Supabase Auth | `password_requirements`   | yok                    | küçük + büyük + rakam               |
-| Supabase Auth | TOTP enroll/verify        | açık                   | kapalı                              |
-| Supabase Auth | Twilio SMS                | açık                   | kapalı                              |
-| ✅ Supabase   | `enable_signup`           | **Kapatıldı** 19:36    | —                                   |
-| ✅ Supabase   | Redirect allowlist        | **Dört satır girildi** | —                                   |
-| ✅ Supabase   | GitHub entegrasyonu       | **Bağlandı**           | —                                   |
-| ✅ Supabase   | Platform operatörü        | **1 `owner`**          | —                                   |
+| Ayar                      | Üretimdeki değer                         |
+| ------------------------- | ---------------------------------------- |
+| `enable_signup`           | **Kapalı**                               |
+| Site URL                  | `https://orbit-v3-kappa.vercel.app`      |
+| Redirect allowlist        | Dört satır, hepsi `/**` ekli             |
+| `minimum_password_length` | **8**                                    |
+| `password_requirements`   | küçük + büyük harf + rakam               |
+| TOTP enroll / verify      | **Kapalı**                               |
+| Platform operatörü        | **1 `owner`**                            |
+| GitHub entegrasyonu       | **Açık ve uçtan uca doğrulandı** (aşağı) |
 
-> 🔴 **Site URL neden artık ilk sırada.** Ölçüldü (2026-09-19): GoTrue'nun `recover` uç noktası, izinsiz bir `redirect_to` aldığında **hata vermez, sessizce Site URL'e düşer.** Sonda bunu doğrulayamadı çünkü uç nokta hesap varlığını sızdırmamak için her durumda aynı cevabı veriyor — yani bu tuzak test edilerek değil ancak ayara bakılarak görülür.
->
-> Bugünkü etkisi: `resetPasswordForEmail` çağrısı `redirectTo`'yu **açıkça** veriyor (`AuthProvider.tsx`) ve o adres allowlist'te, dolayısıyla şifre sıfırlama çalışıyor. Ama `redirectTo` vermeyen her akış (e-posta doğrulama, davet) bağlantıyı `localhost:3000`'e gönderir ve kullanıcı hiçbir yere ulaşamaz.
+#### `config diff`'te kalan altı fark — hiçbiri eksik değil
 
-> ⚠️ **`enable_signup` neden ilk sırada.** Taze Supabase projeleri kayda **açık** gelir. Anon anahtarı yayınlanan pakette olduğu için herkese görünür, yani bu ayar açıkken adresi bilen herkes hesap açabilir. Etkisi sınırlıdır — RLS duvarı ayakta ve üyeliği olmayan bir hesap hiçbir satır göremez (`ROADMAP` §4.23, eksen 2) — ama pilot öncesi kapatılmalıdır.
->
-> ⛔ **`supabase config push` ile toplu düzeltilemez ve denenmemelidir.** `config.toml` bu depoda **yerel yığın** için yazılmıştır: `site_url` orada `http://127.0.0.1:5173`'tür ve dosyada `[remotes]` bölümü yoktur. Push, dosyanın bildirdiği her şeyi iter; üretim Site URL'ini localhost yapar ve şifre sıfırlama e-postalarını kırar. `otp_length` de ayrıca ayrışıktır (dosya 6, belgelenen üretim değeri 8). CLI'ın kendi yardım metni de bu tuzağı adıyla anlatıyor ve ajanlara önce `config diff` koşmalarını söylüyor.
+Bu liste, bir sonraki denetim `config diff` koşup altı satır görünce _"demek ki eksik kalmış"_ sanmasın diye yazıldı. Altısı da tek tek ölçüldü:
+
+| Fark                           | Neden eksik değil                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `additional_redirect_urls`     | **Üretim doğru olan taraf.** Karşılaştırılan `config.toml` yerel geliştirme listesini tutuyor           |
+| `site_url`                     | **Üretim doğru olan taraf.** Dosyadaki `127.0.0.1:5173` yerel yığın için                                |
+| `email.otp_length`             | Üretimdeki **8** belgelenen değer (bölüm 3.1); dosyadaki 6 sapmış olan                                  |
+| `email.max_frequency`          | Üretimdeki **1 dakika** dosyadaki 1 saniyeden güvenli; 1s yerel kolaylık                                |
+| `email.secure_password_change` | Deponun kendi **kayıtlı güvenlik borcu** (K-12), taşımadan gelmiyor — bkz. bölüm 4                      |
+| `sms.twilio.enabled`           | **Etkisiz.** Ölçüldü: telefonla OTP isteği `phone_provider_disabled` dönüyor, Twilio kimlik bilgisi yok |
+
+⛔ **Bu farklar `config push` ile "kapatılmaya" çalışılmamalıdır.** Push, dosyanın bildirdiği her şeyi iter ve üretimin doğru olduğu iki satırı (Site URL, redirect listesi) bozar. Gerekçe bölüm 3 başındaki geçiş notunda.
+
+#### GitHub entegrasyonu — çalıştığı ölçülerek kabul edildi
+
+Üç kez üst üste doğrulandı: `main`'e merge → **20-45 saniye içinde** üretim göç uygulaması. Göç sayısı 73 → 74 → 75 diye ilerledi.
+
+🔴 **İlk kurulum sessizce tutmamıştı ve bu ayrı bir ders oldu.** Panel bütün değerleri doğru gösteriyordu ama form kaydedilmemişti; hiçbir yerde bunu söyleyen bir uyarı yoktu. Okunabilir iz `list_branches` → `updated_at` alanıydı: entegrasyonun ilk kurulduğu ana donmuş duruyordu ve üç merge boyunca kıpırdamadı. Gerçekten bağlanınca sıçradı.
+
+Olayın tamamı üç göçte saklı — `20260928000000` varsayım, `20260929000000` çürütme, `20260930000000` sebep — ve kural **K-30** olarak `AGENT_WORKFLOW.md`'ye yazıldı.
+
+📌 **Entegrasyon PR'lara hiçbir kontrol basmıyor**, `supabase/` altına dokunan PR'larda bile (ölçüldü: #334, #335). Eski kurulumda görünen _"Supabase Preview — skipping"_ satırı bu kurulumda hiç gelmiyor. **Kontrolün yokluğu, entegrasyonun çalışmadığı anlamına gelmez** — çalıştığı yukarıdaki üç merge'le kanıtlandı.
+
+📌 **Yedek yol her zaman geçerli:** CLI bağlıyken `supabase db push`. İlk 72 göçün tamamı o yoldan uygulandı. Entegrasyon sessizce koparsa tek çare odur, bu yüzden **bir göçten sonra göç sayısının gerçekten arttığı bir kez kontrol edilmelidir** (K-30).
 
 ### 3.1 Supabase — Authentication
 
