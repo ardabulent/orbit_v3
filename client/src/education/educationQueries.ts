@@ -68,6 +68,13 @@ import {
   type HomeworkWeek,
 } from "./reportService";
 
+import {
+  loadAdminOverviewCounts,
+  loadTodayLessons,
+  type AdminOverviewCounts,
+  type TodayLesson,
+} from "./overviewService";
+
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 /**
@@ -127,6 +134,10 @@ export const educationKeys = {
   },
   paymentOverview: (organizationId: string) =>
     ["education", "paymentOverview", { organizationId }] as const,
+  adminOverview: (organizationId: string) =>
+    ["education", "adminOverview", { organizationId }] as const,
+  todayLessons: (organizationId: string) =>
+    ["education", "todayLessons", { organizationId }] as const,
   homework: (organizationId: string) =>
     ["education", "homework", { organizationId }] as const,
   subjects: (
@@ -850,5 +861,51 @@ export function useReportHomeworkWeeks(
       : (["education", "reportHomeworkWeeks", { organizationId: "" }] as const),
     queryFn: () => loadHomeworkWeeks(),
     enabled: isEnabled,
+  });
+}
+
+export type UseOverviewOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Yönetici Genel Bakış sayıları (`admin_overview_counts`).
+ *
+ * `staleTime: 0` bilinçli: bu ekran "şu an neye bakmalısın" diyor ve başka
+ * sekmede alınan yoklama ya da eklenen öğrenci, sekmeye dönüldüğünde görünmeli.
+ * Sayım tek satırlık ucuz bir sorgu; genel bir dakikalık bayatlama burada
+ * yanlış bir "yoklama alınmadı" uyarısını ekranda tutardı.
+ */
+export function useAdminOverview(options?: UseOverviewOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<AdminOverviewCounts | null, Error>({
+    queryKey: organizationId
+      ? educationKeys.adminOverview(organizationId)
+      : (["education", "adminOverview", { organizationId: "" }] as const),
+    queryFn: () => loadAdminOverviewCounts(organizationId as string),
+    enabled: isEnabled,
+    staleTime: 0,
+  });
+}
+
+/** Bugünün dersleri ve sınıfların günlük yoklama durumu (`today_lessons`). */
+export function useTodayLessons(options?: UseOverviewOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<TodayLesson[], Error>({
+    queryKey: organizationId
+      ? educationKeys.todayLessons(organizationId)
+      : (["education", "todayLessons", { organizationId: "" }] as const),
+    queryFn: () => loadTodayLessons(organizationId as string),
+    enabled: isEnabled,
+    staleTime: 0,
   });
 }
