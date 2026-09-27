@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DayPlanEvent, DayPlanTask } from "../types";
 import {
+  buildMonthDisplayEvents,
   getEventsForDay,
   getMonthGridDays,
   getTaskCompletionPercent,
@@ -82,5 +83,30 @@ describe("getTaskCompletionPercent", () => {
       task("Planla", "t3"),
     ];
     expect(getTaskCompletionPercent(tasks)).toBe(33);
+  });
+});
+
+describe("buildMonthDisplayEvents — ders saatleri", () => {
+  it("veritabanının '09:00:00' saatini takvimde saniyesiz yazar", () => {
+    // 27 Eylül 2026 Pazar (ISO 7).
+    const events = buildMonthDisplayEvents(
+      new Date(2026, 8, 1),
+      [],
+      [
+        {
+          id: "s1",
+          day: "Pazar",
+          time: "09:00",
+          title: "Matematik",
+          startsAt: "09:00:00",
+          endsAt: "09:40:00",
+          dayOfWeek: 7,
+        },
+      ]
+    );
+
+    const lesson = events.find(event => event.date === "2026-09-27");
+    expect(lesson?.startTime).toBe("09:00");
+    expect(lesson?.endTime).toBe("09:40");
   });
 });
