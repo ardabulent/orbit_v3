@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadAdminOverviewCounts,
   loadMyLessonsToday,
+  loadStudentOverdueInstallments,
   loadStudentOverview,
   loadStudentUpcomingHomework,
   loadTeacherOverviewCounts,
@@ -307,5 +308,33 @@ describe("loadStudentUpcomingHomework", () => {
         dueDate: "2026-09-28",
       },
     ]);
+  });
+});
+
+describe("loadStudentOverdueInstallments", () => {
+  it("returns the overdue count for one student", async () => {
+    rpcMock.mockResolvedValue({
+      data: [{ student_id: "student-1", overdue_count: "2" }],
+      error: null,
+    });
+
+    await expect(loadStudentOverdueInstallments("student-1")).resolves.toBe(2);
+    expect(rpcMock).toHaveBeenCalledWith("student_payment_summaries", {
+      target_student_ids: ["student-1"],
+    });
+  });
+
+  it("returns null without a row — no plan is not the same as zero overdue", async () => {
+    rpcMock.mockResolvedValue({ data: [], error: null });
+    await expect(
+      loadStudentOverdueInstallments("student-1")
+    ).resolves.toBeNull();
+  });
+
+  it("throws on error instead of hiding it", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: "x" } });
+    await expect(loadStudentOverdueInstallments("student-1")).rejects.toThrow(
+      "Ödeme durumu yüklenemedi."
+    );
   });
 });
