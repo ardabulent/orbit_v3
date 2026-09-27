@@ -185,3 +185,131 @@ export async function loadMyLessonsToday(
 
   return ((data ?? []) as RawTodayLessonRow[]).map(mapTodayLessonRow);
 }
+
+// =========================================================================
+// Öğrenci (ve veli) — kimlik parametresi öğrenci, kurum değil (`20261003000000`)
+// =========================================================================
+
+export type StudentOverview = {
+  lessonsToday: number;
+  homeworkDueThisWeek: number;
+  homeworkDueSoon: number;
+  homeworkMissed: number;
+  absentCount: number;
+  lateCount: number;
+  /** Öğrencinin hiç sınav sonucu yoksa `null` — sıfır puan uydurulmaz. */
+  latestExam: {
+    name: string;
+    date: string;
+    score: number;
+    maxScore: number | null;
+  } | null;
+};
+
+export type UpcomingHomework = {
+  id: string;
+  title: string;
+  subject: string | null;
+  className: string;
+  dueDate: string;
+};
+
+type RawStudentOverviewRow = {
+  lessons_today: number | string | null;
+  homework_due_this_week: number | string | null;
+  homework_due_soon: number | string | null;
+  homework_missed: number | string | null;
+  absent_count: number | string | null;
+  late_count: number | string | null;
+  latest_exam_name: string | null;
+  latest_exam_date: string | null;
+  latest_exam_score: number | string | null;
+  latest_exam_max_score: number | string | null;
+};
+
+type RawUpcomingHomeworkRow = {
+  homework_id: string;
+  title: string;
+  subject_name: string | null;
+  class_name: string;
+  due_date: string;
+};
+
+export function mapStudentOverviewRow(
+  row: RawStudentOverviewRow
+): StudentOverview {
+  const hasExam =
+    row.latest_exam_name !== null &&
+    row.latest_exam_date !== null &&
+    row.latest_exam_score !== null;
+  const maxScore =
+    row.latest_exam_max_score === null
+      ? null
+      : Number(row.latest_exam_max_score);
+
+  return {
+    lessonsToday: toCount(row.lessons_today),
+    homeworkDueThisWeek: toCount(row.homework_due_this_week),
+    homeworkDueSoon: toCount(row.homework_due_soon),
+    homeworkMissed: toCount(row.homework_missed),
+    absentCount: toCount(row.absent_count),
+    lateCount: toCount(row.late_count),
+    latestExam: hasExam
+      ? {
+          name: row.latest_exam_name as string,
+          date: row.latest_exam_date as string,
+          score: Number(row.latest_exam_score),
+          maxScore: Number.isFinite(maxScore) ? maxScore : null,
+        }
+      : null,
+  };
+}
+
+export async function loadStudentOverview(
+  studentId: string
+): Promise<StudentOverview | null> {
+  const { data, error } = await supabase.rpc("student_overview_counts", {
+    target_student_id: studentId,
+  });
+
+  if (error) {
+    throw new Error("Genel bakış sayıları yüklenemedi.");
+  }
+
+  const rows = (data ?? []) as RawStudentOverviewRow[];
+  return rows.length > 0 ? mapStudentOverviewRow(rows[0]) : null;
+}
+
+export async function loadStudentUpcomingHomework(
+  studentId: string
+): Promise<UpcomingHomework[]> {
+  const { data, error } = await supabase.rpc("student_upcoming_homework", {
+    target_student_id: studentId,
+  });
+
+  if (error) {
+    throw new Error("Yaklaşan ödevler yüklenemedi.");
+  }
+
+  return ((data ?? []) as RawUpcomingHomeworkRow[]).map(row => ({
+    id: row.homework_id,
+    title: row.title,
+    subject: row.subject_name?.trim() || null,
+    className: row.class_name,
+    dueDate: row.due_date,
+  }));
+}
+
+export async function loadStudentLessonsToday(
+  studentId: string
+): Promise<TodayLesson[]> {
+  const { data, error } = await supabase.rpc("student_lessons_today", {
+    target_student_id: studentId,
+  });
+
+  if (error) {
+    throw new Error("Bugünün dersleri yüklenemedi.");
+  }
+
+  return ((data ?? []) as RawTodayLessonRow[]).map(mapTodayLessonRow);
+}
