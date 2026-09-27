@@ -33,7 +33,19 @@ export type TodayLesson = {
   title: string;
   room: string | null;
   teacher: string | null;
-  attendanceTaken: boolean;
+  /**
+   * `null`: çağıran bu sınıfın yoklamasını göremiyor (vekil öğretmen,
+   * `my_lessons_today`). "Alınmadı" ile aynı şey değil.
+   */
+  attendanceTaken: boolean | null;
+};
+
+export type TeacherOverviewCounts = {
+  myClasses: number;
+  myStudents: number;
+  myLessonsToday: number;
+  classesMissingAttendanceToday: number;
+  homeworkAwaitingMarking: number;
 };
 
 type RawCountsRow = {
@@ -55,7 +67,15 @@ type RawTodayLessonRow = {
   title: string | null;
   room: string | null;
   teacher_name: string | null;
-  attendance_taken: boolean;
+  attendance_taken: boolean | null;
+};
+
+type RawTeacherCountsRow = {
+  my_classes: number | string | null;
+  my_students: number | string | null;
+  my_lessons_today: number | string | null;
+  classes_missing_attendance_today: number | string | null;
+  homework_awaiting_marking: number | string | null;
 };
 
 /** bigint PostgREST'ten sayı ya da dizge olarak gelebilir. */
@@ -88,7 +108,7 @@ export function mapTodayLessonRow(row: RawTodayLessonRow): TodayLesson {
     title: row.subject_name?.trim() || row.title?.trim() || "",
     room: row.room?.trim() || null,
     teacher: row.teacher_name?.trim() || null,
-    attendanceTaken: row.attendance_taken,
+    attendanceTaken: row.attendance_taken ?? null,
   };
 }
 
@@ -111,6 +131,51 @@ export async function loadTodayLessons(
   organizationId: string
 ): Promise<TodayLesson[]> {
   const { data, error } = await supabase.rpc("today_lessons", {
+    target_organization_id: organizationId,
+  });
+
+  if (error) {
+    throw new Error("Bugünün dersleri yüklenemedi.");
+  }
+
+  return ((data ?? []) as RawTodayLessonRow[]).map(mapTodayLessonRow);
+}
+
+export function mapTeacherCountsRow(
+  row: RawTeacherCountsRow
+): TeacherOverviewCounts {
+  return {
+    myClasses: toCount(row.my_classes),
+    myStudents: toCount(row.my_students),
+    myLessonsToday: toCount(row.my_lessons_today),
+    classesMissingAttendanceToday: toCount(
+      row.classes_missing_attendance_today
+    ),
+    homeworkAwaitingMarking: toCount(row.homework_awaiting_marking),
+  };
+}
+
+/** Öğretmen Genel Bakış sayıları (`teacher_overview_counts`, `20261002000000`). */
+export async function loadTeacherOverviewCounts(
+  organizationId: string
+): Promise<TeacherOverviewCounts | null> {
+  const { data, error } = await supabase.rpc("teacher_overview_counts", {
+    target_organization_id: organizationId,
+  });
+
+  if (error) {
+    throw new Error("Genel bakış sayıları yüklenemedi.");
+  }
+
+  const rows = (data ?? []) as RawTeacherCountsRow[];
+  return rows.length > 0 ? mapTeacherCountsRow(rows[0]) : null;
+}
+
+/** Çağıranın programda öğretmen olarak yazılı olduğu bugünkü dersler. */
+export async function loadMyLessonsToday(
+  organizationId: string
+): Promise<TodayLesson[]> {
+  const { data, error } = await supabase.rpc("my_lessons_today", {
     target_organization_id: organizationId,
   });
 

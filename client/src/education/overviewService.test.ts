@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadAdminOverviewCounts,
+  loadMyLessonsToday,
+  loadTeacherOverviewCounts,
   loadTodayLessons,
   mapTodayLessonRow,
 } from "./overviewService";
@@ -137,5 +139,72 @@ describe("mapTodayLessonRow", () => {
       attendance_taken: false,
     });
     expect(lesson.title).toBe("Fizik");
+  });
+});
+
+describe("loadTeacherOverviewCounts", () => {
+  it("calls the teacher function with the organization and maps counts", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          my_classes: 2,
+          my_students: "31",
+          my_lessons_today: 3,
+          classes_missing_attendance_today: "1",
+          homework_awaiting_marking: 4,
+        },
+      ],
+      error: null,
+    });
+
+    await expect(loadTeacherOverviewCounts("org-1")).resolves.toEqual({
+      myClasses: 2,
+      myStudents: 31,
+      myLessonsToday: 3,
+      classesMissingAttendanceToday: 1,
+      homeworkAwaitingMarking: 4,
+    });
+    expect(rpcMock).toHaveBeenCalledWith("teacher_overview_counts", {
+      target_organization_id: "org-1",
+    });
+  });
+
+  it("returns null without a row and throws on error", async () => {
+    rpcMock.mockResolvedValueOnce({ data: [], error: null });
+    await expect(loadTeacherOverviewCounts("org-1")).resolves.toBeNull();
+
+    rpcMock.mockResolvedValueOnce({ data: null, error: { message: "x" } });
+    await expect(loadTeacherOverviewCounts("org-1")).rejects.toThrow(
+      "Genel bakış sayıları yüklenemedi."
+    );
+  });
+});
+
+describe("loadMyLessonsToday", () => {
+  it("keeps an unknown attendance state as null, not false", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          entry_id: "e1",
+          starts_at: "12:00:00",
+          ends_at: null,
+          class_id: "c3",
+          class_name: "12-C",
+          subject_name: "Matematik",
+          title: null,
+          room: null,
+          teacher_name: null,
+          attendance_taken: null,
+        },
+      ],
+      error: null,
+    });
+
+    const lessons = await loadMyLessonsToday("org-1");
+
+    expect(rpcMock).toHaveBeenCalledWith("my_lessons_today", {
+      target_organization_id: "org-1",
+    });
+    expect(lessons[0].attendanceTaken).toBeNull();
   });
 });
