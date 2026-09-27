@@ -3,22 +3,44 @@ import { Plus, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_DAY_PLAN_LIMIT,
+  TASK_PRIORITIES,
   type TaskItem,
+  type TaskPriority,
+  type TaskStatus,
 } from "@/education/dayPlanService";
 import { getOrbitToday } from "@/education/trDate";
-import { Badge, EmptyState, StatCard } from "../shared";
+import { Badge, StatCard } from "../shared";
 import type {
   DayPlanTask,
   DayPlanTaskCategory,
   DayPlanTaskStatus,
 } from "../types";
 import { DayPlanTaskCard } from "./DayPlanTaskCard";
+import {
+  TASK_LABEL_META,
+  TASK_PRIORITY_META,
+  TASK_STATUS_META,
+} from "./taskBoardMeta";
+
+/** Veritabanı durumu ↔ panonun sütun anahtarı (demo verisiyle ortak). */
+const STATUS_TO_COLUMN: Record<TaskStatus, DayPlanTaskStatus> = {
+  planned: "Planla",
+  today: "Bugün",
+  focus: "Odaklan",
+  done: "Tamamlandı",
+};
+const COLUMN_TO_STATUS: Record<DayPlanTaskStatus, TaskStatus> = {
+  Planla: "planned",
+  Bugün: "today",
+  Odaklan: "focus",
+  Tamamlandı: "done",
+};
 
 const columns: { status: DayPlanTaskStatus; hint: string }[] = [
-  { status: "Planla", hint: "İleri tarihe veya tarihsiz işler" },
-  { status: "Bugün", hint: "Günün planına alınanlar" },
-  { status: "Odaklan", hint: "Geciken veya öncelikli işler" },
-  { status: "Tamamlandı", hint: "Sonuçlanan işler" },
+  { status: "Planla", hint: TASK_STATUS_META.planned.hint },
+  { status: "Bugün", hint: TASK_STATUS_META.today.hint },
+  { status: "Odaklan", hint: TASK_STATUS_META.focus.hint },
+  { status: "Tamamlandı", hint: TASK_STATUS_META.done.hint },
 ];
 
 const categories: DayPlanTaskCategory[] = [
@@ -39,7 +61,7 @@ export type DayPlanToDoBoardProps = {
   setTasks?: React.Dispatch<React.SetStateAction<DayPlanTask[]>>;
   organizationId?: string;
   membershipId?: string;
-  onAddTask?: (initialDueOn?: string) => void;
+  onAddTask?: (initialDueOn?: string, initialStatus?: TaskStatus) => void;
   onEditTask?: (task: TaskItem) => void;
   truncated?: boolean;
 };
@@ -57,6 +79,7 @@ export function DayPlanToDoBoard({
   const [category, setCategory] = useState<"Tümü" | DayPlanTaskCategory>(
     "Tümü"
   );
+  const [priority, setPriority] = useState<"all" | TaskPriority>("all");
 
   const isProduction =
     tasks.length > 0 ? isRealTask(tasks[0]) : Boolean(organizationId);
@@ -67,22 +90,19 @@ export function DayPlanToDoBoard({
     if (!isRealTask(task)) {
       return task.status;
     }
-    if (task.completedAt) {
-      return "Tamamlandı";
-    }
-    if (task.dueOn && task.dueOn < today) {
-      return "Odaklan"; // 🔴 Vadesi geçmiş işler odak sütununa
-    }
-    if (task.dueOn === today) {
-      return "Bugün";
-    }
-    return "Planla";
+    // Sütun elle seçilen durumdur; tarihten türetilmez (C-10, karar
+    // 2026-09-27). Gecikmiş görev kendi sütununda kalır, kart "Gecikti" yazar.
+    return STATUS_TO_COLUMN[task.status];
   };
 
   const filtered = tasks.filter(task => {
     const title = task.title || "";
     const detail = task.detail || "";
-    const cat = !isRealTask(task) ? task.category : "";
+    const cat = !isRealTask(task)
+      ? task.category
+      : task.label
+        ? TASK_LABEL_META[task.label].label
+        : "";
     const matchesQuery = `${title} ${detail} ${cat}`
       .toLocaleLowerCase("tr")
       .includes(query.toLocaleLowerCase("tr"));
@@ -91,7 +111,7 @@ export function DayPlanToDoBoard({
       const matchesCategory = category === "Tümü" || task.category === category;
       return matchesQuery && matchesCategory;
     }
-    return matchesQuery;
+    return matchesQuery && (priority === "all" || task.priority === priority);
   });
 
   const totalCount = tasks.length;
@@ -99,21 +119,25 @@ export function DayPlanToDoBoard({
     isRealTask(t) ? Boolean(t.completedAt) : t.status === "Tamamlandı"
   ).length;
 
-  const todayCount = tasks.filter(t => {
-    const col = getTaskColumn(t);
-    return col === "Bugün" || col === "Odaklan";
-  }).length;
+  const todayCount = tasks.filter(t => getTaskColumn(t) === "Bugün").length;
+  const focusCount = tasks.filter(t => getTaskColumn(t) === "Odaklan").length;
+  const overdueCount = tasks.filter(
+    t =>
+      isRealTask(t) &&
+      t.status !== "done" &&
+      Boolean(t.dueOn && t.dueOn < today)
+  ).length;
 
   const completionPercent =
     totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   const handleColumnAdd = (status: DayPlanTaskStatus) => {
     if (onAddTask) {
-      if (status === "Bugün") {
-        onAddTask(today);
-      } else {
-        onAddTask();
-      }
+      // Görev tıklanan sütunda açılır; Bugün'de tarih de bugündür.
+      onAddTask(
+        status === "Bugün" ? today : undefined,
+        COLUMN_TO_STATUS[status]
+      );
     } else {
       toast.info("Yeni görev", {
         description: `"${status}" sütununa görev ekleme bir sonraki fazda aktifleşecek.`,
@@ -141,17 +165,15 @@ export function DayPlanToDoBoard({
             Günün odağı
           </span>
           <p className="mt-3 font-display text-[19px] font-extrabold tracking-[-.03em]">
-            Önemli olanı ilerletin.
+            {todayCount} görev bugün · {focusCount} odakta
           </p>
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <p className="max-w-sm text-[11px] leading-5 text-white/70">
-              Şu an {todayCount} odak görevi var. Önce yüksek öncelikli işleri
-              netleştirin, sonra sıradaki zaman kutusuna geçin.
-            </p>
-            <span className="whitespace-nowrap rounded-xl border border-white/15 bg-white/10 px-3.5 py-2 text-[11px] font-bold">
-              Bugünkü plan: {todayCount} görev
-            </span>
-          </div>
+          <p className="mt-4 max-w-md text-[11px] leading-5 text-white/70">
+            {totalCount === 0
+              ? "Henüz görev yok. Bir sütundaki + ile o sütuna görev ekleyebilirsiniz."
+              : overdueCount > 0
+                ? `${overdueCount} görevin tarihi geçti; kartlarında "Gecikti" yazıyor.`
+                : "Kartın altındaki listeden görevi istediğiniz sütuna taşıyabilirsiniz."}
+          </p>
         </div>
         <StatCard
           label="Günlük ilerleme"
@@ -172,7 +194,23 @@ export function DayPlanToDoBoard({
             className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-[12px] outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
           />
         </div>
-        {!isProduction ? (
+        {isProduction ? (
+          <select
+            value={priority}
+            aria-label="Önceliğe göre süz"
+            onChange={event =>
+              setPriority(event.target.value as "all" | TaskPriority)
+            }
+            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-600 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
+          >
+            <option value="all">Tüm öncelikler</option>
+            {TASK_PRIORITIES.map(item => (
+              <option key={item} value={item}>
+                {TASK_PRIORITY_META[item].label}
+              </option>
+            ))}
+          </select>
+        ) : (
           <select
             value={category}
             onChange={event =>
@@ -187,35 +225,29 @@ export function DayPlanToDoBoard({
               </option>
             ))}
           </select>
-        ) : null}
+        )}
       </div>
 
-      {isProduction && tasks.length === 0 ? (
-        // 🔴 K-22: Boş liste dürüst bir ifadedir, "yüklenemedi" ile karıştırılmamalıdır
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-8 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          <EmptyState
-            title="Henüz görev bulunmuyor"
-            description="Kişisel çalışma alanınız için yeni bir görev ekleyerek başlayın."
-          />
-        </div>
-      ) : (
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {columns.map(column => {
-            const columnTasks = filtered.filter(
-              task => getTaskColumn(task) === column.status
-            );
-            return (
-              <section
-                key={column.status}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,.025)]"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-[12px] font-extrabold text-slate-800">
-                      {column.status}
-                    </p>
-                    <Badge tone="slate">{columnTasks.length}</Badge>
-                  </div>
+      {/* Pano boşken de dört sütun çizilir (C-10): nereye ne eklenebileceği
+          ilk görevden önce görünür. */}
+      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {columns.map(column => {
+          const columnTasks = filtered.filter(
+            task => getTaskColumn(task) === column.status
+          );
+          return (
+            <section
+              key={column.status}
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,.025)]"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[12px] font-extrabold text-slate-800">
+                    {column.status}
+                  </p>
+                  <Badge tone="slate">{columnTasks.length}</Badge>
+                </div>
+                {column.status === "Tamamlandı" ? null : (
                   <button
                     onClick={() => handleColumnAdd(column.status)}
                     aria-label={`${column.status} sütununa görev ekle`}
@@ -223,33 +255,31 @@ export function DayPlanToDoBoard({
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
-                </div>
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                  {column.hint}
-                </p>
-                <div className="mt-3 space-y-2.5">
-                  {columnTasks.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-slate-200 p-3 text-center text-[10px] text-slate-400">
-                      Bu sütunda görev yok.
-                    </p>
-                  ) : (
-                    columnTasks.map(task => (
-                      <DayPlanTaskCard
-                        key={task.id}
-                        task={task}
-                        organizationId={organizationId}
-                        membershipId={membershipId}
-                        onEdit={onEditTask}
-                        setTasks={setTasks}
-                      />
-                    ))
-                  )}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
+                )}
+              </div>
+              <p className="mt-0.5 text-[10px] text-slate-400">{column.hint}</p>
+              <div className="mt-3 space-y-2.5">
+                {columnTasks.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-slate-200 p-3 text-center text-[10px] text-slate-400">
+                    Bu sütunda görev yok.
+                  </p>
+                ) : (
+                  columnTasks.map(task => (
+                    <DayPlanTaskCard
+                      key={task.id}
+                      task={task}
+                      organizationId={organizationId}
+                      membershipId={membershipId}
+                      onEdit={onEditTask}
+                      setTasks={setTasks}
+                    />
+                  ))
+                )}
+              </div>
+            </section>
+          );
+        })}
+      </div>
     </>
   );
 }

@@ -5,6 +5,7 @@ import {
   DEFAULT_DAY_PLAN_LIMIT,
   type CalendarEventItem,
   type TaskItem,
+  type TaskStatus,
 } from "@/education/dayPlanService";
 import {
   useCalendarEvents,
@@ -59,6 +60,7 @@ export function DayPlanPage({
   const [formSession, setFormSession] = useState(0);
   const [taskForEdit, setTaskForEdit] = useState<TaskItem | null>(null);
   const [initialDueOn, setInitialDueOn] = useState<string | null>(null);
+  const [initialStatus, setInitialStatus] = useState<TaskStatus | null>(null);
 
   // Takvim modal durumu
   const [calendarFormOpen, setCalendarFormOpen] = useState(false);
@@ -91,7 +93,7 @@ export function DayPlanPage({
   const realCalendarEvents = calendarEventsQuery.data?.rows ?? [];
   const activeSchedule = schedule ?? scheduleQuery.data?.rows ?? [];
 
-  const handleOpenAddTask = (dueOn?: string) => {
+  const handleOpenAddTask = (dueOn?: string, status?: TaskStatus) => {
     if (!isReal) {
       toast.info("Yeni görev", {
         description:
@@ -101,6 +103,7 @@ export function DayPlanPage({
     }
     setTaskForEdit(null);
     setInitialDueOn(dueOn ?? null);
+    setInitialStatus(status ?? null);
     setFormSession(session => session + 1);
     setTaskFormOpen(true);
   };
@@ -254,6 +257,7 @@ export function DayPlanPage({
           membershipId={membershipId}
           task={taskForEdit}
           initialDueOn={initialDueOn}
+          initialStatus={initialStatus}
           onDone={() => {
             setTaskForEdit(null);
             setInitialDueOn(null);

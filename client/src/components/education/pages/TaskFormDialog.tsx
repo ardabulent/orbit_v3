@@ -14,9 +14,23 @@ import { Label } from "@/components/ui/label";
 import { educationKeys } from "@/education/educationQueries";
 import {
   createTask,
+  TASK_LABELS,
+  TASK_PRIORITIES,
+  TASK_STATUSES,
   updateTask,
   type TaskItem,
+  type TaskLabel,
+  type TaskPriority,
+  type TaskStatus,
 } from "@/education/dayPlanService";
+import {
+  TASK_LABEL_META,
+  TASK_PRIORITY_META,
+  TASK_STATUS_META,
+} from "./taskBoardMeta";
+
+const SELECT_CLASS =
+  "h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
 export type TaskFormDialogProps = {
   open: boolean;
@@ -25,6 +39,8 @@ export type TaskFormDialogProps = {
   membershipId: string;
   task?: TaskItem | null;
   initialDueOn?: string | null;
+  /** Sütunun "+" düğmesinden gelir; yoksa yeni görev Bugün'e açılır (MoneyFlow). */
+  initialStatus?: TaskStatus | null;
   onDone?: () => void;
 };
 
@@ -35,6 +51,7 @@ export function TaskFormDialog({
   membershipId,
   task,
   initialDueOn,
+  initialStatus,
   onDone,
 }: TaskFormDialogProps) {
   const queryClient = useQueryClient();
@@ -44,6 +61,17 @@ export function TaskFormDialog({
   const [detail, setDetail] = useState<string>(() => task?.detail ?? "");
   const [dueOn, setDueOn] = useState<string>(
     () => task?.dueOn ?? initialDueOn ?? ""
+  );
+  const [dueTime, setDueTime] = useState<string>(() => task?.dueTime ?? "");
+  const [status, setStatus] = useState<TaskStatus>(
+    () => task?.status ?? initialStatus ?? "today"
+  );
+  const [priority, setPriority] = useState<TaskPriority>(
+    () => task?.priority ?? "normal"
+  );
+  const [label, setLabel] = useState<TaskLabel | "">(() => task?.label ?? "");
+  const [minutes, setMinutes] = useState<string>(() =>
+    task?.estimatedMinutes ? String(task.estimatedMinutes) : ""
   );
 
   const [loading, setLoading] = useState(false);
@@ -59,6 +87,27 @@ export function TaskFormDialog({
       return;
     }
 
+    const parsedMinutes = minutes.trim() ? Number(minutes) : null;
+    if (
+      parsedMinutes !== null &&
+      (!Number.isInteger(parsedMinutes) ||
+        parsedMinutes < 1 ||
+        parsedMinutes > 600)
+    ) {
+      setError("Tahmini süre 1 ile 600 dakika arasında olmalı.");
+      return;
+    }
+
+    const fields = {
+      detail: detail.trim() || null,
+      dueOn: dueOn || null,
+      dueTime: dueTime || null,
+      status,
+      priority,
+      label: label || null,
+      estimatedMinutes: parsedMinutes,
+    };
+
     setLoading(true);
     setError(null);
 
@@ -66,8 +115,7 @@ export function TaskFormDialog({
       if (isEditing && task?.id) {
         await updateTask(organizationId, task.id, {
           title: trimmedTitle,
-          detail: detail.trim() || null,
-          dueOn: dueOn || null,
+          ...fields,
         });
         toast.success("Görev güncellendi", {
           description: `"${trimmedTitle}" başlıklı görev başarıyla güncellendi.`,
@@ -77,8 +125,7 @@ export function TaskFormDialog({
           organizationId,
           ownerMembershipId: membershipId,
           title: trimmedTitle,
-          detail: detail.trim() || null,
-          dueOn: dueOn || null,
+          ...fields,
         });
         toast.success("Görev eklendi", {
           description: `"${trimmedTitle}" başlıklı görev planınıza eklendi.`,
@@ -144,19 +191,114 @@ export function TaskFormDialog({
             />
           </div>
 
-          {/* Vade Tarihi (due_on) */}
-          <div className="space-y-1.5">
-            <Label htmlFor="task-due" className="text-[12px] font-semibold">
-              Son Tarih (İsteğe bağlı)
-            </Label>
-            <Input
-              id="task-due"
-              type="date"
-              value={dueOn}
-              onChange={e => setDueOn(e.target.value)}
-              disabled={loading}
-              className="h-9 text-[12px]"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="task-due" className="text-[12px] font-semibold">
+                Tarih
+              </Label>
+              <Input
+                id="task-due"
+                type="date"
+                value={dueOn}
+                onChange={e => setDueOn(e.target.value)}
+                disabled={loading}
+                className="h-9 text-[12px]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="task-time" className="text-[12px] font-semibold">
+                Saat
+              </Label>
+              <Input
+                id="task-time"
+                type="time"
+                value={dueTime}
+                onChange={e => setDueTime(e.target.value)}
+                disabled={loading}
+                className="h-9 text-[12px]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="task-status"
+                className="text-[12px] font-semibold"
+              >
+                Durum
+              </Label>
+              <select
+                id="task-status"
+                value={status}
+                onChange={e => setStatus(e.target.value as TaskStatus)}
+                disabled={loading}
+                className={SELECT_CLASS}
+              >
+                {TASK_STATUSES.map(option => (
+                  <option key={option} value={option}>
+                    {TASK_STATUS_META[option].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="task-priority"
+                className="text-[12px] font-semibold"
+              >
+                Öncelik
+              </Label>
+              <select
+                id="task-priority"
+                value={priority}
+                onChange={e => setPriority(e.target.value as TaskPriority)}
+                disabled={loading}
+                className={SELECT_CLASS}
+              >
+                {TASK_PRIORITIES.map(option => (
+                  <option key={option} value={option}>
+                    {TASK_PRIORITY_META[option].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="task-label" className="text-[12px] font-semibold">
+                Etiket
+              </Label>
+              <select
+                id="task-label"
+                value={label}
+                onChange={e => setLabel(e.target.value as TaskLabel | "")}
+                disabled={loading}
+                className={SELECT_CLASS}
+              >
+                <option value="">Etiketsiz</option>
+                {TASK_LABELS.map(option => (
+                  <option key={option} value={option}>
+                    {TASK_LABEL_META[option].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="task-minutes"
+                className="text-[12px] font-semibold"
+              >
+                Tahmini süre (dk)
+              </Label>
+              <Input
+                id="task-minutes"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={600}
+                value={minutes}
+                onChange={e => setMinutes(e.target.value)}
+                placeholder="30"
+                disabled={loading}
+                className="h-9 text-[12px]"
+              />
+            </div>
           </div>
 
           {/* Detay / Açıklama */}

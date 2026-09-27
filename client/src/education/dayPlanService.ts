@@ -1,5 +1,39 @@
 import { supabase } from "@/lib/supabaseClient";
 
+/**
+ * Panodaki sütun; sahibi elle seçer (`20261004000000`, C-10). Tarihten
+ * türetilmez: gecikmiş görev kendi sütununda kalır, ekran "Gecikti" yazar.
+ * `done` ile `completedAt` veritabanında birbirine kilitli.
+ */
+export type TaskStatus = "planned" | "today" | "focus" | "done";
+export type TaskPriority = "low" | "normal" | "high";
+/** Sabit liste (karar 2026-09-27); serbest yazı kabul edilmez. */
+export type TaskLabel =
+  | "attendance"
+  | "parent_meeting"
+  | "exam"
+  | "homework"
+  | "report"
+  | "enrollment"
+  | "other";
+
+export const TASK_STATUSES: TaskStatus[] = [
+  "planned",
+  "today",
+  "focus",
+  "done",
+];
+export const TASK_PRIORITIES: TaskPriority[] = ["high", "normal", "low"];
+export const TASK_LABELS: TaskLabel[] = [
+  "attendance",
+  "parent_meeting",
+  "exam",
+  "homework",
+  "report",
+  "enrollment",
+  "other",
+];
+
 export type TaskItem = {
   id: string;
   organizationId: string;
@@ -7,6 +41,12 @@ export type TaskItem = {
   title: string;
   detail: string | null;
   dueOn: string | null;
+  /** "HH:MM" ya da null. */
+  dueTime: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  label: TaskLabel | null;
+  estimatedMinutes: number | null;
   completedAt: string | null;
   archivedAt: string | null;
   createdAt: string;
@@ -23,18 +63,24 @@ export type LoadTasksOptions = {
   limit?: number;
 };
 
-export type CreateTaskInput = {
+export type TaskFields = {
+  detail?: string | null;
+  dueOn?: string | null;
+  dueTime?: string | null;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  label?: TaskLabel | null;
+  estimatedMinutes?: number | null;
+};
+
+export type CreateTaskInput = TaskFields & {
   organizationId: string;
   ownerMembershipId: string;
   title: string;
-  detail?: string | null;
-  dueOn?: string | null;
 };
 
-export type UpdateTaskInput = {
+export type UpdateTaskInput = TaskFields & {
   title?: string;
-  detail?: string | null;
-  dueOn?: string | null;
   completedAt?: string | null;
 };
 
@@ -79,6 +125,25 @@ export type UpdateCalendarEventInput = {
 
 export const DEFAULT_DAY_PLAN_LIMIT = 100;
 
+/** Görev satırının seçilen sütunları — altı sorguda aynı liste (K-06). */
+const TASK_COLUMNS = `
+      id,
+      organization_id,
+      owner_membership_id,
+      title,
+      detail,
+      due_on,
+      due_time,
+      status,
+      priority,
+      label,
+      estimated_minutes,
+      completed_at,
+      archived_at,
+      created_at,
+      updated_at
+    `;
+
 type RawTaskRow = {
   id: string;
   organization_id: string;
@@ -86,6 +151,11 @@ type RawTaskRow = {
   title: string;
   detail: string | null;
   due_on: string | null;
+  due_time?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  label?: string | null;
+  estimated_minutes?: number | null;
   completed_at: string | null;
   archived_at: string | null;
   created_at: string;
@@ -105,6 +175,36 @@ type RawCalendarEventRow = {
   updated_at: string;
 };
 
+/**
+ * Bilinmeyen durum sessizce "planned" sayılmaz: tamamlanmışsa "done",
+ * değilse "planned". Veritabanı kısıtı zaten başka değere izin vermiyor; bu
+ * yalnız tip güvenliği.
+ */
+function toTaskStatus(
+  value: string | null | undefined,
+  completedAt: string | null
+): TaskStatus {
+  if ((TASK_STATUSES as string[]).includes(value ?? "")) {
+    return value as TaskStatus;
+  }
+  return completedAt ? "done" : "planned";
+}
+
+/** Görev alanlarını veritabanı yüküne çevirir; verilmeyen alan yüke girmez. */
+function taskFieldsPayload(input: TaskFields): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  if (input.detail !== undefined) payload.detail = input.detail?.trim() || null;
+  if (input.dueOn !== undefined) payload.due_on = input.dueOn || null;
+  if (input.dueTime !== undefined) payload.due_time = input.dueTime || null;
+  if (input.status !== undefined) payload.status = input.status;
+  if (input.priority !== undefined) payload.priority = input.priority;
+  if (input.label !== undefined) payload.label = input.label || null;
+  if (input.estimatedMinutes !== undefined) {
+    payload.estimated_minutes = input.estimatedMinutes || null;
+  }
+  return payload;
+}
+
 function mapTaskRow(row: RawTaskRow): TaskItem {
   return {
     id: row.id,
@@ -113,6 +213,16 @@ function mapTaskRow(row: RawTaskRow): TaskItem {
     title: (row.title ?? "").trim(),
     detail: row.detail?.trim() || null,
     dueOn: row.due_on || null,
+    dueTime: row.due_time ? row.due_time.slice(0, 5) : null,
+    status: toTaskStatus(row.status, row.completed_at),
+    priority: (TASK_PRIORITIES as string[]).includes(row.priority ?? "")
+      ? (row.priority as TaskPriority)
+      : "normal",
+    label: (TASK_LABELS as string[]).includes(row.label ?? "")
+      ? (row.label as TaskLabel)
+      : null,
+    estimatedMinutes:
+      typeof row.estimated_minutes === "number" ? row.estimated_minutes : null,
     completedAt: row.completed_at || null,
     archivedAt: row.archived_at || null,
     createdAt: row.created_at,
@@ -224,20 +334,7 @@ export async function loadTasks(
 
   let query = supabase
     .from("tasks")
-    .select(
-      `
-      id,
-      organization_id,
-      owner_membership_id,
-      title,
-      detail,
-      due_on,
-      completed_at,
-      archived_at,
-      created_at,
-      updated_at
-    `
-    )
+    .select(TASK_COLUMNS)
     .eq("organization_id", organizationId)
     .eq("owner_membership_id", membershipId);
 
@@ -276,30 +373,16 @@ export async function createTask(input: CreateTaskInput): Promise<TaskItem> {
   const trimmedTitle = input.title.trim();
 
   const payload = {
+    ...taskFieldsPayload(input),
     organization_id: input.organizationId,
     owner_membership_id: input.ownerMembershipId,
     title: trimmedTitle,
-    detail: input.detail?.trim() || null,
-    due_on: input.dueOn || null,
   };
 
   const { data, error } = await supabase
     .from("tasks")
     .insert(payload)
-    .select(
-      `
-      id,
-      organization_id,
-      owner_membership_id,
-      title,
-      detail,
-      due_on,
-      completed_at,
-      archived_at,
-      created_at,
-      updated_at
-    `
-    )
+    .select(TASK_COLUMNS)
     .single();
 
   if (error) {
@@ -324,24 +407,10 @@ export async function updateTask(
     throw new Error("Kurum ve görev kimliği gereklidir.");
   }
 
-  const payload: {
-    title?: string;
-    detail?: string | null;
-    due_on?: string | null;
-    completed_at?: string | null;
-  } = {};
+  const payload: Record<string, unknown> = taskFieldsPayload(input);
 
   if (input.title !== undefined) {
-    const trimmedTitle = input.title.trim();
-    payload.title = trimmedTitle;
-  }
-
-  if (input.detail !== undefined) {
-    payload.detail = input.detail?.trim() || null;
-  }
-
-  if (input.dueOn !== undefined) {
-    payload.due_on = input.dueOn || null;
+    payload.title = input.title.trim();
   }
 
   if (input.completedAt !== undefined) {
@@ -353,20 +422,7 @@ export async function updateTask(
     .update(payload)
     .eq("organization_id", organizationId)
     .eq("id", taskId)
-    .select(
-      `
-      id,
-      organization_id,
-      owner_membership_id,
-      title,
-      detail,
-      due_on,
-      completed_at,
-      archived_at,
-      created_at,
-      updated_at
-    `
-    );
+    .select(TASK_COLUMNS);
 
   if (error) {
     throw new Error(translateDayPlanError(error));
@@ -393,26 +449,13 @@ export async function completeTask(
     throw new Error("Kurum ve görev kimliği gereklidir.");
   }
 
-  const now = new Date().toISOString();
+  // `completed_at` veritabanı tetikleyicisi tarafından doldurulur.
   const { data, error } = await supabase
     .from("tasks")
-    .update({ completed_at: now })
+    .update({ status: "done" })
     .eq("organization_id", organizationId)
     .eq("id", taskId)
-    .select(
-      `
-      id,
-      organization_id,
-      owner_membership_id,
-      title,
-      detail,
-      due_on,
-      completed_at,
-      archived_at,
-      created_at,
-      updated_at
-    `
-    );
+    .select(TASK_COLUMNS);
 
   if (error) {
     throw new Error(translateDayPlanError(error));
@@ -441,23 +484,11 @@ export async function uncompleteTask(
 
   const { data, error } = await supabase
     .from("tasks")
-    .update({ completed_at: null })
+    // Yeniden açılan görev Bugün'e döner; `completed_at` tetikleyiciyle boşalır.
+    .update({ status: "today" })
     .eq("organization_id", organizationId)
     .eq("id", taskId)
-    .select(
-      `
-      id,
-      organization_id,
-      owner_membership_id,
-      title,
-      detail,
-      due_on,
-      completed_at,
-      archived_at,
-      created_at,
-      updated_at
-    `
-    );
+    .select(TASK_COLUMNS);
 
   if (error) {
     throw new Error(translateDayPlanError(error));
