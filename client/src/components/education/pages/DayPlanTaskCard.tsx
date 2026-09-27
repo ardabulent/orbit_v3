@@ -21,12 +21,21 @@ import { educationKeys } from "@/education/educationQueries";
 import {
   archiveTask,
   completeTask,
+  TASK_STATUSES,
   uncompleteTask,
+  updateTask,
   type TaskItem,
+  type TaskStatus,
 } from "@/education/dayPlanService";
 import { formatTrDate, getOrbitToday } from "@/education/trDate";
 import { Badge } from "../shared";
 import type { DayPlanTask, DayPlanTaskStatus } from "../types";
+import {
+  formatTaskTiming,
+  TASK_LABEL_META,
+  TASK_PRIORITY_META,
+  TASK_STATUS_META,
+} from "./taskBoardMeta";
 
 const statusOptions: DayPlanTaskStatus[] = [
   "Planla",
@@ -129,11 +138,28 @@ export function DayPlanTaskCard({
 
   // Üretim modu: Gerçek TaskItem
   const today = getOrbitToday();
-  const isCompleted = Boolean(task.completedAt);
+  const isCompleted = task.status === "done";
   // 🔴 Vadesi geçti hesabı kurum gününe göredir; ham new Date() kullanılmaz (#290 / trDate.ts)
+  // Gecikmiş görev kendi sütununda kalır; yalnız bu rozet çizilir (karar 2026-09-27).
   const isOverdue = !isCompleted && Boolean(task.dueOn && task.dueOn < today);
   const isDueToday =
     !isCompleted && Boolean(task.dueOn && task.dueOn === today);
+  const timing = formatTaskTiming(task.dueTime, task.estimatedMinutes);
+
+  const handleStatusChange = async (nextStatus: TaskStatus) => {
+    if (!organizationId || loading || nextStatus === task.status) return;
+    setLoading(true);
+    try {
+      await updateTask(organizationId, task.id, { status: nextStatus });
+      await queryClient.invalidateQueries({
+        queryKey: educationKeys.tasks(organizationId, membershipId),
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Görev taşınamadı.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleToggleComplete = async () => {
     if (!organizationId || loading) return;
@@ -190,17 +216,15 @@ export function DayPlanTaskCard({
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
-            {isCompleted ? (
-              <Badge tone="green">Tamamlandı</Badge>
-            ) : isOverdue ? (
-              <Badge tone="rose">Gecikti</Badge>
-            ) : isDueToday ? (
-              <Badge tone="blue">Bugün</Badge>
-            ) : task.dueOn ? (
-              <Badge tone="slate">{formatTrDate(task.dueOn)}</Badge>
-            ) : (
-              <Badge tone="slate">Tarihsiz</Badge>
-            )}
+            <Badge tone={TASK_PRIORITY_META[task.priority].tone}>
+              {TASK_PRIORITY_META[task.priority].label}
+            </Badge>
+            {task.label ? (
+              <Badge tone={TASK_LABEL_META[task.label].tone}>
+                {TASK_LABEL_META[task.label].label}
+              </Badge>
+            ) : null}
+            {isOverdue ? <Badge tone="rose">Gecikti</Badge> : null}
           </div>
 
           <div className="flex items-center gap-1">
@@ -263,12 +287,39 @@ export function DayPlanTaskCard({
           </p>
         ) : null}
 
-        {task.dueOn ? (
-          <div className="mt-3 flex items-center gap-1.5 text-[10px] text-slate-400">
+        <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-slate-400">
+          <span className="flex items-center gap-1">
             <CalendarDays className="h-3 w-3" />
-            <span>Vade: {formatTrDate(task.dueOn)}</span>
-          </div>
-        ) : null}
+            {isDueToday
+              ? "Bugün"
+              : task.dueOn
+                ? formatTrDate(task.dueOn)
+                : "Tarihsiz"}
+          </span>
+          {timing ? (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {timing}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Sütun elle seçilir (C-10, MoneyFlow mantığı). */}
+        <select
+          value={task.status}
+          disabled={loading}
+          aria-label="Görevin sütunu"
+          onChange={event =>
+            void handleStatusChange(event.target.value as TaskStatus)
+          }
+          className="mt-3 h-8 w-full rounded-lg border border-slate-200 bg-slate-50/60 px-2 text-[11px] font-bold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+        >
+          {TASK_STATUSES.map(status => (
+            <option key={status} value={status}>
+              {TASK_STATUS_META[status].label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Arşivleme (Kaldırma) Onay Diyalogu — window.confirm kullanılmaz (#290) */}

@@ -299,6 +299,11 @@ describe("v1.4-13 Gün Planı UI ve K-23 Invariant Testleri", () => {
         title: "Geciken Rapor",
         detail: "Müdüre teslim edilecek",
         dueOn: yesterday,
+        dueTime: null,
+        status: "planned",
+        priority: "high",
+        label: "report",
+        estimatedMinutes: 30,
         completedAt: null,
         archivedAt: null,
         createdAt: "2026-09-10T10:00:00Z",
@@ -312,6 +317,11 @@ describe("v1.4-13 Gün Planı UI ve K-23 Invariant Testleri", () => {
         title: "Bugünkü Görev",
         detail: null,
         dueOn: today,
+        dueTime: "14:00",
+        status: "today",
+        priority: "normal",
+        label: null,
+        estimatedMinutes: null,
         completedAt: null,
         archivedAt: null,
         createdAt: "2026-09-13T10:00:00Z",
@@ -327,6 +337,10 @@ describe("v1.4-13 Gün Planı UI ve K-23 Invariant Testleri", () => {
       );
 
       expect(htmlOverdue).toContain("Gecikti");
+      // Öncelik, etiket ve süre kartta (C-10, MoneyFlow mantığı).
+      expect(htmlOverdue).toContain("Yüksek");
+      expect(htmlOverdue).toContain("Rapor");
+      expect(htmlOverdue).toContain("30 dk");
 
       const htmlToday = renderWithClient(
         createElement(DayPlanTaskCard, {
@@ -337,13 +351,17 @@ describe("v1.4-13 Gün Planı UI ve K-23 Invariant Testleri", () => {
       );
 
       expect(htmlToday).toContain("Bugün");
+      expect(htmlToday).toContain("14:00");
       expect(htmlToday).not.toContain("Gecikti");
     });
   });
 
   describe("7. Üretimde veri yokken boş durum doğru cümleyi söylüyor", () => {
-    it("görev listesi boş olduğunda 'Henüz görev bulunmuyor' başlığı gösterilir", () => {
-      const html = renderWithClient(
+    // C-10 (2026-09-27): boş panoda da dört sütun çizilir; kullanıcı ilk
+    // görevden önce nereye ne ekleyebileceğini görür. Boşluk yine bir hata
+    // gibi gösterilmez (K-22).
+    const renderEmpty = () =>
+      renderWithClient(
         createElement(DayPlanToDoBoard, {
           tasks: [],
           organizationId: "org-1",
@@ -352,12 +370,72 @@ describe("v1.4-13 Gün Planı UI ve K-23 Invariant Testleri", () => {
         })
       );
 
-      expect(html).toContain("Henüz görev bulunmuyor");
+    it("boş panoda dört sütun ve görevin nasıl ekleneceği görünür", () => {
+      const html = renderEmpty();
+
+      for (const label of ["Planla", "Bugün", "Odaklan", "Tamamlandı"]) {
+        expect(html).toContain(label);
+      }
       expect(html).toContain(
-        "Kişisel çalışma alanınız için yeni bir görev ekleyerek başlayın."
+        "Henüz görev yok. Bir sütundaki + ile o sütuna görev ekleyebilirsiniz."
       );
       expect(html).not.toContain("yüklenemedi");
       expect(html).not.toContain("Hata oluştu");
+    });
+
+    it("'+' Tamamlandı dışındaki üç sütunda var", () => {
+      const html = renderEmpty();
+
+      expect(html).toContain('aria-label="Planla sütununa görev ekle"');
+      expect(html).toContain('aria-label="Bugün sütununa görev ekle"');
+      expect(html).toContain('aria-label="Odaklan sütununa görev ekle"');
+      // Yeni görev tamamlanmış doğmaz.
+      expect(html).not.toContain('aria-label="Tamamlandı sütununa görev ekle"');
+    });
+
+    it("olmayan bir şeyden söz edilmez", () => {
+      const html = renderEmpty();
+
+      expect(html).not.toContain("Önemli olanı ilerletin");
+      expect(html).not.toContain("zaman kutusu");
+    });
+  });
+
+  describe("7b. Sütun elle seçilen durumdur, tarihten türetilmez", () => {
+    it("gecikmiş ama 'planned' bir görev Planla'da kalır ve Gecikti rozeti taşır", () => {
+      const overdue: TaskItem = {
+        id: "task-overdue-planned",
+        organizationId: "org-1",
+        ownerMembershipId: "mem-teacher-1",
+        title: "Geciken ama planlanmış",
+        detail: null,
+        dueOn: "2026-09-01",
+        dueTime: null,
+        status: "planned",
+        priority: "normal",
+        label: null,
+        estimatedMinutes: null,
+        completedAt: null,
+        archivedAt: null,
+        createdAt: "2026-09-01T10:00:00Z",
+        updatedAt: "2026-09-01T10:00:00Z",
+      };
+
+      const html = renderWithClient(
+        createElement(DayPlanToDoBoard, {
+          tasks: [overdue],
+          organizationId: "org-1",
+          membershipId: "mem-teacher-1",
+          onAddTask: vi.fn(),
+        })
+      );
+
+      const planla = html.slice(
+        html.indexOf("Planla sütununa görev ekle"),
+        html.indexOf("Bugün sütununa görev ekle")
+      );
+      expect(planla).toContain("Geciken ama planlanmış");
+      expect(planla).toContain("Gecikti");
     });
   });
 
@@ -371,6 +449,11 @@ describe("v1.4-13 Gün Planı UI ve K-23 Invariant Testleri", () => {
           title: "Örnek Görev",
           detail: null,
           dueOn: null,
+          dueTime: null,
+          status: "planned",
+          priority: "normal",
+          label: null,
+          estimatedMinutes: null,
           completedAt: null,
           archivedAt: null,
           createdAt: "2026-09-13T10:00:00Z",

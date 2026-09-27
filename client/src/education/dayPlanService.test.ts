@@ -50,6 +50,11 @@ describe("dayPlanService", () => {
             title: "Öğrenci dosyalarını incele",
             detail: "Detay notu",
             due_on: "2026-09-15",
+            due_time: "14:30:00",
+            status: "focus",
+            priority: "high",
+            label: "parent_meeting",
+            estimated_minutes: 25,
             completed_at: null,
             archived_at: null,
             created_at: "2026-09-13T10:00:00Z",
@@ -85,6 +90,11 @@ describe("dayPlanService", () => {
         title: "Öğrenci dosyalarını incele",
         detail: "Detay notu",
         dueOn: "2026-09-15",
+        dueTime: "14:30",
+        status: "focus",
+        priority: "high",
+        label: "parent_meeting",
+        estimatedMinutes: 25,
         completedAt: null,
         archivedAt: null,
         createdAt: "2026-09-13T10:00:00Z",
@@ -145,11 +155,11 @@ describe("dayPlanService", () => {
         dueOn: "2026-09-16",
       });
 
+      // Verilmeyen alan yüke girmez; veritabanı varsayılanı geçerli olur.
       expect(capturedPayload).toEqual({
         organization_id: "org-1",
         owner_membership_id: "mem-current",
         title: "Veli görüşmesi yap",
-        detail: null,
         due_on: "2026-09-16",
       });
 
@@ -686,6 +696,96 @@ describe("dayPlanService", () => {
         details: "42501 permission denied",
       });
       expect(msg).toContain("Bu işlem için yetkiniz yok");
+    });
+  });
+
+  describe("görev panosu alanları (C-10)", () => {
+    it("durum, öncelik, etiket, saat ve süre yüke doğru adlarla girer", async () => {
+      let capturedPayload: unknown;
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: {
+          id: "t-new",
+          organization_id: "org-1",
+          owner_membership_id: "mem-1",
+          title: "Veli araması",
+          detail: null,
+          due_on: null,
+          status: "focus",
+          priority: "high",
+          label: "parent_meeting",
+          due_time: "09:15:00",
+          estimated_minutes: 15,
+          completed_at: null,
+          archived_at: null,
+          created_at: "2026-09-28T10:00:00Z",
+          updated_at: "2026-09-28T10:00:00Z",
+        },
+        error: null,
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockInsert = vi.fn().mockImplementation(payload => {
+        capturedPayload = payload;
+        return { select: mockSelect };
+      });
+      fromMock.mockReturnValue({ insert: mockInsert });
+
+      const created = await createTask({
+        organizationId: "org-1",
+        ownerMembershipId: "mem-1",
+        title: "Veli araması",
+        status: "focus",
+        priority: "high",
+        label: "parent_meeting",
+        dueTime: "09:15",
+        estimatedMinutes: 15,
+      });
+
+      expect(capturedPayload).toEqual({
+        organization_id: "org-1",
+        owner_membership_id: "mem-1",
+        title: "Veli araması",
+        status: "focus",
+        priority: "high",
+        label: "parent_meeting",
+        due_time: "09:15",
+        estimated_minutes: 15,
+      });
+      expect(created.dueTime).toBe("09:15");
+      expect(created.status).toBe("focus");
+    });
+
+    it("bilinmeyen bir durum sessizce Planla sayılmaz: tamamlanmışsa done", async () => {
+      const mockLimit = vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: "t-old",
+            organization_id: "org-1",
+            owner_membership_id: "mem-1",
+            title: "Eski",
+            detail: null,
+            due_on: null,
+            status: null,
+            completed_at: "2026-09-01T10:00:00Z",
+            archived_at: null,
+            created_at: "2026-09-01T10:00:00Z",
+            updated_at: "2026-09-01T10:00:00Z",
+          },
+        ],
+        error: null,
+      });
+      const mockOrder = vi.fn().mockReturnValue({ limit: mockLimit });
+      const mockIs = vi.fn().mockReturnValue({ order: mockOrder });
+      const mockEqMember = vi.fn().mockReturnValue({ is: mockIs });
+      const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqMember });
+      fromMock.mockReturnValue({
+        select: vi.fn().mockReturnValue({ eq: mockEqOrg }),
+      });
+
+      const result = await loadTasks("org-1", "mem-1");
+
+      expect(result.rows[0].status).toBe("done");
+      expect(result.rows[0].priority).toBe("normal");
+      expect(result.rows[0].label).toBeNull();
     });
   });
 });
