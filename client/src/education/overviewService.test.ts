@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadAdminOverviewCounts,
   loadMyLessonsToday,
+  loadStudentOverview,
+  loadStudentUpcomingHomework,
   loadTeacherOverviewCounts,
   loadTodayLessons,
   mapTodayLessonRow,
@@ -206,5 +208,104 @@ describe("loadMyLessonsToday", () => {
       target_organization_id: "org-1",
     });
     expect(lessons[0].attendanceTaken).toBeNull();
+  });
+});
+
+describe("loadStudentOverview", () => {
+  const baseRow = {
+    lessons_today: 2,
+    homework_due_this_week: "3",
+    homework_due_soon: 2,
+    homework_missed: "1",
+    absent_count: 1,
+    late_count: "1",
+    latest_exam_name: "TYT Deneme 3",
+    latest_exam_date: "2026-09-22",
+    latest_exam_score: "72",
+    latest_exam_max_score: "100",
+  };
+
+  it("passes the student id, not the organization", async () => {
+    rpcMock.mockResolvedValue({ data: [baseRow], error: null });
+
+    const overview = await loadStudentOverview("student-1");
+
+    expect(rpcMock).toHaveBeenCalledWith("student_overview_counts", {
+      target_student_id: "student-1",
+    });
+    expect(overview).toEqual({
+      lessonsToday: 2,
+      homeworkDueThisWeek: 3,
+      homeworkDueSoon: 2,
+      homeworkMissed: 1,
+      absentCount: 1,
+      lateCount: 1,
+      latestExam: {
+        name: "TYT Deneme 3",
+        date: "2026-09-22",
+        score: 72,
+        maxScore: 100,
+      },
+    });
+  });
+
+  it("does not invent a zero score when the student has no exam", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          ...baseRow,
+          latest_exam_name: null,
+          latest_exam_date: null,
+          latest_exam_score: null,
+          latest_exam_max_score: null,
+        },
+      ],
+      error: null,
+    });
+
+    const overview = await loadStudentOverview("student-1");
+    expect(overview?.latestExam).toBeNull();
+  });
+
+  it("returns null when the student is not visible, throws on error", async () => {
+    rpcMock.mockResolvedValueOnce({ data: [], error: null });
+    await expect(loadStudentOverview("student-1")).resolves.toBeNull();
+
+    rpcMock.mockResolvedValueOnce({ data: null, error: { message: "x" } });
+    await expect(loadStudentOverview("student-1")).rejects.toThrow(
+      "Genel bakış sayıları yüklenemedi."
+    );
+  });
+});
+
+describe("loadStudentUpcomingHomework", () => {
+  it("maps rows and keeps an empty subject as null", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          homework_id: "h1",
+          title: "Türev test 3",
+          subject_name: " ",
+          class_name: "12-A",
+          due_date: "2026-09-28",
+        },
+      ],
+      error: null,
+    });
+
+    const homework = await loadStudentUpcomingHomework("student-1");
+
+    expect(rpcMock).toHaveBeenCalledWith("student_upcoming_homework", {
+      target_student_id: "student-1",
+    });
+    expect(homework).toEqual([
+      {
+        id: "h1",
+        title: "Türev test 3",
+        subject: null,
+        className: "12-A",
+        dueDate: "2026-09-28",
+      },
+    ]);
   });
 });

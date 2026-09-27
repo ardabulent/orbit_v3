@@ -71,10 +71,15 @@ import {
 import {
   loadAdminOverviewCounts,
   loadMyLessonsToday,
+  loadStudentLessonsToday,
+  loadStudentOverview,
+  loadStudentUpcomingHomework,
   loadTeacherOverviewCounts,
   loadTodayLessons,
   type AdminOverviewCounts,
+  type StudentOverview,
   type TeacherOverviewCounts,
+  type UpcomingHomework,
   type TodayLesson,
 } from "./overviewService";
 
@@ -145,6 +150,20 @@ export const educationKeys = {
     ["education", "teacherOverview", { organizationId }] as const,
   myLessonsToday: (organizationId: string) =>
     ["education", "myLessonsToday", { organizationId }] as const,
+  studentOverview: (organizationId: string, studentId: string) =>
+    ["education", "studentOverview", { organizationId, studentId }] as const,
+  studentUpcomingHomework: (organizationId: string, studentId: string) =>
+    [
+      "education",
+      "studentUpcomingHomework",
+      { organizationId, studentId },
+    ] as const,
+  studentLessonsToday: (organizationId: string, studentId: string) =>
+    [
+      "education",
+      "studentLessonsToday",
+      { organizationId, studentId },
+    ] as const,
   homework: (organizationId: string) =>
     ["education", "homework", { organizationId }] as const,
   subjects: (
@@ -949,4 +968,61 @@ export function useMyLessonsToday(options?: UseOverviewOptions) {
     enabled: isEnabled,
     staleTime: 0,
   });
+}
+
+export type UseStudentOverviewOptions = {
+  studentId: string | null | undefined;
+  enabled?: boolean;
+};
+
+/**
+ * Bir öğrencinin Genel Bakış verisi. Öğrenci kendi kimliğiyle, veli çocuğunun
+ * kimliğiyle çağırır. Anahtar kurumu da taşır (K-19): aynı öğrenci kimliği
+ * iki kurumda olamaz ama kurum değişince önbellek yine de ayrışmalı.
+ */
+function useStudentScopedQuery<T>(
+  resource:
+    "studentOverview" | "studentUpcomingHomework" | "studentLessonsToday",
+  load: (studentId: string) => Promise<T>,
+  options: UseStudentOverviewOptions
+) {
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId;
+  const studentId = options.studentId;
+  const isEnabled =
+    (options.enabled ?? true) && Boolean(organizationId) && Boolean(studentId);
+
+  return useQuery<T, Error>({
+    queryKey:
+      organizationId && studentId
+        ? educationKeys[resource](organizationId, studentId)
+        : (["education", resource, { organizationId: "" }] as const),
+    queryFn: () => load(studentId as string),
+    enabled: isEnabled,
+    staleTime: 0,
+  });
+}
+
+export function useStudentOverview(options: UseStudentOverviewOptions) {
+  return useStudentScopedQuery<StudentOverview | null>(
+    "studentOverview",
+    loadStudentOverview,
+    options
+  );
+}
+
+export function useStudentUpcomingHomework(options: UseStudentOverviewOptions) {
+  return useStudentScopedQuery<UpcomingHomework[]>(
+    "studentUpcomingHomework",
+    loadStudentUpcomingHomework,
+    options
+  );
+}
+
+export function useStudentLessonsToday(options: UseStudentOverviewOptions) {
+  return useStudentScopedQuery<TodayLesson[]>(
+    "studentLessonsToday",
+    loadStudentLessonsToday,
+    options
+  );
 }
