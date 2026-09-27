@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { OrbitMark } from "@/components/OrbitMark";
-import { Bell, LogOut, Menu, PanelLeft, ShieldCheck, X } from "lucide-react";
+import { LogOut, Menu, PanelLeft, ShieldCheck, X } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { AccountSwitchMenu } from "@/components/auth/AccountSwitchMenu";
@@ -1223,18 +1223,11 @@ export function EducationPlatform({
               </div>
             </div>
             <div className="flex items-center gap-2.5">
-              <button
-                onClick={() =>
-                  toast.info("Bildirimler", {
-                    description:
-                      "2 otomasyon, 1 yoklama ve 3 iletişim bildirimi var.",
-                  })
-                }
-                className="relative grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-900"
-              >
-                <Bell className="h-4 w-4" />
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" />
-              </button>
+              {/* Zil kaldırıldı (v1.5-22): noktası her zaman yanıyordu ve her
+                  kullanıcıya aynı sabit cümleyi gösteriyordu ("2 otomasyon, 1
+                  yoklama ve 3 iletişim bildirimi var"). Bildirim altyapısı yok;
+                  olmayan bir şeyi sayı olarak göstermek K-03. Altyapı kurulunca
+                  geri gelir. */}
               <AccountSwitchMenu />
               {canSwitchRole ? (
                 <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:flex">
