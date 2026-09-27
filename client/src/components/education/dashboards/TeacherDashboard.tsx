@@ -1,13 +1,52 @@
+import {
+  CalendarClock,
+  ClipboardCheck,
+  ClipboardList,
+  GraduationCap,
+  Megaphone,
+  NotebookPen,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { useAuth } from "@/auth/useAuth";
 import { isDemoMode } from "@/auth/runtime";
 import {
-  schedule,
-  teacherFollowUpItems,
-  teacherOverviewStats,
-} from "../educationData";
-import { filterScheduleForTeacher } from "../scopeFilters";
-import { EmptyState, PageHeader, StatCard } from "../shared";
+  useMyLessonsToday,
+  useTeacherOverview,
+} from "@/education/educationQueries";
+import type { TeacherOverviewCounts } from "@/education/overviewService";
+import { ErrorState, StatCard } from "../shared";
 import type { Section } from "../types";
+import {
+  AttentionPanel,
+  DemoNotice,
+  LessonsPanel,
+  OverviewHeader,
+  QuickActions,
+  StatsSkeleton,
+  type AttentionItem,
+  type QuickAction,
+} from "./overviewParts";
+
+/**
+ * Öğretmen Genel Bakış.
+ *
+ * Eskiden kartları ve "Takip önerileri" demo modülünden geliyordu; "Bugünün
+ * dersleri" haftanın gününe bakmadan bütün programı listeliyor ve her satıra
+ * "Yoklama ders başlangıcında açılacak" yazıyordu — böyle bir otomatik
+ * açılma yok (**K-03**). Artık `teacher_overview_counts` ve
+ * `my_lessons_today`'e bağlı (`20261002000000`).
+ *
+ * Öğretmen yalnız **kendi** derslerini görür (karar 2026-09-27); sınıfının
+ * başka öğretmenlere ait dersleri bu listede yok.
+ */
+
+const TEACHER_ACTIONS: QuickAction[] = [
+  { label: "Yoklama al", target: "Yoklama", icon: ClipboardCheck },
+  { label: "Ödev ver", target: "Ödevler", icon: NotebookPen },
+  { label: "Duyuru yaz", target: "İletişim", icon: Megaphone },
+  { label: "Sınav sonucu gir", target: "Sınavlar", icon: Trophy },
+];
 
 export function TeacherDashboard({
   onNavigate,
@@ -15,93 +54,111 @@ export function TeacherDashboard({
   onNavigate: (section: Section) => void;
 }) {
   const { identity } = useAuth();
-  const teacherName = identity?.displayName?.trim()
+  const firstName = identity?.displayName?.trim()
     ? identity.displayName.trim().split(" ")[0]
     : null;
-  const title = teacherName
-    ? `Merhaba ${teacherName}, bugün sınıflarınızla ilerleyin.`
-    : "Bugün sınıflarınızla ilerleyin.";
-
-  const visibleSchedule = filterScheduleForTeacher(schedule, isDemoMode);
+  const overviewQuery = useTeacherOverview({ enabled: !isDemoMode });
+  const lessonsQuery = useMyLessonsToday({ enabled: !isDemoMode });
 
   return (
     <>
-      <PageHeader
+      <OverviewHeader
         eyebrow="Öğretmen çalışma alanı"
-        title={title}
-        description="Ders programı, yoklama ve takip gerektiren öğrenciler burada."
-        action="Yoklama al"
-        actionKind="navigate"
-        onAction={() => onNavigate("Yoklama")}
+        title={
+          firstName
+            ? `Merhaba ${firstName}, bugün sizi neler bekliyor?`
+            : "Bugün sizi neler bekliyor?"
+        }
+        description="Bugünkü dersleriniz, yoklama durumu ve kontrol bekleyen ödevler."
       />
-      {teacherOverviewStats.length > 0 ? (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {teacherOverviewStats.map(stat => (
-            <StatCard
-              key={stat.label}
-              label={stat.label}
-              value={stat.value}
-              detail={stat.detail}
-              icon={stat.icon}
-              tone={stat.tone}
+      {isDemoMode ? (
+        <DemoNotice />
+      ) : (
+        <>
+          {overviewQuery.isPending ? (
+            <StatsSkeleton />
+          ) : overviewQuery.isError || !overviewQuery.data ? (
+            <ErrorState
+              className="mt-5"
+              message="Sayılar alınamadı."
+              onRetry={() => void overviewQuery.refetch()}
             />
-          ))}
-        </div>
-      ) : null}
-      <div
-        className={`mt-6 grid gap-6 ${
-          teacherFollowUpItems.length > 0 ? "xl:grid-cols-[1.3fr_.9fr]" : ""
-        }`}
-      >
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 className="font-display text-[17px] font-extrabold text-slate-900">
-            Bugünün dersleri
-          </h2>
-          <div className="mt-4 space-y-3">
-            {visibleSchedule.length === 0 ? (
-              <EmptyState title="Bugün ders programınız görünmüyor" />
-            ) : null}
-            {visibleSchedule.map(item => (
-              <div
-                key={item.time}
-                className="flex gap-3 rounded-xl border border-slate-100 p-3.5"
-              >
-                <span className="text-[12px] font-extrabold text-slate-600">
-                  {item.time}
-                </span>
-                <div>
-                  <p className="text-[12px] font-bold text-slate-800">
-                    {item.title} · {item.group}
-                  </p>
-                  <p className="mt-1 text-[10px] text-slate-500">
-                    {item.room} · Yoklama ders başlangıcında açılacak
-                  </p>
-                </div>
-              </div>
-            ))}
+          ) : (
+            <TeacherStats counts={overviewQuery.data} />
+          )}
+          <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_1fr]">
+            <AttentionPanel
+              items={
+                overviewQuery.data
+                  ? teacherAttentionItems(overviewQuery.data)
+                  : null
+              }
+              isPending={overviewQuery.isPending}
+              isError={overviewQuery.isError}
+              onNavigate={onNavigate}
+            />
+            <QuickActions actions={TEACHER_ACTIONS} onNavigate={onNavigate} />
           </div>
-        </section>
-        {teacherFollowUpItems.length > 0 ? (
-          <section className="rounded-2xl border border-amber-100 bg-amber-50/55 p-5">
-            <h2 className="text-[15px] font-extrabold text-amber-900">
-              Takip önerileri
-            </h2>
-            <div className="mt-3 space-y-3 text-[11px] text-amber-900">
-              {teacherFollowUpItems.map(item => (
-                <p key={item.id}>
-                  <strong>{item.student}:</strong> {item.note}
-                </p>
-              ))}
-            </div>
-            <button
-              onClick={() => onNavigate("Öğrenciler")}
-              className="mt-4 text-[11px] font-bold text-amber-800 underline underline-offset-4"
-            >
-              Öğrenci profillerini aç
-            </button>
-          </section>
-        ) : null}
-      </div>
+          <LessonsPanel
+            title="Bugünkü derslerim"
+            emptyTitle="Bugün programda dersiniz yok"
+            lessons={lessonsQuery.data}
+            isPending={lessonsQuery.isPending}
+            isError={lessonsQuery.isError}
+            onRetry={() => void lessonsQuery.refetch()}
+            showTeacher={false}
+            onNavigate={onNavigate}
+          />
+        </>
+      )}
     </>
   );
+}
+
+function TeacherStats({ counts }: { counts: TeacherOverviewCounts }) {
+  return (
+    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        label="Sınıflarım"
+        value={String(counts.myClasses)}
+        icon={GraduationCap}
+        tone="violet"
+      />
+      <StatCard
+        label="Öğrencilerim"
+        value={String(counts.myStudents)}
+        icon={Users}
+        tone="blue"
+      />
+      <StatCard
+        label="Bugünkü dersim"
+        value={String(counts.myLessonsToday)}
+        icon={CalendarClock}
+        tone="green"
+      />
+      <StatCard
+        label="Kontrol bekleyen ödev"
+        value={String(counts.homeworkAwaitingMarking)}
+        icon={ClipboardList}
+        tone={counts.homeworkAwaitingMarking ? "rose" : "amber"}
+      />
+    </div>
+  );
+}
+
+function teacherAttentionItems(counts: TeacherOverviewCounts): AttentionItem[] {
+  return [
+    {
+      count: counts.classesMissingAttendanceToday,
+      label: "sınıfın bugünkü yoklaması alınmadı",
+      hint: "Bugün dersiniz olan sınıflar",
+      target: "Yoklama",
+    },
+    {
+      count: counts.homeworkAwaitingMarking,
+      label: "ödevin teslim kontrolü bekliyor",
+      hint: "Teslim tarihi geçti, işaretleme bitirilmedi",
+      target: "Ödevler",
+    },
+  ];
 }

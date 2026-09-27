@@ -70,8 +70,11 @@ import {
 
 import {
   loadAdminOverviewCounts,
+  loadMyLessonsToday,
+  loadTeacherOverviewCounts,
   loadTodayLessons,
   type AdminOverviewCounts,
+  type TeacherOverviewCounts,
   type TodayLesson,
 } from "./overviewService";
 
@@ -138,6 +141,10 @@ export const educationKeys = {
     ["education", "adminOverview", { organizationId }] as const,
   todayLessons: (organizationId: string) =>
     ["education", "todayLessons", { organizationId }] as const,
+  teacherOverview: (organizationId: string) =>
+    ["education", "teacherOverview", { organizationId }] as const,
+  myLessonsToday: (organizationId: string) =>
+    ["education", "myLessonsToday", { organizationId }] as const,
   homework: (organizationId: string) =>
     ["education", "homework", { organizationId }] as const,
   subjects: (
@@ -905,6 +912,40 @@ export function useTodayLessons(options?: UseOverviewOptions) {
       ? educationKeys.todayLessons(organizationId)
       : (["education", "todayLessons", { organizationId: "" }] as const),
     queryFn: () => loadTodayLessons(organizationId as string),
+    enabled: isEnabled,
+    staleTime: 0,
+  });
+}
+
+/** Öğretmen Genel Bakış sayıları. `staleTime: 0` — gerekçe `useAdminOverview`'da. */
+export function useTeacherOverview(options?: UseOverviewOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<TeacherOverviewCounts | null, Error>({
+    queryKey: organizationId
+      ? educationKeys.teacherOverview(organizationId)
+      : (["education", "teacherOverview", { organizationId: "" }] as const),
+    queryFn: () => loadTeacherOverviewCounts(organizationId as string),
+    enabled: isEnabled,
+    staleTime: 0,
+  });
+}
+
+/** Öğretmenin bugünkü dersleri (`my_lessons_today`). */
+export function useMyLessonsToday(options?: UseOverviewOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<TodayLesson[], Error>({
+    queryKey: organizationId
+      ? educationKeys.myLessonsToday(organizationId)
+      : (["education", "myLessonsToday", { organizationId: "" }] as const),
+    queryFn: () => loadMyLessonsToday(organizationId as string),
     enabled: isEnabled,
     staleTime: 0,
   });
