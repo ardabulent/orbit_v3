@@ -313,3 +313,25 @@ export async function loadStudentLessonsToday(
 
   return ((data ?? []) as RawTodayLessonRow[]).map(mapTodayLessonRow);
 }
+
+/**
+ * Bir öğrencinin vadesi geçmiş taksit sayısı (`student_payment_summaries`).
+ *
+ * `null`: satır dönmedi — öğrencinin görülebilir bir ödeme planı yok ya da
+ * çağıran ödemeyi göremiyor. "0 gecikmiş" ile aynı şey değil ve sıfıra
+ * çevrilmez. Fonksiyon invoker; ödeme yalnız yönetici ve veliye açık.
+ */
+export async function loadStudentOverdueInstallments(
+  studentId: string
+): Promise<number | null> {
+  const { data, error } = await supabase.rpc("student_payment_summaries", {
+    target_student_ids: [studentId],
+  });
+
+  if (error) {
+    throw new Error("Ödeme durumu yüklenemedi.");
+  }
+
+  const row = ((data ?? []) as { overdue_count: number | string | null }[])[0];
+  return row ? toCount(row.overdue_count) : null;
+}

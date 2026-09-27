@@ -72,6 +72,7 @@ import {
   loadAdminOverviewCounts,
   loadMyLessonsToday,
   loadStudentLessonsToday,
+  loadStudentOverdueInstallments,
   loadStudentOverview,
   loadStudentUpcomingHomework,
   loadTeacherOverviewCounts,
@@ -156,6 +157,12 @@ export const educationKeys = {
     [
       "education",
       "studentUpcomingHomework",
+      { organizationId, studentId },
+    ] as const,
+  studentOverdueInstallments: (organizationId: string, studentId: string) =>
+    [
+      "education",
+      "studentOverdueInstallments",
       { organizationId, studentId },
     ] as const,
   studentLessonsToday: (organizationId: string, studentId: string) =>
@@ -982,7 +989,10 @@ export type UseStudentOverviewOptions = {
  */
 function useStudentScopedQuery<T>(
   resource:
-    "studentOverview" | "studentUpcomingHomework" | "studentLessonsToday",
+    | "studentOverview"
+    | "studentUpcomingHomework"
+    | "studentLessonsToday"
+    | "studentOverdueInstallments",
   load: (studentId: string) => Promise<T>,
   options: UseStudentOverviewOptions
 ) {
@@ -1023,6 +1033,16 @@ export function useStudentLessonsToday(options: UseStudentOverviewOptions) {
   return useStudentScopedQuery<TodayLesson[]>(
     "studentLessonsToday",
     loadStudentLessonsToday,
+    options
+  );
+}
+
+export function useStudentOverdueInstallments(
+  options: UseStudentOverviewOptions
+) {
+  return useStudentScopedQuery<number | null>(
+    "studentOverdueInstallments",
+    loadStudentOverdueInstallments,
     options
   );
 }
