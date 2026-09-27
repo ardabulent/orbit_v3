@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Edit2, MapPin, Phone, Trash2, Video } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
+  MapPin,
+  Phone,
+  Trash2,
+  Video,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -33,6 +41,12 @@ export type DayPlanAgendaProps = {
   organizationId?: string;
   membershipId?: string;
   onEditEvent?: (event: CalendarEventItem) => void;
+  /**
+   * Gün gün gezinme (C-04). Ay takviminin okları ay değiştirir; burada
+   * olmasaydı bir sonraki güne geçmenin tek yolu ay ızgarasında tıklamaktı.
+   */
+  onShiftDay?: (days: number) => void;
+  onToday?: () => void;
 };
 
 export function DayPlanAgenda({
@@ -41,6 +55,8 @@ export function DayPlanAgenda({
   organizationId = "",
   membershipId = "",
   onEditEvent,
+  onShiftDay,
+  onToday,
 }: DayPlanAgendaProps) {
   const queryClient = useQueryClient();
   const [eventToArchive, setEventToArchive] =
@@ -71,9 +87,40 @@ export function DayPlanAgenda({
       <p className="text-[11px] font-extrabold uppercase tracking-[.1em] text-slate-400">
         Günlük Ajanda
       </p>
-      <p className="mt-1 text-[14px] font-extrabold text-slate-900">
-        {format(selectedDate, "d MMMM yyyy, EEEE", { locale: tr })}
-      </p>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <p className="text-[14px] font-extrabold text-slate-900">
+          {format(selectedDate, "d MMMM yyyy, EEEE", { locale: tr })}
+        </p>
+        {onShiftDay ? (
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onShiftDay(-1)}
+              aria-label="Önceki gün"
+              className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {onToday ? (
+              <button
+                type="button"
+                onClick={onToday}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+              >
+                <span className="text-[11px] font-bold">Bugün</span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => onShiftDay(1)}
+              aria-label="Sonraki gün"
+              className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
+      </div>
       <div className="mt-4 space-y-2.5">
         {events.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-[11px] text-slate-400">

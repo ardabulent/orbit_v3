@@ -1,3 +1,4 @@
+import { formatTime } from "@/education/scheduleService";
 import {
   eachDayOfInterval,
   endOfMonth,
@@ -123,14 +124,17 @@ export function buildMonthDisplayEvents(
 
     const dayLessons = schedule.filter(lesson => lesson.dayOfWeek === dayIso);
     for (const lesson of dayLessons) {
-      const startTime =
-        lesson.startsAt ??
-        (lesson.time ? lesson.time.split("-")[0].trim() : "09:00");
-      const endTime =
+      // Veritabanı saati "09:00:00" döndürüyor; takvimde saniye gösterilmez.
+      const rawEnd =
         lesson.endsAt ??
         (lesson.time && lesson.time.includes("-")
           ? lesson.time.split("-")[1].trim()
           : null);
+      const startTime = formatTime(
+        lesson.startsAt ??
+          (lesson.time ? lesson.time.split("-")[0].trim() : "09:00")
+      );
+      const endTime = rawEnd ? formatTime(rawEnd) : null;
 
       result.push({
         id: `lesson-${lesson.id ?? lesson.title}-${dateStr}-${startTime}`,

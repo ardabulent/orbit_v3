@@ -20,7 +20,7 @@ import { DayPlanToDoBoard } from "./DayPlanToDoBoard";
 import { TaskFormDialog } from "./TaskFormDialog";
 
 const tabs = [
-  { id: "todo", label: "To-Do List" },
+  { id: "todo", label: "Yapılacaklar" },
   { id: "calendar", label: "Takvim" },
 ] as const;
 
@@ -49,6 +49,14 @@ export function DayPlanPage({
 
   // Görev modal durumu
   const [taskFormOpen, setTaskFormOpen] = useState(false);
+  /**
+   * Formlar alanlarını `useState` başlangıç değerinden okuyor, yani yalnız
+   * İLK kuruluşta. Pencere sayfada hep kurulu kaldığı için sonraki açılışlarda
+   * düzenlenen görevin bilgileri ve "+"nın hazır tarihi hiç okunmuyordu:
+   * "Görevi Düzenle" boş açılıyordu (ölçüldü, 2026-09-27). Her açılış yeni bir
+   * `key` alır ve form sıfırdan kurulur.
+   */
+  const [formSession, setFormSession] = useState(0);
   const [taskForEdit, setTaskForEdit] = useState<TaskItem | null>(null);
   const [initialDueOn, setInitialDueOn] = useState<string | null>(null);
 
@@ -93,6 +101,7 @@ export function DayPlanPage({
     }
     setTaskForEdit(null);
     setInitialDueOn(dueOn ?? null);
+    setFormSession(session => session + 1);
     setTaskFormOpen(true);
   };
 
@@ -106,18 +115,21 @@ export function DayPlanPage({
     }
     setEventForEdit(null);
     setInitialEventDate(date ?? null);
+    setFormSession(session => session + 1);
     setCalendarFormOpen(true);
   };
 
   const handleEditTask = (task: TaskItem) => {
     setTaskForEdit(task);
     setInitialDueOn(null);
+    setFormSession(session => session + 1);
     setTaskFormOpen(true);
   };
 
   const handleEditCalendarEvent = (event: CalendarEventItem) => {
     setEventForEdit(event);
     setInitialEventDate(null);
+    setFormSession(session => session + 1);
     setCalendarFormOpen(true);
   };
 
@@ -235,6 +247,7 @@ export function DayPlanPage({
       {/* Görev Oluşturma / Düzenleme Modalı */}
       {isReal ? (
         <TaskFormDialog
+          key={`task-${formSession}`}
           open={taskFormOpen}
           onOpenChange={setTaskFormOpen}
           organizationId={organizationId}
@@ -251,6 +264,7 @@ export function DayPlanPage({
       {/* Takvim Etkinliği Oluşturma / Düzenleme Modalı */}
       {isReal ? (
         <CalendarEventFormDialog
+          key={`event-${formSession}`}
           open={calendarFormOpen}
           onOpenChange={setCalendarFormOpen}
           organizationId={organizationId}

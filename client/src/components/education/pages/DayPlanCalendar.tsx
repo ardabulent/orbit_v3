@@ -1,5 +1,12 @@
 import { useMemo, useState } from "react";
-import { addMonths, format, startOfMonth, subMonths } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  format,
+  isSameMonth,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
 import { tr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { CalendarEventItem } from "@/education/dayPlanService";
@@ -44,6 +51,15 @@ export function DayPlanCalendar({
     const today = new Date();
     setCurrentMonth(startOfMonth(today));
     setSelectedDate(today);
+  };
+
+  // Gün listesi ay sınırını geçerse ay ızgarası da onu izler (C-04).
+  const shiftDay = (days: number) => {
+    const next = addDays(selectedDate, days);
+    setSelectedDate(next);
+    if (!isSameMonth(next, currentMonth)) {
+      setCurrentMonth(startOfMonth(next));
+    }
   };
 
   const displayEvents: (DayPlanEvent | DayPlanDisplayEvent)[] = useMemo(() => {
@@ -102,9 +118,11 @@ export function DayPlanCalendar({
             </button>
             <button
               onClick={goToday}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100"
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:bg-slate-100"
             >
-              Bugün
+              {/* Yazı boyutu span'da: `index.css`'teki katmansız
+                  `button { font: inherit }` düğmedeki boyutu eziyor. */}
+              <span className="text-[11px] font-bold">Bugün</span>
             </button>
             <button
               onClick={() => setCurrentMonth(current => addMonths(current, 1))}
@@ -131,6 +149,8 @@ export function DayPlanCalendar({
           organizationId={organizationId}
           membershipId={membershipId}
           onEditEvent={onEditEvent}
+          onShiftDay={shiftDay}
+          onToday={goToday}
         />
       </section>
     </div>
