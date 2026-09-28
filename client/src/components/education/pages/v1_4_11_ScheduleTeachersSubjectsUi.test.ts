@@ -415,6 +415,19 @@ describe("v1.4-11 Arayüz ve Sözleşme Testleri (#287 / K-23)", () => {
       expect(kod).toContain("err instanceof Error");
     });
 
+    it("AddSubjectDialog translateSubjectError çağırmaz, servisin cümlesini taşır", () => {
+      const dosya = readFileSync(
+        path.join(import.meta.dirname, "AddSubjectDialog.tsx"),
+        "utf8"
+      );
+      const kod = dosya
+        .replace(/\/\*[\s\S]*?\*\//g, " ")
+        .replace(/(^|[^:])\/\/[^\n]*/gm, "$1");
+
+      expect(kod).not.toContain("translateSubjectError");
+      expect(kod).toContain("err instanceof Error");
+    });
+
     it("ClassTeachersDialog translateClassTeacherError çağırmaz, servisin cümlesini taşır", () => {
       const dosya = readFileSync(
         path.join(import.meta.dirname, "ClassTeachersDialog.tsx"),

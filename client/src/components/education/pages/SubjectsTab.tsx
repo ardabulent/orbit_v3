@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   archiveSubject,
-  createSubject,
   DEFAULT_SUBJECT_LIMIT,
   restoreSubject,
   updateSubject,
@@ -24,6 +23,7 @@ import {
 } from "@/education/subjectService";
 import { educationKeys, useSubjects } from "@/education/educationQueries";
 import { Badge } from "../shared";
+import { AddSubjectDialog } from "./AddSubjectDialog";
 import {
   describeSubjectUsage,
   usageFor,
@@ -69,11 +69,6 @@ export function SubjectsTab({
   const subjects = subjectsResult?.rows ?? [];
   const truncated = Boolean(subjectsResult?.truncated);
 
-  // Ekleme diyalogu durumu — açıklık sayfada (başlıktaki düğme açar)
-  const [newName, setNewName] = useState("");
-  const [addLoading, setAddLoading] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
-
   // Düzenleme diyalogu durumu
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [editName, setEditName] = useState("");
@@ -109,47 +104,6 @@ export function SubjectsTab({
         queryKey: educationKeys.exams(organizationId),
       }),
     ]);
-  };
-
-  // Form kapanırken sıfırlanır; açan düğme sayfa başlığında olduğu için
-  // açılış anını bu bileşen görmez.
-  const setAddOpen = (open: boolean) => {
-    if (!open) {
-      setNewName("");
-      setAddError(null);
-    }
-    onAddOpenChange(open);
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!organizationId) return;
-
-    const trimmed = newName.trim();
-    if (trimmed.length < 1 || trimmed.length > 80) {
-      setAddError("Ders adı 1 ile 80 karakter arasında olmalıdır.");
-      return;
-    }
-
-    setAddLoading(true);
-    setAddError(null);
-
-    try {
-      const created = await createSubject({
-        organizationId,
-        name: trimmed,
-      });
-
-      await invalidateSubjectQueries();
-      setAddOpen(false);
-      toast.success("Ders oluşturuldu", {
-        description: `"${created.name}" dersi başarıyla eklendi.`,
-      });
-    } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Ders oluşturulamadı.");
-    } finally {
-      setAddLoading(false);
-    }
   };
 
   const handleOpenEdit = (sub: Subject) => {
@@ -347,62 +301,15 @@ export function SubjectsTab({
         )}
       </div>
 
-      {/* Yeni Ders Ekle Diyalogu */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={handleCreate}>
-            <DialogHeader>
-              <DialogTitle>Yeni Ders Ekle</DialogTitle>
-              <DialogDescription>
-                Kurumunuza yeni bir ders ekleyin. Ders adı aktif dersler
-                arasında benzersiz olmalıdır.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="new-subject-name">Ders Adı</Label>
-                <Input
-                  id="new-subject-name"
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  placeholder="Örn: Matematik, Fizik, Türkçe"
-                  disabled={addLoading}
-                  maxLength={80}
-                  autoFocus
-                />
-              </div>
-
-              {addError ? (
-                <div
-                  role="alert"
-                  className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300"
-                >
-                  {addError}
-                </div>
-              ) : null}
-            </div>
-
-            <DialogFooter>
-              <button
-                type="button"
-                onClick={() => setAddOpen(false)}
-                disabled={addLoading}
-                className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
-              >
-                Vazgeç
-              </button>
-              <button
-                type="submit"
-                disabled={addLoading}
-                className="inline-flex h-9 items-center justify-center rounded-lg bg-blue-600 px-4 text-[12px] font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
-              >
-                {addLoading ? "Ekleniyor…" : "Ders Ekle"}
-              </button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddSubjectDialog
+        open={addOpen}
+        onOpenChange={onAddOpenChange}
+        organizationId={organizationId}
+        existingNames={subjects
+          .filter(sub => !sub.archivedAt)
+          .map(sub => sub.name)}
+        onCreated={invalidateSubjectQueries}
+      />
 
       {/* Ders Düzenle Diyalogu */}
       <Dialog
