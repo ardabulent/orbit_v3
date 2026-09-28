@@ -20,7 +20,9 @@ import {
 import {
   loadAttendanceHistory,
   loadLatestAttendanceSession,
+  loadStudentAttendanceRecords,
   type AttendanceHistoryResult,
+  type StudentAttendanceRecord,
   type LatestAttendanceSessionResult,
 } from "./attendanceService";
 import { loadLatestExam, type LatestExamResult } from "./examService";
@@ -124,6 +126,16 @@ export const educationKeys = {
     ["education", "classEnrollments", { organizationId, classId }] as const,
   schedule: (organizationId: string) =>
     ["education", "schedule", { organizationId }] as const,
+  studentAttendance: (
+    organizationId: string,
+    studentId: string,
+    since: string
+  ) =>
+    [
+      "education",
+      "studentAttendance",
+      { organizationId, studentId, since },
+    ] as const,
   attendanceHistory: (
     organizationId: string,
     options?: { since?: string; classId?: string | null }
@@ -1004,6 +1016,37 @@ export function useTeacherOverview(options?: UseOverviewOptions) {
 }
 
 /** Öğretmenin bugünkü dersleri (`my_lessons_today`). */
+/** Bir öğrencinin `since`'ten bu yana yoklama kayıtları (Genel Bakış). */
+export function useStudentAttendanceRecords(options: {
+  studentId: string;
+  since: string;
+  organizationId?: string;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId =
+    options.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options.enabled ?? true) &&
+    Boolean(organizationId) &&
+    Boolean(options.studentId);
+
+  return useQuery<StudentAttendanceRecord[], Error>({
+    queryKey: educationKeys.studentAttendance(
+      organizationId ?? "",
+      options.studentId,
+      options.since
+    ),
+    queryFn: () =>
+      loadStudentAttendanceRecords(
+        organizationId as string,
+        options.studentId,
+        options.since
+      ),
+    enabled: isEnabled,
+  });
+}
+
 /** Geçmiş yoklama oturumları, durum sayılarıyla (Yoklama · Geçmiş). */
 export function useAttendanceHistory(options: {
   since: string;

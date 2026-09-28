@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { AttendanceState } from "@/components/education/types";
 import {
+  ATTENDANCE_DB_STATUSES,
   dbStatusToAttendanceState,
   type AttendanceDbStatus,
 } from "./attendanceStatus";
@@ -733,4 +734,88 @@ export async function saveAttendance(
   }
 
   return typeof data === "number" ? data : Number(data) || 0;
+}
+
+export type StudentAttendanceRecord = {
+  id: string;
+  status: AttendanceDbStatus;
+  sessionDate: string;
+  /** "HH:MM:SS"; günlük oturumda `null`. */
+  startsAt: string | null;
+  subjectName: string | null;
+  className: string | null;
+};
+
+export const DEFAULT_STUDENT_ATTENDANCE_LIMIT = 500;
+
+/**
+ * Bir öğrencinin `since` tarihinden bu yana yoklama kayıtları, en yeni önce.
+ * Öğrenci kendi kayıtlarını, veli çocuğununkileri, öğretmen ve yönetici
+ * kapsamındakileri görür — kapsam RLS'tedir
+ * (`attendance_records_select_*`, `attendance_sessions_select_*`).
+ * Arşivli oturumun kaydı sayılmaz. Hata fırlatılır (K-22).
+ */
+export async function loadStudentAttendanceRecords(
+  organizationId: string,
+  studentId: string,
+  since: string,
+  limit = DEFAULT_STUDENT_ATTENDANCE_LIMIT
+): Promise<StudentAttendanceRecord[]> {
+  if (!organizationId || !studentId) return [];
+
+  const { data, error } = await supabase
+    .from("attendance_records")
+    .select(
+      "id, status, attendance_sessions!inner(session_date, starts_at, archived_at, subjects(name), classes(name))"
+    )
+    .eq("organization_id", organizationId)
+    .eq("student_id", studentId)
+    .gte("attendance_sessions.session_date", since)
+    .is("attendance_sessions.archived_at", null)
+    .limit(limit);
+
+  if (error) {
+    throw new Error(translateAttendanceError(error));
+  }
+
+  type Raw = {
+    id: string;
+    status: string;
+    attendance_sessions: unknown;
+  };
+
+  const rows: StudentAttendanceRecord[] = [];
+  for (const row of (data ?? []) as Raw[]) {
+    const session = (
+      Array.isArray(row.attendance_sessions)
+        ? row.attendance_sessions[0]
+        : row.attendance_sessions
+    ) as
+      | {
+          session_date: string;
+          starts_at: string | null;
+          subjects?: unknown;
+          classes?: unknown;
+        }
+      | null
+      | undefined;
+    if (!session) continue;
+    if (!(ATTENDANCE_DB_STATUSES as readonly string[]).includes(row.status))
+      continue;
+    rows.push({
+      id: row.id,
+      status: row.status as AttendanceDbStatus,
+      sessionDate: session.session_date,
+      startsAt: session.starts_at,
+      subjectName: extractActiveName(session.subjects),
+      className: extractActiveName(session.classes),
+    });
+  }
+
+  rows.sort(
+    (a, b) =>
+      b.sessionDate.localeCompare(a.sessionDate) ||
+      (b.startsAt ?? "").localeCompare(a.startsAt ?? "")
+  );
+  return rows;
 }
