@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  BookOpen,
-  Edit2,
-  Plus,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
+import { AlertTriangle, Edit2, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/auth/useAuth";
 import {
@@ -31,8 +24,32 @@ import {
 } from "@/education/subjectService";
 import { educationKeys, useSubjects } from "@/education/educationQueries";
 import { Badge } from "../shared";
+import {
+  describeSubjectUsage,
+  usageFor,
+  type SubjectUsage,
+} from "./subjectUsage";
 
-export function SettingsSubjectsSection() {
+/**
+ * Sınıflar · Dersler alt sekmesi (karar 2026-09-28; eskiden Ayarlar'ın
+ * altındaki "Ders Yönetimi" bölümüydü, #287).
+ *
+ * "Yeni ders" düğmesi sayfa başlığındadır (Öğrenciler · Veliler ile aynı
+ * düzen: sekme başına tek ekleme düğmesi). Diyalog burada yaşar; açık olup
+ * olmadığını sayfa tutar.
+ *
+ * Her dersin altında ders programındaki yeri yazılır; programda hiç yer
+ * almayan ders böylece görünür olur.
+ */
+export function SubjectsTab({
+  addOpen,
+  onAddOpenChange,
+  usage = new Map(),
+}: {
+  addOpen: boolean;
+  onAddOpenChange: (open: boolean) => void;
+  usage?: Map<string, SubjectUsage>;
+}) {
   const { identity } = useAuth();
   const queryClient = useQueryClient();
   const organizationId = identity?.membership?.organizationId;
@@ -52,8 +69,7 @@ export function SettingsSubjectsSection() {
   const subjects = subjectsResult?.rows ?? [];
   const truncated = Boolean(subjectsResult?.truncated);
 
-  // Ekleme diyalogu durumu
-  const [addOpen, setAddOpen] = useState(false);
+  // Ekleme diyalogu durumu — açıklık sayfada (başlıktaki düğme açar)
   const [newName, setNewName] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
@@ -95,10 +111,14 @@ export function SettingsSubjectsSection() {
     ]);
   };
 
-  const handleOpenAdd = () => {
-    setNewName("");
-    setAddError(null);
-    setAddOpen(true);
+  // Form kapanırken sıfırlanır; açan düğme sayfa başlığında olduğu için
+  // açılış anını bu bileşen görmez.
+  const setAddOpen = (open: boolean) => {
+    if (!open) {
+      setNewName("");
+      setAddError(null);
+    }
+    onAddOpenChange(open);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -216,43 +236,17 @@ export function SettingsSubjectsSection() {
   };
 
   return (
-    <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-slate-500" />
-            <h3 className="font-display text-[16px] font-bold text-slate-900 dark:text-slate-100">
-              Ders Yönetimi
-            </h3>
-          </div>
-          <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
-            Kurumunuzda okutulan dersleri yönetin, yeni ders ekleyin veya
-            kapatılanları görüntüleyin.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-[12px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={e => setShowArchived(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            Kapatılanları göster
-          </label>
-
-          {isAdmin ? (
-            <button
-              type="button"
-              onClick={handleOpenAdd}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 text-[12px] font-bold text-white transition hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Yeni Ders</span>
-            </button>
-          ) : null}
-        </div>
+    <div className="mt-6">
+      <div className="flex justify-end">
+        <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-slate-600 dark:text-slate-300">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={e => setShowArchived(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          Kapatılanları göster
+        </label>
       </div>
 
       {truncated ? (
@@ -295,11 +289,20 @@ export function SettingsSubjectsSection() {
                   key={sub.id}
                   className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="font-medium text-slate-900 dark:text-slate-100 text-[13px]">
-                      {sub.name}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-3">
+                      <div className="text-[13px] font-medium text-slate-900 dark:text-slate-100">
+                        {sub.name}
+                      </div>
+                      {isArchived ? (
+                        <Badge tone="slate">Kapatıldı</Badge>
+                      ) : null}
                     </div>
-                    {isArchived ? <Badge tone="slate">Kapatıldı</Badge> : null}
+                    {!isArchived ? (
+                      <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                        {describeSubjectUsage(usageFor(usage, sub.id))}
+                      </div>
+                    ) : null}
                   </div>
 
                   {isAdmin ? (

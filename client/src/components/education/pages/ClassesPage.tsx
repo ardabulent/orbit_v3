@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ChevronRight, School } from "lucide-react";
 import { isDemoMode } from "@/auth/runtime";
 import { filterClassesForRole } from "../scopeFilters";
@@ -11,6 +12,8 @@ import {
 import type { ClassGroup, Role } from "../types";
 import { summaryFor, type ClassSummary } from "./classSummaries";
 import { TodayAttendanceBadge } from "./TodayAttendanceBadge";
+import { SubjectsTab } from "./SubjectsTab";
+import type { SubjectUsage } from "./subjectUsage";
 
 /**
  * Sınıflar listesi.
@@ -22,6 +25,10 @@ import { TodayAttendanceBadge } from "./TodayAttendanceBadge";
  *
  * Karttaki özet (haftalık ders, dersler ve öğretmenleri, bugünkü yoklama)
  * ders programından ve bugünün derslerinden türetilir (`classSummaries`).
+ *
+ * Yöneticide iki alt sekme var: Sınıflar ve Dersler (karar 2026-09-28;
+ * Dersler eskiden Ayarlar'daydı). Her sekmenin tek ekleme düğmesi sayfa
+ * başlığındadır — Öğrenciler · Veliler ile aynı düzen.
  */
 export function ClassesPage({
   role,
@@ -34,6 +41,7 @@ export function ClassesPage({
   onAdd,
   onOpen,
   summaries = new Map(),
+  subjectUsage,
 }: {
   role: Role;
   classes: ClassGroup[];
@@ -47,17 +55,116 @@ export function ClassesPage({
   onOpen: (cls: ClassGroup) => void;
   /** Platformdan gelir (`buildClassSummaries`); panel de aynısını kullanır. */
   summaries?: Map<string, ClassSummary>;
+  /** Dersler sekmesinde her dersin programdaki yeri (`buildSubjectUsage`). */
+  subjectUsage?: Map<string, SubjectUsage>;
 }) {
+  const [activeTab, setActiveTab] = useState<"classes" | "subjects">("classes");
+  const [subjectAddOpen, setSubjectAddOpen] = useState(false);
+  const isAdmin = role === "admin";
+  const onSubjects = isAdmin && activeTab === "subjects";
   const shown = filterClassesForRole(classList, role, isDemoMode);
   return (
     <>
       <PageHeader
         eyebrow="Akademik organizasyon"
-        title="Sınıflar ve gruplar"
-        description="Sınıfların öğrencilerini, derslerini ve bugünkü yoklamasını izleyin. Ayrıntı için sınıfa tıklayın."
-        action={role === "admin" ? "Yeni sınıf" : undefined}
-        onAction={role === "admin" ? onAdd : undefined}
+        title={onSubjects ? "Dersler" : "Sınıflar ve gruplar"}
+        description={
+          onSubjects
+            ? "Kurumda okutulan dersler ve ders programındaki yerleri."
+            : "Sınıfların öğrencilerini, derslerini ve bugünkü yoklamasını izleyin. Ayrıntı için sınıfa tıklayın."
+        }
+        action={isAdmin ? (onSubjects ? "Yeni ders" : "Yeni sınıf") : undefined}
+        onAction={
+          isAdmin
+            ? onSubjects
+              ? () => setSubjectAddOpen(true)
+              : onAdd
+            : undefined
+        }
       />
+      {isAdmin ? (
+        <div className="mt-4 flex border-b border-slate-200">
+          <SubTab
+            active={activeTab === "classes"}
+            onClick={() => setActiveTab("classes")}
+          >
+            Sınıflar
+          </SubTab>
+          <SubTab
+            active={activeTab === "subjects"}
+            onClick={() => setActiveTab("subjects")}
+          >
+            Dersler
+          </SubTab>
+        </div>
+      ) : null}
+      {onSubjects ? (
+        <SubjectsTab
+          addOpen={subjectAddOpen}
+          onAddOpenChange={setSubjectAddOpen}
+          usage={subjectUsage}
+        />
+      ) : (
+        <ClassesList
+          shown={shown}
+          isLoading={isLoading}
+          error={error}
+          onRetry={onRetry}
+          truncated={truncated}
+          limit={limit}
+          summaries={summaries}
+          onOpen={onOpen}
+        />
+      )}
+    </>
+  );
+}
+
+function SubTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`border-b-2 px-4 py-2.5 transition ${
+        active
+          ? "border-slate-900 text-slate-900"
+          : "border-transparent text-slate-500 hover:text-slate-800"
+      }`}
+    >
+      <span className="text-xs font-bold">{children}</span>
+    </button>
+  );
+}
+
+function ClassesList({
+  shown,
+  isLoading,
+  error,
+  onRetry,
+  truncated,
+  limit,
+  summaries,
+  onOpen,
+}: {
+  shown: ClassGroup[];
+  isLoading: boolean;
+  error: Error | null;
+  onRetry?: () => void;
+  truncated: boolean;
+  limit?: number;
+  summaries: Map<string, ClassSummary>;
+  onOpen: (cls: ClassGroup) => void;
+}) {
+  return (
+    <>
       {truncated ? (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
           Liste üst sınıra ({limit} kayıt) ulaştı.
