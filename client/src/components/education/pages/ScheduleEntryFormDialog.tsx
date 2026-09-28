@@ -29,6 +29,10 @@ export type ScheduleEntryFormDialogProps = {
   classes: { id: string; name: string }[];
   entry?: ScheduleItem | null;
   defaultDay?: WeekDay;
+  /** Tablodaki boş hücreden eklerken o hücrenin saati ("09:00"). */
+  defaultStartsAt?: string;
+  /** Sınıf süzgeci seçiliyken yeni satır o sınıfla açılır. */
+  defaultClassId?: string;
   onDone?: () => void;
 };
 
@@ -39,6 +43,8 @@ export function ScheduleEntryFormDialog({
   classes,
   entry,
   defaultDay = "Pazartesi",
+  defaultStartsAt,
+  defaultClassId,
   onDone,
 }: ScheduleEntryFormDialogProps) {
   const queryClient = useQueryClient();
@@ -103,9 +109,13 @@ export function ScheduleEntryFormDialog({
       setMembershipId(entry.membershipId || "");
       setRoom(entry.room || "");
     } else {
-      setClassId(classes[0]?.id || "");
+      setClassId(
+        (defaultClassId && classes.some(c => c.id === defaultClassId)
+          ? defaultClassId
+          : classes[0]?.id) || ""
+      );
       setDay(defaultDay);
-      setStartsAt("09:00");
+      setStartsAt(defaultStartsAt ?? "09:00");
       setEndsAt("");
       setSubjectMode("subject");
       setSubjectId(subjects[0]?.id || "");
@@ -114,7 +124,15 @@ export function ScheduleEntryFormDialog({
       setRoom("");
     }
     setError(null);
-  }, [open, entry, defaultDay, classes, subjects]);
+  }, [
+    open,
+    entry,
+    defaultDay,
+    defaultStartsAt,
+    defaultClassId,
+    classes,
+    subjects,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
