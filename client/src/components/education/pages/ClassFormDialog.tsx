@@ -19,6 +19,8 @@ import {
 import { createClass, updateClass } from "@/education/classService";
 import { educationKeys } from "@/education/educationQueries";
 import type { ClassGroup } from "../types";
+import { eligibleTeachers } from "./teacherEligibility";
+import { TeacherOptionGroups } from "./TeacherOptionGroups";
 
 export type ClassFormDialogProps = {
   open: boolean;
@@ -58,7 +60,7 @@ export function ClassFormDialog({
   // Rehber öğretmen listesi: Kural gereği yalnız admin ve teacher rolleri seçilebilir
   // Öğrenci veya veli üyeliği listelenmez (ORB03 hatasını baştan engellemek için)
   const eligibleMentors = useMemo(() => {
-    return memberList.filter(m => m.role === "admin" || m.role === "teacher");
+    return eligibleTeachers(memberList);
   }, [memberList]);
 
   const branchError =
@@ -324,12 +326,7 @@ export function ClassFormDialog({
               className="h-10 rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Seçilmedi</option>
-              {eligibleMentors.map(member => (
-                <option key={member.membershipId} value={member.membershipId}>
-                  {member.displayName || "adı okunamadı"} (
-                  {member.role === "admin" ? "Yönetici" : "Öğretmen"})
-                </option>
-              ))}
+              <TeacherOptionGroups members={eligibleMentors} />
             </select>
             <p className="text-[11px] text-muted-foreground">
               Yalnızca öğretmen veya yönetici rolündeki üyeler seçilebilir.

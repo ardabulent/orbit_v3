@@ -19,6 +19,8 @@ import {
 } from "@/education/scheduleService";
 import { WEEK_DAYS, weekDayToIso, type WeekDay } from "@/education/weekDays";
 import type { ScheduleItem } from "../types";
+import { eligibleTeachers } from "./teacherEligibility";
+import { TeacherOptionGroups } from "./TeacherOptionGroups";
 
 export type ScheduleEntryFormDialogProps = {
   open: boolean;
@@ -70,9 +72,7 @@ export function ScheduleEntryFormDialog({
     organizationId,
     enabled: open,
   });
-  const eligibleMembers = (membersQuery.data ?? []).filter(
-    m => m.role === "admin" || m.role === "teacher"
-  );
+  const eligibleMembers = eligibleTeachers(membersQuery.data ?? []);
 
   useEffect(() => {
     if (!open) {
@@ -352,11 +352,7 @@ export function ScheduleEntryFormDialog({
                   className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-[12px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Öğretmensiz</option>
-                  {eligibleMembers.map(m => (
-                    <option key={m.membershipId} value={m.membershipId}>
-                      {m.displayName || "İsimsiz"}
-                    </option>
-                  ))}
+                  <TeacherOptionGroups members={eligibleMembers} />
                 </select>
               </div>
 

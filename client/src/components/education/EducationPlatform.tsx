@@ -156,7 +156,16 @@ export function EducationPlatform({
   // zaten çekmece olarak açılıp kapanıyor.
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [query, setQuery] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  /**
+   * Yalnız hangi öğrencinin açık olduğunu tutar. Panelin gösterdiği öğrenci
+   * aşağıda listenin GÜNCEL satırından türetilir (`selectedStudent`).
+   *
+   * Eskiden tıklandığı andaki kopya gösteriliyordu: hesap ya da veli
+   * bağlandıktan sonra liste tazelense bile panel "Hesap bağlı değil" demeye
+   * devam ediyordu (ROADMAP §4.23 C-03).
+   */
+  const [selectedStudentSnapshot, setSelectedStudentSnapshot] =
+    useState<Student | null>(null);
   const [attendances, setAttendances] = useState<
     Record<string, AttendanceState>
   >(() => readDemoData("attendances", initialAttendances));
@@ -354,9 +363,12 @@ export function EducationPlatform({
     enabled: role === "admin" && !isDemoMode,
   });
 
-  const studentGuardiansQuery = useStudentGuardians(selectedStudent?.id ?? "", {
-    enabled: Boolean(selectedStudent?.id) && !isDemoMode,
-  });
+  const studentGuardiansQuery = useStudentGuardians(
+    selectedStudentSnapshot?.id ?? "",
+    {
+      enabled: Boolean(selectedStudentSnapshot?.id) && !isDemoMode,
+    }
+  );
 
   const handleArchiveGuardian = async (guardian: Guardian) => {
     try {
@@ -414,7 +426,8 @@ export function EducationPlatform({
           queryKey: ["settings", "members", { organizationId }],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["organization-members", organizationId],
+          // Öğrenci detayındaki velinin hesap rozeti bu sorgudan gelir (C-03).
+          queryKey: educationKeys.studentGuardians(organizationId),
         }),
       ]);
     } catch (err) {
@@ -436,7 +449,8 @@ export function EducationPlatform({
           queryKey: ["settings", "members", { organizationId }],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["organization-members", organizationId],
+          // Öğrenci detayındaki velinin hesap rozeti bu sorgudan gelir (C-03).
+          queryKey: educationKeys.studentGuardians(organizationId),
         }),
       ]);
     } catch (err) {
@@ -487,7 +501,7 @@ export function EducationPlatform({
                   queryClient.invalidateQueries({
                     queryKey: educationKeys.studentGuardians(
                       organizationId,
-                      selectedStudent?.id
+                      selectedStudentSnapshot?.id
                     ),
                   }),
                   queryClient.invalidateQueries({
@@ -508,7 +522,7 @@ export function EducationPlatform({
         queryClient.invalidateQueries({
           queryKey: educationKeys.studentGuardians(
             organizationId,
-            selectedStudent?.id
+            selectedStudentSnapshot?.id
           ),
         }),
         queryClient.invalidateQueries({
@@ -550,6 +564,16 @@ export function EducationPlatform({
     }
     return studentsQuery.data?.rows ?? [];
   }, [studentsQuery.data?.rows]);
+
+  // Liste tazelenince panel de tazelenir (C-03). Öğrenci arama yüzünden
+  // listeden düştüyse son bilinen hâli gösterilir; boş panel çizilmez.
+  const selectedStudent = useMemo(() => {
+    if (!selectedStudentSnapshot) return null;
+    return (
+      activeStudents.find(item => item.id === selectedStudentSnapshot.id) ??
+      selectedStudentSnapshot
+    );
+  }, [activeStudents, selectedStudentSnapshot]);
 
   const activeClasses = useMemo(() => {
     if (isDemoMode) {
@@ -728,7 +752,7 @@ export function EducationPlatform({
           students={visibleStudents}
           query={query}
           onQuery={setQuery}
-          onSelect={setSelectedStudent}
+          onSelect={setSelectedStudentSnapshot}
           isLoading={!isDemoMode && studentsQuery.isLoading}
           error={!isDemoMode ? studentsQuery.error : null}
           onRetry={!isDemoMode ? () => void studentsQuery.refetch() : undefined}
@@ -1285,7 +1309,7 @@ export function EducationPlatform({
       {selectedStudent ? (
         <StudentDetail
           student={selectedStudent}
-          onClose={() => setSelectedStudent(null)}
+          onClose={() => setSelectedStudentSnapshot(null)}
           role={role}
           studentGuardians={
             !isDemoMode ? (studentGuardiansQuery.data ?? []) : undefined

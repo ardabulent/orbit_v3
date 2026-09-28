@@ -101,6 +101,15 @@ export function MemberCreateDialog({
     if (submitting) {
       return;
     }
+    // Üye oluşturulduktan sonra pencere "Tamam" dışında bir yolla (X,
+    // dışarı tıklama, Esc) kapatılırsa da `onDone` çalışır: listeler
+    // yalnız "Tamam"da tazeleniyordu ve yeni hesap "Hesap bağla" listesine
+    // düşmüyordu (ROADMAP §4.23 C-02/C-05).
+    if (!next && credentials) {
+      reset();
+      onDone();
+      return;
+    }
     if (!next) {
       reset();
     }
