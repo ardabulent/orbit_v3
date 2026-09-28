@@ -628,7 +628,7 @@ describe("StudentsPage states (v1.4-01 CRUD & K-22 rozet & bağlama)", () => {
     },
   ];
 
-  it("K-22: hesabı olmayan öğrencide 'Hesap bağlı değil' rozeti gösterir, bağlı olanda göstermez", () => {
+  it("K-22: hesabı olmayan öğrencide 'Hesap yok' rozeti gösterir, bağlı olanda göstermez", () => {
     const html = renderToStaticMarkup(
       createElement(StudentsPage, {
         role: "admin",
@@ -640,7 +640,8 @@ describe("StudentsPage states (v1.4-01 CRUD & K-22 rozet & bağlama)", () => {
       })
     );
 
-    expect(html).toContain("Hesap bağlı değil");
+    // 2026-09-28: rozet kısaldı ("Hesap yok"); rengi yine slate (K-22).
+    expect(html).toContain("Hesap yok");
     expect(html).toContain("bg-slate-100 text-slate-600");
   });
 
@@ -663,7 +664,7 @@ describe("StudentsPage states (v1.4-01 CRUD & K-22 rozet & bağlama)", () => {
     expect(html).toContain("Düzenle");
     expect(html).toContain("Arşivle");
     expect(html).toContain("Hesap bağla");
-    expect(html).toContain("Bağı çöz");
+    expect(html).toContain("Hesap bağını çöz");
   });
 
   it("öğretmen rolünde yönetim düğmeleri (Düzenle, Arşivle, Bağla) çizilmez (K-04)", () => {

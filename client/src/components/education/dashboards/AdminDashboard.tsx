@@ -16,6 +16,7 @@ import {
 import type { AdminOverviewCounts } from "@/education/overviewService";
 import { ErrorState, StatCard } from "../shared";
 import type { Section } from "../types";
+import type { StudentFilter } from "../pages/studentFilters";
 import {
   AttentionPanel,
   DemoNotice,
@@ -50,8 +51,10 @@ const ADMIN_ACTIONS: QuickAction[] = [
 
 export function AdminDashboard({
   onNavigate,
+  onOpenStudents,
 }: {
   onNavigate: (section: Section) => void;
+  onOpenStudents?: (filter: StudentFilter) => void;
 }) {
   const overviewQuery = useAdminOverview({ enabled: !isDemoMode });
   const lessonsQuery = useTodayLessons({ enabled: !isDemoMode });
@@ -93,6 +96,7 @@ export function AdminDashboard({
               isPending={overviewQuery.isPending}
               isError={overviewQuery.isError}
               onNavigate={onNavigate}
+              onOpenStudents={onOpenStudents}
             />
             <QuickActions actions={ADMIN_ACTIONS} onNavigate={onNavigate} />
           </div>
@@ -165,13 +169,15 @@ function adminAttentionItems(
       count: counts.studentsWithoutClass,
       label: "öğrenci hiçbir sınıfa kayıtlı değil",
       hint: "Sınıfa atanmayan öğrenci programda görünmez",
-      target: "Sınıflar",
+      target: "Öğrenciler",
+      studentFilter: "no-class",
     },
     {
       count: counts.studentsWithoutGuardian,
       label: "öğrencinin velisi bağlanmamış",
       hint: "Veli bildirim ve duyuru alamaz",
       target: "Öğrenciler",
+      studentFilter: "no-guardian",
     },
   ];
   // Ödeme sayısı ayrı sorgudan gelir; alınamadıysa (`null`) satır çizilmez.
