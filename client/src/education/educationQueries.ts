@@ -18,7 +18,9 @@ import {
   type ScheduleListResult,
 } from "./scheduleService";
 import {
+  loadAttendanceHistory,
   loadLatestAttendanceSession,
+  type AttendanceHistoryResult,
   type LatestAttendanceSessionResult,
 } from "./attendanceService";
 import { loadLatestExam, type LatestExamResult } from "./examService";
@@ -122,6 +124,19 @@ export const educationKeys = {
     ["education", "classEnrollments", { organizationId, classId }] as const,
   schedule: (organizationId: string) =>
     ["education", "schedule", { organizationId }] as const,
+  attendanceHistory: (
+    organizationId: string,
+    options?: { since?: string; classId?: string | null }
+  ) =>
+    [
+      "education",
+      "attendanceHistory",
+      {
+        organizationId,
+        since: options?.since ?? null,
+        classId: options?.classId ?? null,
+      },
+    ] as const,
   attendance: (organizationId: string) =>
     ["education", "attendance", { organizationId }] as const,
   attendanceSheet: (organizationId: string, sessionId: string) =>
@@ -989,6 +1004,33 @@ export function useTeacherOverview(options?: UseOverviewOptions) {
 }
 
 /** Öğretmenin bugünkü dersleri (`my_lessons_today`). */
+/** Geçmiş yoklama oturumları, durum sayılarıyla (Yoklama · Geçmiş). */
+export function useAttendanceHistory(options: {
+  since: string;
+  classId?: string | null;
+  organizationId?: string;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId =
+    options.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<AttendanceHistoryResult, Error>({
+    queryKey: educationKeys.attendanceHistory(organizationId ?? "", {
+      since: options.since,
+      classId: options.classId,
+    }),
+    queryFn: () =>
+      loadAttendanceHistory(organizationId as string, {
+        since: options.since,
+        classId: options.classId,
+      }),
+    enabled: isEnabled,
+    staleTime: 0,
+  });
+}
+
 export function useMyLessonsToday(options?: UseOverviewOptions) {
   const { identity } = useAuth();
   const organizationId =
