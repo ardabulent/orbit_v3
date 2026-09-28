@@ -17,6 +17,7 @@ import { ErrorState, PageHeader } from "../shared";
 import type { DayPlanRole, DayPlanTask, Role, ScheduleItem } from "../types";
 import { CalendarEventFormDialog } from "./CalendarEventFormDialog";
 import { DayPlanCalendar } from "./DayPlanCalendar";
+import type { CalendarExam } from "./dayPlanHelpers";
 import { DayPlanToDoBoard } from "./DayPlanToDoBoard";
 import { TaskFormDialog } from "./TaskFormDialog";
 
@@ -35,6 +36,8 @@ export type DayPlanPageProps = {
   organizationId?: string;
   membershipId?: string;
   schedule?: ScheduleItem[];
+  /** Takvime düşen sınavlar (salt okunur, C-07). */
+  exams?: CalendarExam[];
 };
 
 export function DayPlanPage({
@@ -45,6 +48,7 @@ export function DayPlanPage({
   organizationId = "",
   membershipId = "",
   schedule,
+  exams,
 }: DayPlanPageProps) {
   const [tab, setTab] = useState<DayPlanTab>("todo");
 
@@ -231,6 +235,7 @@ export function DayPlanPage({
               <DayPlanCalendar
                 personalEvents={realCalendarEvents}
                 schedule={activeSchedule}
+                exams={exams}
                 role={role}
                 organizationId={organizationId}
                 membershipId={membershipId}

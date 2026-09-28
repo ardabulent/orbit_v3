@@ -8,6 +8,7 @@ import type { StudentOverview } from "@/education/overviewService";
 import { formatTrDate } from "@/education/trDate";
 import { ErrorState, StatCard } from "../shared";
 import { AttendanceRecordsPanel } from "./AttendanceRecordsPanel";
+import { UpcomingExamsPanel } from "./UpcomingExamsPanel";
 import type { Section } from "../types";
 import {
   AttentionPanel,
@@ -99,6 +100,7 @@ export function StudentOverviewSections({
           />
         </div>
       </div>
+      <UpcomingExamsPanel studentId={studentId} onNavigate={onNavigate} />
       <AttendanceRecordsPanel studentId={studentId} />
     </>
   );

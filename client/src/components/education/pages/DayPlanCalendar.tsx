@@ -15,6 +15,7 @@ import { DayPlanAgenda } from "./DayPlanAgenda";
 import { DayPlanMonthGrid } from "./DayPlanMonthGrid";
 import {
   buildMonthDisplayEvents,
+  type CalendarExam,
   type DayPlanDisplayEvent,
   filterLessonsForDayPlan,
   getDisplayEventsForDay,
@@ -25,6 +26,7 @@ export type DayPlanCalendarProps = {
   events?: DayPlanEvent[];
   personalEvents?: CalendarEventItem[];
   schedule?: ScheduleItem[];
+  exams?: CalendarExam[];
   role?: string;
   organizationId?: string;
   membershipId?: string;
@@ -36,6 +38,7 @@ export function DayPlanCalendar({
   events,
   personalEvents,
   schedule,
+  exams,
   role = "",
   organizationId = "",
   membershipId = "",
@@ -76,13 +79,15 @@ export function DayPlanCalendar({
     return buildMonthDisplayEvents(
       currentMonth,
       personalEvents ?? [],
-      filteredSchedule
+      filteredSchedule,
+      exams ?? []
     );
   }, [
     isDemo,
     events,
     personalEvents,
     schedule,
+    exams,
     role,
     membershipId,
     currentMonth,
