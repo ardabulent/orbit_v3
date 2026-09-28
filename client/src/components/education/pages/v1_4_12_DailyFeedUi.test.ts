@@ -596,12 +596,15 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           setMessage: vi.fn(),
           organizationId: "org-1",
           classes: sampleClasses,
+          isDemo: false,
         }),
         { role: "admin" }
       );
 
-      expect(html).toContain("Günlük Akış (Duyurular)");
-      expect(html).toContain("Birebir Mesajlar");
+      // 2026-09-29: birebir mesajlaşma yok; üretimde sekme ve mesaj kutusu
+      // çizilmez (gönderemeyen bir kutu sunulmaz).
+      expect(html).not.toContain("Birebir Mesajlar");
+      expect(html).not.toContain("Mesajı gönder");
       expect(html).toContain("Günlük Akış Duyuru Panosu");
     });
   });
