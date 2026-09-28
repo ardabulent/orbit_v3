@@ -102,10 +102,17 @@ export function StudentOverviewSections({
   );
 }
 
-function StudentStats({ overview }: { overview: StudentOverview }) {
+export function StudentStats({
+  overview,
+  className = "mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4",
+}: {
+  overview: StudentOverview;
+  /** Dar yerlerde (öğrenci profili paneli) ızgara iki sütuna iner. */
+  className?: string;
+}) {
   const exam = overview.latestExam;
   return (
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className={className}>
       <StatCard
         label="Bugünkü ders"
         value={String(overview.lessonsToday)}
