@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDefaultScheduleDay, getTodayWeekDay } from "./scheduleHelpers";
+import { getDefaultScheduleDay, getTodayWeekDay } from "@/education/weekDays";
 
 describe("scheduleHelpers", () => {
   describe("getTodayWeekDay", () => {
