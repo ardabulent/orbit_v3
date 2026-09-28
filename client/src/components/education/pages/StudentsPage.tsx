@@ -100,7 +100,7 @@ export function StudentsPage({
         description={
           role === "admin" && activeTab === "guardians"
             ? "Kuruma kayıtlı velileri ve öğrenci bağlarını takip edin."
-            : "Akademik gelişim, devam ve ödeme sinyallerini öğrenci bazında takip edin."
+            : "Öğrencilerin sınıfını, velisini, devamını ve sınav sonuçlarını takip edin."
         }
         action={
           role === "admin"
@@ -149,7 +149,6 @@ export function StudentsPage({
             guardians={guardians}
             query={guardianQuery}
             onQuery={onGuardianQuery ?? (() => {})}
-            onAdd={onAddGuardian ?? (() => {})}
             onEdit={onEditGuardian ?? (() => {})}
             onArchive={onArchiveGuardian ?? (() => {})}
             onLinkAccount={onLinkGuardianAccount}

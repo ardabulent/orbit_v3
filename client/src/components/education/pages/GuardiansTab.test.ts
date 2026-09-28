@@ -36,7 +36,6 @@ describe("GuardiansTab UI — K-22, K-03, K-06 Güvenceleri", () => {
         guardians: dummyGuardians,
         query: "",
         onQuery: vi.fn(),
-        onAdd: vi.fn(),
         onEdit: vi.fn(),
         onArchive: vi.fn(),
       })
@@ -55,7 +54,6 @@ describe("GuardiansTab UI — K-22, K-03, K-06 Güvenceleri", () => {
         guardians: dummyGuardians,
         query: "",
         onQuery: vi.fn(),
-        onAdd: vi.fn(),
         onEdit: vi.fn(),
         onArchive: vi.fn(),
       })
@@ -79,7 +77,6 @@ describe("GuardiansTab UI — K-22, K-03, K-06 Güvenceleri", () => {
         ],
         query: "",
         onQuery: vi.fn(),
-        onAdd: vi.fn(),
         onEdit: vi.fn(),
         onArchive: vi.fn(),
       })
@@ -100,7 +97,6 @@ describe("GuardiansTab UI — K-22, K-03, K-06 Güvenceleri", () => {
         ],
         query: "",
         onQuery: vi.fn(),
-        onAdd: vi.fn(),
         onEdit: vi.fn(),
         onArchive: vi.fn(),
       })
@@ -114,7 +110,6 @@ describe("GuardiansTab UI — K-22, K-03, K-06 Güvenceleri", () => {
         guardians: dummyGuardians,
         query: "",
         onQuery: vi.fn(),
-        onAdd: vi.fn(),
         onEdit: vi.fn(),
         onArchive: vi.fn(),
         truncated: true,

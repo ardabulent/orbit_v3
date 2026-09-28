@@ -8,9 +8,10 @@ import type { Student } from "../types";
  * tarafı bunları `studentService`'in arşivi eleyen `group` / `parent`
  * alanlarından okur. Böylece "2 öğrenci sınıfsız" satırına tıklayan kişi
  * listede de 2 öğrenci görür — liste 100 satır tavanına dayanmadıkça.
+ *
+ * Ödeme bilgisi Öğrenciler sekmesinde gösterilmez; yeri Kayıt ve Ödemeler sekmesi (karar 2026-09-28).
  */
-export type StudentFilter =
-  "all" | "no-class" | "no-guardian" | "no-account" | "payment-overdue";
+export type StudentFilter = "all" | "no-class" | "no-guardian" | "no-account";
 
 export const STUDENT_FILTERS: {
   id: StudentFilter;
@@ -19,10 +20,11 @@ export const STUDENT_FILTERS: {
   adminOnly?: boolean;
 }[] = [
   { id: "all", label: "Tümü" },
-  { id: "no-class", label: "Sınıfsız" },
-  { id: "no-guardian", label: "Velisiz" },
+  // Öğretmen yalnız kendi sınıflarının öğrencilerini görür: "Sınıfsız" onda
+  // hep 0 olur ve ikisini de çözmek yöneticinin işi (2026-09-28).
+  { id: "no-class", label: "Sınıfsız", adminOnly: true },
+  { id: "no-guardian", label: "Velisiz", adminOnly: true },
   { id: "no-account", label: "Hesabı yok", adminOnly: true },
-  { id: "payment-overdue", label: "Ödemesi gecikmiş", adminOnly: true },
 ];
 
 export function matchesStudentFilter(
@@ -37,8 +39,6 @@ export function matchesStudentFilter(
     case "no-account":
       // `undefined` bilinmiyor demek (demo verisi); hesapsız sayılmaz.
       return student.hasAccount === false;
-    case "payment-overdue":
-      return student.payment === "Takip gerekli";
     default:
       return true;
   }
@@ -52,7 +52,6 @@ export function countByFilter(
     "no-class": 0,
     "no-guardian": 0,
     "no-account": 0,
-    "payment-overdue": 0,
   } satisfies Record<StudentFilter, number>;
   for (const student of students) {
     for (const filter of Object.keys(counts) as StudentFilter[]) {

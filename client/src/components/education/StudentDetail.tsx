@@ -194,8 +194,9 @@ export function StudentDetail({
               </p>
             ) : null}
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {/* Öğrencinin KENDİ giriş hesabı — velininki aşağıda. */}
-              {student.hasAccount === true ? (
+              {/* Öğrencinin KENDİ giriş hesabı — velininki aşağıda. Yalnız
+                  yöneticide: listede de öğretmene gösterilmiyor. */}
+              {role !== "admin" ? null : student.hasAccount === true ? (
                 <Badge tone="green">Giriş hesabı bağlı</Badge>
               ) : student.hasAccount === false ? (
                 <Badge tone="slate">Giriş hesabı yok</Badge>
@@ -242,7 +243,7 @@ export function StudentDetail({
             ) : null}
           </>
         ) : (
-          <StudentProfileSummary studentId={student.id} role={role} />
+          <StudentProfileSummary studentId={student.id} />
         )}
         <section className="mt-6 rounded-xl border border-slate-200 p-4">
           <h3 className="text-[12px] font-extrabold text-slate-800">
@@ -265,14 +266,7 @@ export function StudentDetail({
                 </span>
               </div>
             ) : null}
-            {student.payment ? (
-              <div className="flex justify-between">
-                <span className="text-slate-400">Ödeme durumu</span>
-                <Badge tone={student.payment === "Güncel" ? "green" : "amber"}>
-                  {student.payment}
-                </Badge>
-              </div>
-            ) : null}
+            {/* Ödeme bilgisi Öğrenciler sekmesinde gösterilmez; yeri Kayıt ve Ödemeler sekmesi (karar 2026-09-28). */}
             {student.risk ? (
               <div className="flex justify-between">
                 <span className="text-slate-400">Akademik sinyal</span>

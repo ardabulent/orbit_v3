@@ -1,13 +1,11 @@
 import { CircleAlert } from "lucide-react";
 import {
-  useStudentOverdueInstallments,
   useStudentOverview,
   useStudentUpcomingHomework,
 } from "@/education/educationQueries";
 import { formatTrDate } from "@/education/trDate";
 import { StudentStats } from "./dashboards/StudentOverviewSections";
 import { CardSkeleton, ErrorState } from "./shared";
-import type { Role } from "./types";
 
 /**
  * Öğrenci profilinin veri bölümü.
@@ -17,32 +15,20 @@ import type { Role } from "./types";
  * ne görüyorsa veli de çocuğu için onu görür; iki ayrı hesap yok (K-06).
  * Yetki RLS'ten: öğretmen yalnız okuttuğu öğrencinin sayılarını alır.
  *
- * "Takip özeti" (veli, ödev tamamlama oranı, ödeme durumu) profilde ayrıca
+ * "Takip özeti" (veli, ödev tamamlama oranı) profilde ayrıca
  * duruyor; o satırlar liste satırından gelen gerçek veri (v1.4-15).
+ *
+ * Ödeme bilgisi Öğrenciler sekmesinde gösterilmez; yeri Kayıt ve Ödemeler sekmesi (karar 2026-09-28).
  */
-export function StudentProfileSummary({
-  studentId,
-  role,
-}: {
-  studentId: string;
-  role?: Role;
-}) {
+export function StudentProfileSummary({ studentId }: { studentId: string }) {
   const overviewQuery = useStudentOverview({ studentId });
   const homeworkQuery = useStudentUpcomingHomework({ studentId });
-  // Ödeme yalnız yöneticiye (ve veliye) açık; öğretmende sorgu atılmaz.
-  const overdueQuery = useStudentOverdueInstallments({
-    studentId,
-    enabled: role === "admin",
-  });
 
   const alerts: string[] = [];
   if (overviewQuery.data?.homeworkMissed) {
     alerts.push(
       `${overviewQuery.data.homeworkMissed} ödev getirilmedi olarak işaretli`
     );
-  }
-  if (typeof overdueQuery.data === "number" && overdueQuery.data > 0) {
-    alerts.push(`${overdueQuery.data} taksitin vadesi geçti`);
   }
 
   return (
