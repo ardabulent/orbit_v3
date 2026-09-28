@@ -134,7 +134,8 @@ export function GuardianFormDialog({
           queryKey: ["settings", "members", { organizationId }],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["organization-members", organizationId],
+          // Öğrenci detayındaki velinin hesap rozeti bu sorgudan gelir (C-03).
+          queryKey: educationKeys.studentGuardians(organizationId),
         }),
       ]);
 

@@ -851,8 +851,16 @@ describe("ClassFormDialog states (v1.4-02)", () => {
       })
     );
 
-    expect(html).toContain("Ayşe Öğretmen (Öğretmen)");
-    expect(html).toContain("Ali Müdür (Yönetici)");
+    // Öğretmenler ve yöneticiler ayrı gruplarda (karar 2026-09-28, C-05).
+    expect(html).toMatch(
+      /<optgroup label="Öğretmenler">.*Ayşe Öğretmen.*<\/optgroup>/s
+    );
+    expect(html).toMatch(
+      /<optgroup label="Yöneticiler">.*Ali Müdür.*<\/optgroup>/s
+    );
+    expect(html.indexOf("Ayşe Öğretmen")).toBeLessThan(
+      html.indexOf("Ali Müdür")
+    );
     expect(html).not.toContain("Ahmet Öğrenci");
     expect(html).not.toContain("Fatma Veli");
   });

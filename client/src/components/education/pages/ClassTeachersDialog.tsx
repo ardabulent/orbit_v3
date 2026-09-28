@@ -29,6 +29,8 @@ import {
   type ClassTeacherItem,
 } from "@/education/classTeacherService";
 import type { ClassGroup } from "../types";
+import { eligibleTeachers } from "./teacherEligibility";
+import { TeacherOptionGroups } from "./TeacherOptionGroups";
 
 export type ClassTeachersDialogProps = {
   open: boolean;
@@ -69,9 +71,7 @@ export function ClassTeachersDialog({
     organizationId,
     enabled: open,
   });
-  const eligibleMembers = (membersQuery.data ?? []).filter(
-    m => m.role === "admin" || m.role === "teacher"
-  );
+  const eligibleMembers = eligibleTeachers(membersQuery.data ?? []);
 
   // Kurumun aktif dersleri
   const subjectsQuery = useSubjects({
@@ -214,12 +214,7 @@ export function ClassTeachersDialog({
                     className="w-full h-9 rounded-lg border border-slate-200 bg-white px-3 text-[12px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Öğretmen seçin…</option>
-                    {eligibleMembers.map(m => (
-                      <option key={m.membershipId} value={m.membershipId}>
-                        {m.displayName || "İsimsiz"} (
-                        {m.role === "admin" ? "Yönetici" : "Öğretmen"})
-                      </option>
-                    ))}
+                    <TeacherOptionGroups members={eligibleMembers} />
                   </select>
                 </div>
 
