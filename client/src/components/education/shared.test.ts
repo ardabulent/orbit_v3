@@ -118,7 +118,7 @@ describe("page state consistency & honesty (v1.3-02b / K-22)", () => {
         createElement(ClassesPage, {
           role: "teacher",
           classes: [],
-          onNavigate: vi.fn(),
+          onOpen: vi.fn(),
         })
       );
 
@@ -134,7 +134,7 @@ describe("page state consistency & honesty (v1.3-02b / K-22)", () => {
           role: "admin",
           classes: [],
           isLoading: true,
-          onNavigate: vi.fn(),
+          onOpen: vi.fn(),
         })
       );
 
@@ -149,7 +149,7 @@ describe("page state consistency & honesty (v1.3-02b / K-22)", () => {
           classes: [],
           error: new Error("Sunucuya ulaşılamadı"),
           onRetry: vi.fn(),
-          onNavigate: vi.fn(),
+          onOpen: vi.fn(),
         })
       );
       expect(withRetryHtml).toContain("Sınıflar görüntülenemedi");
@@ -161,7 +161,7 @@ describe("page state consistency & honesty (v1.3-02b / K-22)", () => {
           classes: [],
           error: new Error("Sunucuya ulaşılamadı"),
           onRetry: undefined,
-          onNavigate: vi.fn(),
+          onOpen: vi.fn(),
         })
       );
       expect(noRetryHtml).toContain("Sınıflar görüntülenemedi");

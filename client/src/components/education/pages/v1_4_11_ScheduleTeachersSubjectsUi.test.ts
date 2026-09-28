@@ -251,7 +251,7 @@ describe("v1.4-11 Arayüz ve Sözleşme Testleri (#287 / K-23)", () => {
         createElement(ClassesPage, {
           role: "teacher",
           classes,
-          onNavigate: vi.fn(),
+          onOpen: vi.fn(),
         }),
         { role: "teacher" }
       );
