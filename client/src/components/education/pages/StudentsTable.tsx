@@ -126,38 +126,40 @@ export function StudentsTable({
             ))}
           </select>
         </div>
-        <div
-          role="tablist"
-          aria-label="Hızlı süzgeçler"
-          className="mt-3 flex flex-wrap gap-2"
-        >
-          {filters.map(item => {
-            const selected = item.id === filter;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => setFilter(item.id)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition ${
-                  selected
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                }`}
-              >
-                <span className="text-[11px] font-bold">{item.label}</span>
-                <span
-                  className={`text-[10px] font-extrabold tabular-nums ${
-                    selected ? "text-white/70" : "text-slate-400"
+        {filters.length > 1 ? (
+          <div
+            role="tablist"
+            aria-label="Hızlı süzgeçler"
+            className="mt-3 flex flex-wrap gap-2"
+          >
+            {filters.map(item => {
+              const selected = item.id === filter;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setFilter(item.id)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition ${
+                    selected
+                      ? "bg-slate-900 text-white"
+                      : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                   }`}
                 >
-                  {counts[item.id]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                  <span className="text-[11px] font-bold">{item.label}</span>
+                  <span
+                    className={`text-[10px] font-extrabold tabular-nums ${
+                      selected ? "text-white/70" : "text-slate-400"
+                    }`}
+                  >
+                    {counts[item.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       {truncated ? (
@@ -200,7 +202,6 @@ export function StudentsTable({
                     <th className="px-5 py-3.5">Veli</th>
                     <th className="px-5 py-3.5">Devam</th>
                     <th className="px-5 py-3.5">Son sınav</th>
-                    {isAdmin ? <th className="px-5 py-3.5">Ödeme</th> : null}
                     <th className="px-5 py-3.5" />
                   </tr>
                 </thead>
@@ -322,20 +323,6 @@ function StudentRow({
           <span className="text-slate-300">—</span>
         )}
       </td>
-      {isAdmin ? (
-        <td className="px-5 py-4">
-          {student.payment ? (
-            <Badge
-              tone={student.payment === "Takip gerekli" ? "rose" : "green"}
-            >
-              {student.payment === "Takip gerekli" ? "Gecikmiş" : "Güncel"}
-            </Badge>
-          ) : (
-            // Satır yok = plan yok ya da görülemiyor; "Güncel" uydurulmaz.
-            <span className="text-slate-300">—</span>
-          )}
-        </td>
-      ) : null}
       <td className="px-5 py-4 text-right">
         <div className="flex items-center justify-end gap-1.5">
           {isAdmin ? (

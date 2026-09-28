@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, UserPlus } from "lucide-react";
+import { Search } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -13,7 +13,6 @@ export type GuardiansTabProps = {
   guardians: Guardian[];
   query: string;
   onQuery: (value: string) => void;
-  onAdd: () => void;
   onEdit: (guardian: Guardian) => void;
   onArchive: (guardian: Guardian) => void | Promise<void>;
   onLinkAccount?: (
@@ -144,7 +143,6 @@ export function GuardiansTab({
   guardians,
   query,
   onQuery,
-  onAdd,
   onEdit,
   onArchive,
   onLinkAccount,
@@ -181,8 +179,10 @@ export function GuardiansTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1">
+      {/* "Yeni veli" düğmesi yalnız sayfa başlığında — Öğrenciler sekmesiyle
+          aynı düzen. Burada ikinci bir kopyası vardı (2026-09-28). */}
+      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
+        <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             value={query}
@@ -191,14 +191,6 @@ export function GuardiansTab({
             className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-[12px] outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
           />
         </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="flex h-10 items-center gap-2 rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white transition hover:bg-slate-800"
-        >
-          <UserPlus className="h-4 w-4" />
-          <span>Yeni veli</span>
-        </button>
       </div>
 
       {truncated ? (

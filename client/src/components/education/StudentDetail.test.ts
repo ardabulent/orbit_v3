@@ -93,8 +93,11 @@ describe("StudentDetail — uydurma veri yok (K-03 / K-22)", () => {
     );
 
     expect(html).toContain("Murat Kaya");
-    expect(html).toContain("Takip gerekli");
     expect(html).toContain("92");
+    // 2026-09-28: ödeme Öğrenciler sekmesinde gösterilmez; yeri Kayıt ve
+    // Ödemeler sekmesi.
+    expect(html).not.toContain("Takip gerekli");
+    expect(html).not.toContain("Ödeme durumu");
   });
 
   it("#257: gerçek sınav adı, tarihi ve tam puanı dolu olduğunda çizilir", () => {
