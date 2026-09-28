@@ -99,7 +99,7 @@ export function ClassDetail({
               : `${cls.studentCount} öğrenci`}
           </Badge>
           <Badge tone="slate">Haftada {summary.weeklyLessons} ders</Badge>
-          <TodayAttendanceBadge today={summary.today} />
+          <TodayAttendanceBadge summary={summary} />
         </div>
 
         {isAdmin ? (

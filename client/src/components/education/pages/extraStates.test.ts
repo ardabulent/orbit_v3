@@ -1057,6 +1057,8 @@ describe("ClassesPage states (v1.4-02)", () => {
               weeklyLessons: 4,
               subjects: [{ title: "Matematik", teacher: "Murat Kaya" }],
               today: "pending" as const,
+              todayLessons: 1,
+              todayTaken: 0,
             },
           ],
         ]),

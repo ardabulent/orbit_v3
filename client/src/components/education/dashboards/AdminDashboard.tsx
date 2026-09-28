@@ -160,8 +160,8 @@ function adminAttentionItems(
 ): AttentionItem[] {
   const items: AttentionItem[] = [
     {
-      count: counts.classesMissingAttendanceToday,
-      label: "sınıfın bugünkü yoklaması alınmadı",
+      count: counts.lessonsMissingAttendanceToday,
+      label: "dersin bugünkü yoklaması alınmadı",
       hint: "Bugün dersi olan sınıflar",
       target: "Yoklama",
     },

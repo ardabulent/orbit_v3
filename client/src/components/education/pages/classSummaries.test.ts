@@ -47,6 +47,8 @@ describe("buildClassSummaries", () => {
         { title: "Fizik", teacher: null },
       ],
       today: "none",
+      todayLessons: 0,
+      todayTaken: 0,
     });
     expect(summaryFor(summaries, "12-B").weeklyLessons).toBe(1);
   });
@@ -56,26 +58,34 @@ describe("buildClassSummaries", () => {
       weeklyLessons: 0,
       subjects: [],
       today: "none",
+      todayLessons: 0,
+      todayTaken: 0,
     });
   });
 
-  it("bugünkü yoklama: alındı · bekliyor · bilinmiyor · ders yok", () => {
+  it("bugünkü yoklama ders başına: alındı · kısmen · bekliyor · bilinmiyor · ders yok", () => {
     const summaries = buildClassSummaries(
       [],
       [
         today("A", true),
         today("B", false),
         today("C", null),
-        // Aynı sınıfın bir satırı alındı diyorsa sınıf alındı sayılır.
+        // 2026-09-28: yoklama ders başına — bir dersin alınması sınıfın
+        // bütün gününü "alındı" yapmaz.
         today("D", false),
         today("D", true),
+        today("F", true),
+        today("F", true),
       ]
     );
 
     expect(summaryFor(summaries, "A").today).toBe("taken");
     expect(summaryFor(summaries, "B").today).toBe("pending");
     expect(summaryFor(summaries, "C").today).toBe("unknown");
-    expect(summaryFor(summaries, "D").today).toBe("taken");
+    expect(summaryFor(summaries, "D").today).toBe("partial");
+    expect(summaryFor(summaries, "D").todayTaken).toBe(1);
+    expect(summaryFor(summaries, "D").todayLessons).toBe(2);
+    expect(summaryFor(summaries, "F").today).toBe("taken");
     expect(summaryFor(summaries, "E").today).toBe("none");
   });
 

@@ -21,7 +21,7 @@ export type AdminOverviewCounts = {
   studentsWithoutGuardian: number;
   activeClasses: number;
   lessonsToday: number;
-  classesMissingAttendanceToday: number;
+  lessonsMissingAttendanceToday: number;
 };
 
 export type TodayLesson = {
@@ -49,7 +49,7 @@ export type TeacherOverviewCounts = {
   myClasses: number;
   myStudents: number;
   myLessonsToday: number;
-  classesMissingAttendanceToday: number;
+  lessonsMissingAttendanceToday: number;
   homeworkAwaitingMarking: number;
 };
 
@@ -59,7 +59,7 @@ type RawCountsRow = {
   students_without_guardian: number | string | null;
   active_classes: number | string | null;
   lessons_today: number | string | null;
-  classes_missing_attendance_today: number | string | null;
+  lessons_missing_attendance_today: number | string | null;
 };
 
 type RawTodayLessonRow = {
@@ -81,7 +81,7 @@ type RawTeacherCountsRow = {
   my_classes: number | string | null;
   my_students: number | string | null;
   my_lessons_today: number | string | null;
-  classes_missing_attendance_today: number | string | null;
+  lessons_missing_attendance_today: number | string | null;
   homework_awaiting_marking: number | string | null;
 };
 
@@ -98,8 +98,8 @@ export function mapCountsRow(row: RawCountsRow): AdminOverviewCounts {
     studentsWithoutGuardian: toCount(row.students_without_guardian),
     activeClasses: toCount(row.active_classes),
     lessonsToday: toCount(row.lessons_today),
-    classesMissingAttendanceToday: toCount(
-      row.classes_missing_attendance_today
+    lessonsMissingAttendanceToday: toCount(
+      row.lessons_missing_attendance_today
     ),
   };
 }
@@ -156,8 +156,8 @@ export function mapTeacherCountsRow(
     myClasses: toCount(row.my_classes),
     myStudents: toCount(row.my_students),
     myLessonsToday: toCount(row.my_lessons_today),
-    classesMissingAttendanceToday: toCount(
-      row.classes_missing_attendance_today
+    lessonsMissingAttendanceToday: toCount(
+      row.lessons_missing_attendance_today
     ),
     homeworkAwaitingMarking: toCount(row.homework_awaiting_marking),
   };
