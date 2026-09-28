@@ -5,8 +5,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { isDemoMode } from "@/auth/runtime";
 import { formatTrDate } from "@/education/trDate";
 import { Badge, StatCard } from "./shared";
+import { StudentProfileSummary } from "./StudentProfileSummary";
 import type { Role, Student } from "./types";
 import type {
   Guardian,
@@ -79,9 +81,10 @@ export function LinkGuardianPopover({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="rounded-lg px-2 py-1 text-[11px] font-semibold text-blue-600 transition hover:bg-blue-50"
+          className="rounded-lg px-2 py-1 text-blue-600 transition hover:bg-blue-50"
         >
-          + Veli bağla
+          {/* Boyut span'da: `index.css`'teki katmansız `button { font: inherit }`. */}
+          <span className="text-[11px] font-semibold">+ Veli bağla</span>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4" align="end">
@@ -190,39 +193,57 @@ export function StudentDetail({
                 {[student.group, student.code].filter(Boolean).join(" · ")}
               </p>
             ) : null}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {/* Öğrencinin KENDİ giriş hesabı — velininki aşağıda. */}
+              {student.hasAccount === true ? (
+                <Badge tone="green">Giriş hesabı bağlı</Badge>
+              ) : student.hasAccount === false ? (
+                <Badge tone="slate">Giriş hesabı yok</Badge>
+              ) : null}
+              {!student.group ? <Badge tone="amber">Sınıfsız</Badge> : null}
+            </div>
           </div>
         </div>
-        {student.attendance !== undefined || student.score !== undefined ? (
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            {student.attendance !== undefined ? (
-              <StatCard
-                label="Devam"
-                value={`%${student.attendance}`}
-                detail="Bu dönem"
-                icon={ClipboardCheck}
-                tone={student.attendance < 90 ? "amber" : "green"}
-              />
+        {isDemoMode ? (
+          <>
+            {student.attendance !== undefined || student.score !== undefined ? (
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                {student.attendance !== undefined ? (
+                  <StatCard
+                    label="Devam"
+                    value={`%${student.attendance}`}
+                    detail="Bu dönem"
+                    icon={ClipboardCheck}
+                    tone={student.attendance < 90 ? "amber" : "green"}
+                  />
+                ) : null}
+                {student.score !== undefined ? (
+                  <StatCard
+                    label="Son sınav"
+                    value={
+                      student.latestExamMaxScore !== null &&
+                      student.latestExamMaxScore !== undefined
+                        ? `${student.score} / ${student.latestExamMaxScore}`
+                        : String(student.score)
+                    }
+                    detail={
+                      [
+                        student.latestExamName,
+                        formatTrDate(student.latestExamDate),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || undefined
+                    }
+                    icon={BarChart3}
+                    tone="violet"
+                  />
+                ) : null}
+              </div>
             ) : null}
-            {student.score !== undefined ? (
-              <StatCard
-                label="Son sınav"
-                value={
-                  student.latestExamMaxScore !== null &&
-                  student.latestExamMaxScore !== undefined
-                    ? `${student.score} / ${student.latestExamMaxScore}`
-                    : String(student.score)
-                }
-                detail={
-                  [student.latestExamName, formatTrDate(student.latestExamDate)]
-                    .filter(Boolean)
-                    .join(" · ") || undefined
-                }
-                icon={BarChart3}
-                tone="violet"
-              />
-            ) : null}
-          </div>
-        ) : null}
+          </>
+        ) : (
+          <StudentProfileSummary studentId={student.id} role={role} />
+        )}
         <section className="mt-6 rounded-xl border border-slate-200 p-4">
           <h3 className="text-[12px] font-extrabold text-slate-800">
             Takip özeti
@@ -316,9 +337,11 @@ export function StudentDetail({
                             link.guardian?.fullName || "veli"
                           )
                         }
-                        className="rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50"
+                        className="rounded-lg px-2 py-1 text-rose-600 transition hover:bg-rose-50"
                       >
-                        Bağı kopar
+                        <span className="text-[11px] font-semibold">
+                          Bağı kopar
+                        </span>
                       </button>
                     ) : null}
                   </div>
