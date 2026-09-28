@@ -42,6 +42,10 @@ import {
 import { loadSubjects, type SubjectListResult } from "./subjectService";
 import { loadExams, type ExamListResult } from "./examNetService";
 import {
+  loadStudentHomeworkContext,
+  type StudentHomeworkContext,
+} from "./studentHomeworkService";
+import {
   loadStudentExams,
   type StudentExamOverview,
 } from "./studentExamService";
@@ -209,6 +213,8 @@ export const educationKeys = {
     ] as const,
   homework: (organizationId: string) =>
     ["education", "homework", { organizationId }] as const,
+  studentHomework: (organizationId: string, studentId: string) =>
+    ["education", "studentHomework", { organizationId, studentId }] as const,
   studentExams: (organizationId: string, studentId: string, today: string) =>
     [
       "education",
@@ -648,6 +654,34 @@ export function useSubjects(options?: UseSubjectsOptions) {
         includeArchived: options?.includeArchived,
         limit: options?.limit,
       }),
+    enabled: isEnabled,
+  });
+}
+
+/** Öğrencinin sınıfları ve teslim aldığı ödevler (öğrenci/veli görünümü). */
+export function useStudentHomeworkContext(options: {
+  studentId: string | null;
+  organizationId?: string;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId =
+    options.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options.enabled ?? true) &&
+    Boolean(organizationId) &&
+    Boolean(options.studentId);
+
+  return useQuery<StudentHomeworkContext, Error>({
+    queryKey: educationKeys.studentHomework(
+      organizationId ?? "",
+      options.studentId ?? ""
+    ),
+    queryFn: () =>
+      loadStudentHomeworkContext(
+        organizationId as string,
+        options.studentId as string
+      ),
     enabled: isEnabled,
   });
 }

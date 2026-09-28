@@ -1072,6 +1072,9 @@ export function EducationPlatform({
       return (
         <HomeworkPage
           role={role}
+          students={
+            role === "student" || role === "parent" ? activeStudents : []
+          }
           homework={activeHomework}
           isLoading={!isDemoMode && homeworkQuery.isLoading}
           error={homeworkQuery.error}
