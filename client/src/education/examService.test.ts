@@ -20,7 +20,7 @@ import {
   type ExamSheet,
   type LatestExamDetail,
 } from "./examService";
-import { AssessmentsPage } from "@/components/education/pages/AssessmentsPage";
+import { ExamDetailView as AssessmentsPage } from "@/components/education/pages/ExamDetailView";
 
 const fromMock = vi.fn();
 const rpcMock = vi.fn();

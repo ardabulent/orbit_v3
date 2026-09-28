@@ -75,6 +75,11 @@ export type LatestExamDetail = {
    * Çağıranın bu sayıyı görmeye yetkisi yoksa `null` kalır ve çizilmez.
    */
   participantCount: number | null;
+  /**
+   * Netli sınavda kaç yanlışın bir doğruyu götürdüğü (YKS 4, LGS 3);
+   * `null`/yok = tek puanlı sınav (`20261007000000`).
+   */
+  netPenalty?: number | null;
 };
 
 export type LatestExamResult = {
@@ -102,6 +107,8 @@ export type CreateExamInput = {
   name: string;
   examDate: string;
   maxScore?: number | null;
+  /** Doluysa sınav ders ders netli (YKS 4, LGS 3); boşsa tek puanlı. */
+  netPenalty?: number | null;
 };
 
 export type UpdateExamInput = {
@@ -110,6 +117,8 @@ export type UpdateExamInput = {
   name?: string;
   examDate?: string;
   maxScore?: number | null;
+  /** Sonuç girildikten sonra tür (tek puan ↔ net) değişemez (ORB06). */
+  netPenalty?: number | null;
 };
 
 export type ExamDetail = {
@@ -152,7 +161,14 @@ export function translateExamError(error: unknown): string {
   if (typeof error === "object" && error !== null && "code" in error) {
     code = String((error as { code: unknown }).code);
   } else if (error instanceof Error) {
-    for (const known of ["ORB05", "ORB02", "42501", "23503", "23514"]) {
+    for (const known of [
+      "ORB06",
+      "ORB05",
+      "ORB02",
+      "42501",
+      "23503",
+      "23514",
+    ]) {
       if (error.message.includes(known)) {
         code = known;
         break;
@@ -160,6 +176,16 @@ export function translateExamError(error: unknown): string {
     }
   }
 
+  if (code === "ORB06") {
+    // Net kuralları (`20261007000000`): veritabanının cümlesi zaten
+    // kullanıcıya yazılmış Türkçe ("Doğru ve yanlış toplamı soru sayısını
+    // aşıyor." gibi); ham ayrıntı (detail) basılmaz.
+    const message =
+      typeof error === "object" && error !== null && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "";
+    return message || "Net kurallarına uymayan bir değer girildi.";
+  }
   if (code === "ORB05") {
     return "Girilen puan sınavın tam puanını aşıyor. Sınavın tam puanını değiştirmek gerekiyorsa sınav kaydını düzenleyin.";
   }
@@ -419,6 +445,7 @@ export async function createExam(
     name: string;
     exam_date: string;
     max_score?: number | null;
+    net_penalty?: number | null;
   } = {
     organization_id: input.organizationId,
     class_id: input.classId,
@@ -432,6 +459,10 @@ export async function createExam(
 
   if (input.maxScore !== undefined && input.maxScore !== null) {
     payload.max_score = input.maxScore;
+  }
+
+  if (input.netPenalty) {
+    payload.net_penalty = input.netPenalty;
   }
 
   const { data, error } = await supabase
@@ -462,6 +493,7 @@ export async function updateExam(
     name?: string;
     exam_date?: string;
     max_score?: number | null;
+    net_penalty?: number | null;
   } = {};
 
   if (updates.classId !== undefined) payload.class_id = updates.classId;
@@ -469,6 +501,8 @@ export async function updateExam(
   if (updates.name !== undefined) payload.name = updates.name.trim();
   if (updates.examDate !== undefined) payload.exam_date = updates.examDate;
   if (updates.maxScore !== undefined) payload.max_score = updates.maxScore;
+  if (updates.netPenalty !== undefined)
+    payload.net_penalty = updates.netPenalty;
 
   const { data, error } = await supabase
     .from("exams")
