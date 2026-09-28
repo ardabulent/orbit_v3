@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   changeMemberRole,
+  createMember,
   formatLoginNumber,
   isMemberStatus,
   isNeutralMembershipInfo,
@@ -718,6 +719,53 @@ describe("memberService", () => {
           "Bu üyelik zaten kurumdan çıkarılmış durumda."
         );
       }
+    });
+  });
+
+  describe("createMember — üyelik kimliği (Yeni öğrenci akışı)", () => {
+    it("sunucu döndürürse membershipId'yi taşır", async () => {
+      invokeMock.mockReset();
+      invokeMock.mockResolvedValue({
+        data: {
+          data: {
+            login_number: "78018105",
+            temporary_password: "gecici",
+            password_lock_set: true,
+            audit_written: true,
+            membership_id: "mem-9",
+          },
+        },
+        error: null,
+      });
+
+      const result = await createMember(
+        { fullName: "Selin Koç", role: "student", branchId: "b-1" },
+        "key-1"
+      );
+
+      expect(result.membershipId).toBe("mem-9");
+      expect(invokeMock).toHaveBeenCalledWith("create-member", {
+        body: { fullName: "Selin Koç", role: "student", branchId: "b-1" },
+        headers: { "Idempotency-Key": "key-1" },
+      });
+    });
+
+    it("eski yanıtta kimlik yoksa undefined kalır; uydurulmaz", async () => {
+      invokeMock.mockReset();
+      invokeMock.mockResolvedValue({
+        data: {
+          data: { login_number: "78018105", temporary_password: "gecici" },
+        },
+        error: null,
+      });
+
+      const result = await createMember({
+        fullName: "Selin Koç",
+        role: "student",
+        branchId: null,
+      });
+
+      expect(result.membershipId).toBeUndefined();
     });
   });
 });

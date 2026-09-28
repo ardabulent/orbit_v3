@@ -540,8 +540,10 @@ describe("MemberCreateDialog admin kısıtı (v1.4-08 · #282)", () => {
 
     // Üye eklemede yalnızca öğretmen, öğrenci, veli seçilebilir; admin sunulmaz
     expect(html).toContain('value="teacher"');
-    expect(html).toContain('value="student"');
-    expect(html).toContain('value="parent"');
+    // 2026-09-28: öğrenci ve veli hesabı yalnız "Yeni öğrenci" akışından,
+    // kayıtla birlikte açılır (C-05).
+    expect(html).not.toContain('value="student"');
+    expect(html).not.toContain('value="parent"');
     expect(html).not.toContain('value="admin"');
   });
 });

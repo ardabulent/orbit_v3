@@ -13,6 +13,12 @@ export type IssuedCredentials = {
   passwordLockSet?: boolean;
   /** Denetim servisi alanı eklenene kadar undefined kalabilir. */
   auditWritten?: boolean;
+  /**
+   * Açılan hesabın üyelik kimliği — hesabı öğrenci ya da veli kaydına bağlamak
+   * için ("Yeni öğrenci" akışı). Eski sunucu yanıtında ve tekrarlanan istekte
+   * yok; o durumda bağlama elle yapılır.
+   */
+  membershipId?: string;
 };
 
 /**

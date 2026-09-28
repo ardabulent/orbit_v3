@@ -22,7 +22,15 @@ import {
 } from "@/organization/memberService";
 import { roleMeta } from "../roleMeta";
 
-const MEMBER_ROLES: CreatableMemberRole[] = ["teacher", "student", "parent"];
+/**
+ * Buradan yalnız öğretmen hesabı açılır (karar 2026-09-28).
+ *
+ * Öğrenci ve veli hesabı burada açılınca bir öğrenci ya da veli **kaydı**
+ * oluşmuyordu: hesap vardı ama sınıfa eklerken, yoklamada ve öğrenci
+ * listesinde görünmüyordu (ROADMAP §4.23 C-05). Artık o hesaplar Öğrenciler
+ * sekmesindeki "Yeni öğrenci" akışında, kayıtla birlikte açılıyor.
+ */
+const MEMBER_ROLES: CreatableMemberRole[] = ["teacher"];
 
 export function MemberCreateDialog({
   open,
@@ -212,8 +220,8 @@ export function MemberCreateDialog({
         <DialogHeader>
           <DialogTitle>Yeni üye ekle</DialogTitle>
           <DialogDescription>
-            Öğretmen, öğrenci veya veli hesabı oluşturun. Giriş bilgileri işlem
-            sonunda yalnızca bir kez gösterilir.
+            Öğretmen hesabı oluşturun. Giriş bilgileri işlem sonunda yalnızca
+            bir kez gösterilir.
           </DialogDescription>
         </DialogHeader>
 
@@ -245,6 +253,10 @@ export function MemberCreateDialog({
                 </option>
               ))}
             </select>
+            <p className="text-[11px] text-muted-foreground">
+              Öğrenci ve veli hesapları Öğrenciler sekmesindeki &quot;Yeni
+              öğrenci&quot; ile, kayıtla birlikte açılır.
+            </p>
           </div>
 
           <div className="grid gap-2">

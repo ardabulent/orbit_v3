@@ -397,7 +397,7 @@ describe("MemberCreateDialog states (v1.3-02b)", () => {
     );
 
     expect(html).toContain('role="status"');
-    expect(html).not.toMatch(/<p[^>]*>.*Şubeler yükleniyor.*<\/p>/i);
+    expect(html).not.toMatch(/<p[^>]*>[^<]*Şubeler yükleniyor[^<]*<\/p>/i);
   });
 
   it("şube seçimi varsayılan şubeden ön-dolar (v1.4-09 · #284)", () => {
