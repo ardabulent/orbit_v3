@@ -37,6 +37,10 @@ import {
 } from "./homeworkService";
 import { loadSubjects, type SubjectListResult } from "./subjectService";
 import {
+  loadSubstitutes,
+  type SubstituteListResult,
+} from "./substituteService";
+import {
   loadClassTeachers,
   type ClassTeacherListResult,
 } from "./classTeacherService";
@@ -173,6 +177,8 @@ export const educationKeys = {
     ] as const,
   homework: (organizationId: string) =>
     ["education", "homework", { organizationId }] as const,
+  substitutes: (organizationId: string) =>
+    ["education", "substitutes", { organizationId }] as const,
   subjects: (
     organizationId: string,
     options?: { includeArchived?: boolean }
@@ -598,6 +604,28 @@ export function useSubjects(options?: UseSubjectsOptions) {
         includeArchived: options?.includeArchived,
         limit: options?.limit,
       }),
+    enabled: isEnabled,
+  });
+}
+
+/**
+ * Kurumun iptal edilmemiş vekillikleri. Yönetici hepsini, öğretmen yalnız
+ * kendisinin vekil ya da izinli olduğu satırları görür (RLS).
+ */
+export function useSubstitutes(options?: {
+  organizationId?: string;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<SubstituteListResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.substitutes(organizationId)
+      : (["education", "substitutes", { organizationId: "" }] as const),
+    queryFn: () => loadSubstitutes(organizationId!),
     enabled: isEnabled,
   });
 }

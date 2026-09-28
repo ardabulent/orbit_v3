@@ -1,7 +1,8 @@
 import { Plus, X } from "lucide-react";
+import { formatTrWeekLabel } from "@/education/trDate";
 import type { WeekDay } from "@/education/weekDays";
 import type { ScheduleItem } from "../types";
-import { buildWeekGrid, timeRange } from "./scheduleGrid";
+import { buildWeekGrid, timeRange, type ScheduleCover } from "./scheduleGrid";
 
 /**
  * Haftalık ders programı tablosu: günler sütun, başlangıç saatleri satır.
@@ -17,8 +18,11 @@ export function ScheduleWeekGrid({
   onEdit,
   onRemove,
   onAddAt,
+  covers,
 }: {
   items: ScheduleItem[];
+  /** Bugün süren vekillikler (izinli öğretmen → vekil). */
+  covers?: Map<string, ScheduleCover>;
   /** Sınıf süzgeci "Tümü" iken kartta sınıf adı yazılır. */
   showClass: boolean;
   today: WeekDay;
@@ -70,6 +74,11 @@ export function ScheduleWeekGrid({
                           key={item.id ?? `${item.classId}-${item.title}`}
                           item={item}
                           showClass={showClass}
+                          cover={
+                            item.membershipId
+                              ? covers?.get(item.membershipId)
+                              : undefined
+                          }
                           onEdit={onEdit}
                           onRemove={onRemove}
                         />
@@ -99,11 +108,13 @@ export function ScheduleWeekGrid({
 function LessonCard({
   item,
   showClass,
+  cover,
   onEdit,
   onRemove,
 }: {
   item: ScheduleItem;
   showClass: boolean;
+  cover?: ScheduleCover;
   onEdit?: (item: ScheduleItem) => void;
   onRemove?: (item: ScheduleItem) => void;
 }) {
@@ -127,6 +138,11 @@ function LessonCard({
           Öğretmensiz
         </span>
       )}
+      {cover ? (
+        <span className="block truncate text-[10px] font-bold text-violet-700">
+          Vekil: {cover.substitute} · bitiş {formatTrWeekLabel(cover.endsOn)}
+        </span>
+      ) : null}
       <span className="block truncate text-[10px] tabular-nums text-slate-400">
         {[timeRange(item), item.room].filter(Boolean).join(" · ")}
       </span>

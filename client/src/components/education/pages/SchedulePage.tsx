@@ -19,8 +19,10 @@ import {
   filterSchedule,
   NO_TEACHER,
   teacherOptions,
+  type ScheduleCover,
   type ScheduleFilter,
 } from "./scheduleGrid";
+import { SubstitutesTab } from "./SubstitutesTab";
 import { ScheduleWeekGrid } from "./ScheduleWeekGrid";
 
 /**
@@ -42,6 +44,7 @@ export function SchedulePage({
   limit,
   organizationId = "",
   classes = [],
+  covers,
 }: {
   role: Role;
   schedule?: ScheduleItem[];
@@ -53,9 +56,14 @@ export function SchedulePage({
   limit?: number;
   organizationId?: string;
   classes?: { id: string; name: string }[];
+  /** Bugün süren vekillikler; derste "Vekil: …" yazılır (yalnız yönetici). */
+  covers?: Map<string, ScheduleCover>;
 }) {
   const today = getTodayWeekDay();
   const canWrite = role === "admin" && !isDemoMode;
+  const [tab, setTab] = useState<"program" | "substitutes">("program");
+  const [substituteAddOpen, setSubstituteAddOpen] = useState(false);
+  const onSubstitutes = canWrite && tab === "substitutes";
 
   const [filter, setFilter] = useState<ScheduleFilter>({
     classId: ALL,
@@ -104,102 +112,154 @@ export function SchedulePage({
       <PageHeader
         eyebrow="Haftalık plan"
         title={
-          role === "student"
-            ? "Ders programım"
-            : role === "parent"
-              ? "Öğrenci ders programı"
-              : "Ders programı"
+          onSubstitutes
+            ? "Vekiller"
+            : role === "student"
+              ? "Ders programım"
+              : role === "parent"
+                ? "Öğrenci ders programı"
+                : "Ders programı"
         }
-        description="Haftanın derslerini, öğretmenlerini ve saatlerini tek tabloda izleyin."
-        action={canWrite ? "Ders programı ekle" : undefined}
-        onAction={canWrite ? () => openAdd() : undefined}
+        description={
+          onSubstitutes
+            ? "İzinli öğretmenin yerine bakacak vekili tarih aralığıyla atayın."
+            : "Haftanın derslerini, öğretmenlerini ve saatlerini tek tabloda izleyin."
+        }
+        action={
+          canWrite
+            ? onSubstitutes
+              ? "Yeni vekil"
+              : "Ders programı ekle"
+            : undefined
+        }
+        onAction={
+          canWrite
+            ? onSubstitutes
+              ? () => setSubstituteAddOpen(true)
+              : () => openAdd()
+            : undefined
+        }
       />
-      {truncated ? (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
-          Liste üst sınıra ({limit} kayıt) ulaştı. Kalan kayıtları görmek için
-          filtreleri kullanın.
+      {canWrite ? (
+        <div className="mt-4 flex border-b border-slate-200">
+          <SubTab active={tab === "program"} onClick={() => setTab("program")}>
+            Program
+          </SubTab>
+          <SubTab
+            active={tab === "substitutes"}
+            onClick={() => setTab("substitutes")}
+          >
+            Vekiller
+          </SubTab>
         </div>
       ) : null}
-
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-        {classOptions.length > 1 || teachers.length > 1 || unassigned > 0 ? (
-          <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
-            {classOptions.length > 1 ? (
-              <FilterSelect
-                label="Sınıf"
-                value={filter.classId}
-                onChange={classId => setFilter(f => ({ ...f, classId }))}
-                options={classOptions.map(([key, label]) => ({ key, label }))}
-              />
-            ) : null}
-            {teachers.length > 1 ? (
-              <FilterSelect
-                label="Öğretmen"
-                value={filter.teacher}
-                onChange={teacher => setFilter(f => ({ ...f, teacher }))}
-                options={teachers}
-              />
-            ) : null}
-            {role === "admin" && unassigned > 0 ? (
-              <button
-                type="button"
-                onClick={() => setFilter({ classId: ALL, teacher: NO_TEACHER })}
-                className="ml-auto"
-              >
-                <Badge tone="amber">{unassigned} ders öğretmensiz</Badge>
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        {isLoading ? (
-          <TableSkeleton
-            rows={4}
-            columns={3}
-            className="border-0 p-0 shadow-none"
-          />
-        ) : error ? (
-          <ErrorState
-            title="Ders programı görüntülenemedi"
-            message={error.message}
-            onRetry={onRetry}
-          />
-        ) : visible.length === 0 ? (
-          <EmptyState
-            title={
-              roleFiltered.length === 0
-                ? "Ders programı boş"
-                : "Bu süzgeçte ders yok"
-            }
-            description={
-              roleFiltered.length === 0
-                ? "Henüz planlanmış bir ders yok."
-                : "Süzgeci değiştirerek diğer dersleri görebilirsiniz."
-            }
-          />
-        ) : (
-          <>
-            <div className="hidden md:block">
-              <ScheduleWeekGrid
-                items={visible}
-                showClass={filter.classId === ALL && classOptions.length > 1}
-                today={today}
-                onEdit={canWrite ? openEdit : undefined}
-                onRemove={canWrite ? setEntryToArchive : undefined}
-                onAddAt={canWrite ? openAdd : undefined}
-              />
+      {onSubstitutes ? (
+        <SubstitutesTab
+          organizationId={organizationId}
+          schedule={roleFiltered}
+          addOpen={substituteAddOpen}
+          onAddOpenChange={setSubstituteAddOpen}
+        />
+      ) : (
+        <>
+          {truncated ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
+              Liste üst sınıra ({limit} kayıt) ulaştı. Kalan kayıtları görmek
+              için filtreleri kullanın.
             </div>
-            <div className="md:hidden">
-              <ScheduleDayList
-                items={visible}
-                today={today}
-                onEdit={canWrite ? openEdit : undefined}
-                onRemove={canWrite ? setEntryToArchive : undefined}
+          ) : null}
+
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
+            {classOptions.length > 1 ||
+            teachers.length > 1 ||
+            unassigned > 0 ? (
+              <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
+                {classOptions.length > 1 ? (
+                  <FilterSelect
+                    label="Sınıf"
+                    value={filter.classId}
+                    onChange={classId => setFilter(f => ({ ...f, classId }))}
+                    options={classOptions.map(([key, label]) => ({
+                      key,
+                      label,
+                    }))}
+                  />
+                ) : null}
+                {teachers.length > 1 ? (
+                  <FilterSelect
+                    label="Öğretmen"
+                    value={filter.teacher}
+                    onChange={teacher => setFilter(f => ({ ...f, teacher }))}
+                    options={teachers}
+                  />
+                ) : null}
+                {role === "admin" && unassigned > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFilter({ classId: ALL, teacher: NO_TEACHER })
+                    }
+                    className="ml-auto"
+                  >
+                    <Badge tone="amber">{unassigned} ders öğretmensiz</Badge>
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {isLoading ? (
+              <TableSkeleton
+                rows={4}
+                columns={3}
+                className="border-0 p-0 shadow-none"
               />
-            </div>
-          </>
-        )}
-      </section>
+            ) : error ? (
+              <ErrorState
+                title="Ders programı görüntülenemedi"
+                message={error.message}
+                onRetry={onRetry}
+              />
+            ) : visible.length === 0 ? (
+              <EmptyState
+                title={
+                  roleFiltered.length === 0
+                    ? "Ders programı boş"
+                    : "Bu süzgeçte ders yok"
+                }
+                description={
+                  roleFiltered.length === 0
+                    ? "Henüz planlanmış bir ders yok."
+                    : "Süzgeci değiştirerek diğer dersleri görebilirsiniz."
+                }
+              />
+            ) : (
+              <>
+                <div className="hidden md:block">
+                  <ScheduleWeekGrid
+                    items={visible}
+                    showClass={
+                      filter.classId === ALL && classOptions.length > 1
+                    }
+                    today={today}
+                    onEdit={canWrite ? openEdit : undefined}
+                    onRemove={canWrite ? setEntryToArchive : undefined}
+                    onAddAt={canWrite ? openAdd : undefined}
+                    covers={covers}
+                  />
+                </div>
+                <div className="md:hidden">
+                  <ScheduleDayList
+                    items={visible}
+                    today={today}
+                    onEdit={canWrite ? openEdit : undefined}
+                    onRemove={canWrite ? setEntryToArchive : undefined}
+                  />
+                </div>
+              </>
+            )}
+          </section>
+        </>
+      )}
 
       {formOpen && organizationId ? (
         <ScheduleEntryFormDialog
@@ -223,6 +283,30 @@ export function SchedulePage({
         />
       ) : null}
     </>
+  );
+}
+
+function SubTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`border-b-2 px-4 py-2.5 transition ${
+        active
+          ? "border-slate-900 text-slate-900"
+          : "border-transparent text-slate-500 hover:text-slate-800"
+      }`}
+    >
+      <span className="text-xs font-bold">{children}</span>
+    </button>
   );
 }
 

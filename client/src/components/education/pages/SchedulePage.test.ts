@@ -43,6 +43,9 @@ const render = (role: "admin" | "teacher") =>
         { id: "c1", name: "12-A Sayısal" },
         { id: "c2", name: "12-B" },
       ],
+      covers: new Map([
+        ["m1", { substitute: "Ayşe Demir", endsOn: "2026-10-20" }],
+      ]),
     })
   );
 
@@ -67,5 +70,13 @@ describe("SchedulePage — haftalık tablo (2026-09-28)", () => {
     expect(html).not.toContain("ders öğretmensiz");
     expect(html).not.toContain("için ders ekle");
     expect(html).not.toContain("programdan kaldır");
+  });
+
+  it("vekiller alt sekmesi yalnız yöneticide; izinli öğretmenin dersinde vekil yazılır", () => {
+    const admin = render("admin");
+    expect(admin).toContain(">Vekiller</span>");
+    expect(admin).toContain("Vekil: Ayşe Demir · bitiş 20 Eki");
+
+    expect(render("teacher")).not.toContain(">Vekiller</span>");
   });
 });

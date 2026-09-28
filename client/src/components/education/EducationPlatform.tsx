@@ -13,6 +13,9 @@ import { AdminDashboard } from "./dashboards/AdminDashboard";
 import { ClassDetail } from "./ClassDetail";
 import { buildClassSummaries, summaryFor } from "./pages/classSummaries";
 import { buildSubjectUsage } from "./pages/subjectUsage";
+import { currentCoverByAbsent } from "./pages/substitutePeriods";
+import type { ScheduleCover } from "./pages/scheduleGrid";
+import { getOrbitToday } from "@/education/trDate";
 import type { StudentFilter } from "./pages/studentFilters";
 import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
@@ -43,6 +46,7 @@ import {
   useSchedule,
   useStudentGuardians,
   useStudents,
+  useSubstitutes,
   useTodayLessons,
   educationKeys,
 } from "@/education/educationQueries";
@@ -611,6 +615,27 @@ export function EducationPlatform({
     () => buildSubjectUsage(activeSchedule),
     [activeSchedule]
   );
+  // Ders programında "Vekil: …" — yalnız yönetici (öğretmen başkalarının
+  // izin kaydını görmez, RLS).
+  const substitutesQuery = useSubstitutes({
+    enabled: !isDemoMode && role === "admin" && active === "Ders Programı",
+  });
+  const scheduleCovers = useMemo(() => {
+    const names = new Map(
+      (membersQuery.data ?? []).map(m => [m.membershipId, m.displayName])
+    );
+    const covers = new Map<string, ScheduleCover>();
+    for (const [absentId, row] of currentCoverByAbsent(
+      substitutesQuery.data?.rows ?? [],
+      getOrbitToday()
+    )) {
+      covers.set(absentId, {
+        substitute: names.get(row.substituteMembershipId) || "vekil",
+        endsOn: row.endsOn,
+      });
+    }
+    return covers;
+  }, [substitutesQuery.data, membersQuery.data]);
   const selectedClass = selectedClassId
     ? (activeClasses.find(c => c.id === selectedClassId) ?? null)
     : null;
@@ -906,6 +931,7 @@ export function EducationPlatform({
           limit={DEFAULT_SCHEDULE_LIMIT}
           organizationId={organizationId}
           classes={activeClasses}
+          covers={scheduleCovers}
         />
       );
     if (active === "Yoklama")

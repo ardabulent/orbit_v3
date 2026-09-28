@@ -7,6 +7,9 @@ import type { ScheduleItem } from "../types";
  */
 
 export const ALL = "all";
+
+/** Bugün süren vekillik; anahtar izinli öğretmenin üyeliği. */
+export type ScheduleCover = { substitute: string; endsOn: string };
 /** Öğretmeni olmayan satırların süzgeç anahtarı. */
 export const NO_TEACHER = "none";
 
