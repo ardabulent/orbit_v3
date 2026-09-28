@@ -558,7 +558,10 @@ export function EducationPlatform({
   // Sınavlar listesi (C-07) — yönetici ve öğretmen.
   const isStaffRole = role === "admin" || role === "teacher";
   const examListQuery = useExams({
-    enabled: !isDemoMode && isStaffRole && active === "Sınavlar",
+    enabled:
+      !isDemoMode &&
+      isStaffRole &&
+      (active === "Sınavlar" || active === "Gün Planı"),
   });
   const examPageQuery = isStaffRole ? examListQuery : examQuery;
   const paymentsQuery = usePayments({ enabled: !isDemoMode });
@@ -601,6 +604,25 @@ export function EducationPlatform({
     }
     return classesQuery.data?.rows ?? [];
   }, [classesQuery.data?.rows]);
+
+  // Gün Planı takvimi: yönetici bütün sınavları, öğretmen okuttuğu
+  // sınıfların (activeClasses RLS ile daraltılmış) ve kurum geneli sınavları.
+  const calendarExams = useMemo(() => {
+    const visibleClassIds = new Set(activeClasses.map(c => c.id));
+    return (examListQuery.data?.rows ?? [])
+      .filter(
+        exam =>
+          role === "admin" ||
+          exam.classId === null ||
+          visibleClassIds.has(exam.classId)
+      )
+      .map(exam => ({
+        id: exam.id,
+        name: exam.name,
+        examDate: exam.examDate,
+        className: exam.className,
+      }));
+  }, [examListQuery.data, activeClasses, role]);
 
   const activeSchedule = useMemo(() => {
     if (isDemoMode) {
@@ -826,6 +848,7 @@ export function EducationPlatform({
           organizationId={organizationId}
           membershipId={identity?.membership?.membershipId}
           schedule={activeSchedule}
+          exams={calendarExams}
         />
       );
     }

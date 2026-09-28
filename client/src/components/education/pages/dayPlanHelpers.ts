@@ -28,10 +28,20 @@ export type DayPlanDisplayEvent = {
   title: string;
   subtitle?: string | null;
   isLesson: boolean;
+  /** Sınav günü (salt okunur; Sınavlar sekmesinden gelir). */
+  isExam?: boolean;
   rawEvent?: CalendarEventItem;
   rawLesson?: ScheduleItem;
   mode?: DayPlanAppointmentMode;
   type?: DayPlanAppointmentType;
+};
+
+/** Takvime düşen sınav (Gün Planı, salt okunur). */
+export type CalendarExam = {
+  id: string;
+  name: string;
+  examDate: string;
+  className: string | null;
 };
 
 export function getMonthGridDays(month: Date): Date[] {
@@ -83,10 +93,27 @@ export function filterLessonsForDayPlan(
 export function buildMonthDisplayEvents(
   month: Date,
   personalEvents: CalendarEventItem[],
-  schedule: ScheduleItem[]
+  schedule: ScheduleItem[],
+  exams: CalendarExam[] = []
 ): DayPlanDisplayEvent[] {
   const days = getMonthGridDays(month);
   const result: DayPlanDisplayEvent[] = [];
+
+  // Sınavlar (C-07: "yeni sınav takvimde görünmüyor"). Saatsiz: günün
+  // başında sıralanır, "Sınav" rozetiyle salt okunur çizilir.
+  const visibleDates = new Set(days.map(day => format(day, "yyyy-MM-dd")));
+  for (const exam of exams) {
+    if (!visibleDates.has(exam.examDate)) continue;
+    result.push({
+      id: `exam-${exam.id}`,
+      date: exam.examDate,
+      startTime: "",
+      title: exam.name,
+      subtitle: exam.className,
+      isLesson: false,
+      isExam: true,
+    });
+  }
 
   // Kişisel etkinlikleri tarihlerine göre haritala (Europe/Istanbul gününe göre)
   for (const event of personalEvents) {

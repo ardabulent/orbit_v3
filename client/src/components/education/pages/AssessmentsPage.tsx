@@ -7,6 +7,7 @@ import { CardSkeleton, ErrorState, PageHeader } from "../shared";
 import { ExamDetailView, type ExamDetailViewProps } from "./ExamDetailView";
 import { ExamFormDialog } from "./ExamFormDialog";
 import { ExamList } from "./ExamList";
+import { StudentExamsView } from "./StudentExamsView";
 
 export type AssessmentsPageProps = ExamDetailViewProps & {
   /**
@@ -38,8 +39,8 @@ function toDetail(exam: ExamListItem): LatestExamDetail {
  * ders ders doğru/yanlış. "Yeni sınav" yalnız sayfa başlığında; eskiden bir
  * sınavın düğmeleri arasında durup o sınava aitmiş gibi görünüyordu.
  *
- * Öğrenci, veli ve demo: son sınavın görünümü (kendi ekranları sonraki
- * dilimde).
+ * Öğrenci ve veli: yaklaşan sınavlar ve sonuçlar (`StudentExamsView`).
+ * Demo: son sınavın görünümü.
  */
 export function AssessmentsPage(props: AssessmentsPageProps) {
   const {
@@ -60,7 +61,9 @@ export function AssessmentsPage(props: AssessmentsPageProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [classFilter, setClassFilter] = useState("");
 
-  if (!isStaff || activeDemo) return <ExamDetailView {...props} />;
+  if (activeDemo) return <ExamDetailView {...props} />;
+  // Öğrenci ve veli: kendi sınavları, netleri ve sınıf ortalaması.
+  if (!isStaff) return <StudentExamsView role={role} />;
 
   const today = getOrbitToday();
   const shown = classFilter

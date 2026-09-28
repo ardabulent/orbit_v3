@@ -42,6 +42,10 @@ import {
 import { loadSubjects, type SubjectListResult } from "./subjectService";
 import { loadExams, type ExamListResult } from "./examNetService";
 import {
+  loadStudentExams,
+  type StudentExamOverview,
+} from "./studentExamService";
+import {
   loadSubstitutes,
   type SubstituteListResult,
 } from "./substituteService";
@@ -205,6 +209,12 @@ export const educationKeys = {
     ] as const,
   homework: (organizationId: string) =>
     ["education", "homework", { organizationId }] as const,
+  studentExams: (organizationId: string, studentId: string, today: string) =>
+    [
+      "education",
+      "studentExams",
+      { organizationId, studentId, today },
+    ] as const,
   examList: (organizationId: string, classId?: string | null) =>
     [
       "education",
@@ -638,6 +648,37 @@ export function useSubjects(options?: UseSubjectsOptions) {
         includeArchived: options?.includeArchived,
         limit: options?.limit,
       }),
+    enabled: isEnabled,
+  });
+}
+
+/** Öğrencinin yaklaşan sınavları ve sonuçları (öğrenci/veli görünümü). */
+export function useStudentExams(options: {
+  studentId: string | null;
+  today: string;
+  organizationId?: string;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId =
+    options.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options.enabled ?? true) &&
+    Boolean(organizationId) &&
+    Boolean(options.studentId);
+
+  return useQuery<StudentExamOverview, Error>({
+    queryKey: educationKeys.studentExams(
+      organizationId ?? "",
+      options.studentId ?? "",
+      options.today
+    ),
+    queryFn: () =>
+      loadStudentExams(
+        organizationId as string,
+        options.studentId as string,
+        options.today
+      ),
     enabled: isEnabled,
   });
 }

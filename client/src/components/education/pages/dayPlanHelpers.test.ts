@@ -110,3 +110,32 @@ describe("buildMonthDisplayEvents — ders saatleri", () => {
     expect(lesson?.endTime).toBe("09:40");
   });
 });
+
+describe("buildMonthDisplayEvents — sınavlar (C-07)", () => {
+  it("ayın ızgarasına düşen sınav salt okunur 'sınav' satırı olur, dışındaki düşmez", () => {
+    const events = buildMonthDisplayEvents(
+      new Date(2026, 8, 1),
+      [],
+      [],
+      [
+        {
+          id: "e1",
+          name: "TYT Deneme 2",
+          examDate: "2026-09-29",
+          className: "12-A",
+        },
+        { id: "e2", name: "Uzak", examDate: "2026-12-01", className: null },
+      ]
+    );
+    const exams = events.filter(e => e.isExam);
+    expect(exams).toHaveLength(1);
+    expect(exams[0]).toMatchObject({
+      date: "2026-09-29",
+      title: "TYT Deneme 2",
+      subtitle: "12-A",
+      isLesson: false,
+      isExam: true,
+    });
+    expect(exams[0].rawEvent).toBeUndefined();
+  });
+});

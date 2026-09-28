@@ -148,7 +148,10 @@ export function DayPlanAgenda({
                     {item.startTime}
                     {item.endTime ? `–${item.endTime}` : ""}
                   </span>
-                  {isLesson ? (
+                  {isDisplay && item.isExam ? (
+                    // Sınav takvimde salt okunur; Sınavlar sekmesinde düzenlenir.
+                    <Badge tone="amber">Sınav</Badge>
+                  ) : isLesson ? (
                     // 🔴 Ders satırları takvimde salt okunur — üzerinde düzenleme/kaldırma çizilmez (§5 & §9)
                     <Badge tone="blue">Ders Programı</Badge>
                   ) : rawEvent ? (
