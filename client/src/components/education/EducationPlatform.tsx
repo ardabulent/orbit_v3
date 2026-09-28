@@ -45,6 +45,7 @@ import {
   useSchedule,
   useStudentGuardians,
   useStudents,
+  useExams,
   useMyLessonsToday,
   useSubstitutes,
   useTodayLessons,
@@ -554,6 +555,12 @@ export function EducationPlatform({
   const classesQuery = useClasses({ enabled: !isDemoMode });
   const scheduleQuery = useSchedule({ enabled: !isDemoMode });
   const examQuery = useLatestExam({ enabled: !isDemoMode });
+  // Sınavlar listesi (C-07) — yönetici ve öğretmen.
+  const isStaffRole = role === "admin" || role === "teacher";
+  const examListQuery = useExams({
+    enabled: !isDemoMode && isStaffRole && active === "Sınavlar",
+  });
+  const examPageQuery = isStaffRole ? examListQuery : examQuery;
   const paymentsQuery = usePayments({ enabled: !isDemoMode });
   const paymentOverviewQuery = usePaymentOverview({ enabled: !isDemoMode });
   const homeworkQuery = useHomework({ enabled: !isDemoMode });
@@ -1006,9 +1013,11 @@ export function EducationPlatform({
           role={role}
           onNavigate={navigate}
           exam={!isDemoMode ? (examQuery.data?.exam ?? null) : undefined}
-          isLoading={!isDemoMode && examQuery.isLoading}
-          error={!isDemoMode ? examQuery.error : null}
-          onRetry={!isDemoMode ? () => void examQuery.refetch() : undefined}
+          exams={examListQuery.data?.rows ?? []}
+          examsTruncated={Boolean(examListQuery.data?.truncated)}
+          isLoading={!isDemoMode && examPageQuery.isLoading}
+          error={!isDemoMode ? examPageQuery.error : null}
+          onRetry={!isDemoMode ? () => void examPageQuery.refetch() : undefined}
           organizationId={organizationId}
           classes={activeClasses}
           onDirtyChange={setIsExamDirty}
@@ -1025,6 +1034,9 @@ export function EducationPlatform({
               }),
               queryClient.invalidateQueries({
                 queryKey: ["education", "exams"],
+              }),
+              queryClient.invalidateQueries({
+                queryKey: ["education", "examList"],
               }),
               queryClient.invalidateQueries({
                 queryKey: educationKeys.students(organizationId),

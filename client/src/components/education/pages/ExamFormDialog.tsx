@@ -16,8 +16,22 @@ import {
   translateExamError,
   type LatestExamDetail,
 } from "@/education/examService";
+import {
+  loadExamSections,
+  saveExamSections,
+  type ExamSection,
+  type SectionDraft,
+} from "@/education/examNetService";
 import { getOrbitToday } from "@/education/trDate";
 import type { ClassGroup } from "../types";
+import { ExamSectionsEditor } from "./ExamSectionsEditor";
+import {
+  SCORING_OPTIONS,
+  choiceOf,
+  penaltyOf,
+  validateSections,
+  type ScoringChoice,
+} from "./examSections";
 
 export type ExamFormDialogProps = {
   open: boolean;
@@ -47,6 +61,11 @@ export function ExamFormDialog({
   const [classId, setClassId] = useState("");
   const [examDate, setExamDate] = useState(() => getOrbitToday());
   const [maxScore, setMaxScore] = useState("");
+  // Deneme netleri (karar 2026-09-28): tek puan ya da ders ders net.
+  const [scoring, setScoring] = useState<ScoringChoice>("score");
+  const [drafts, setDrafts] = useState<SectionDraft[]>([]);
+  const [existingSections, setExistingSections] = useState<ExamSection[]>([]);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,10 +75,45 @@ export function ExamFormDialog({
       setClassId(exam?.classId ?? classes[0]?.id ?? "");
       setExamDate(exam?.examDate ?? getOrbitToday());
       setMaxScore(exam?.maxScore != null ? String(exam.maxScore) : "");
+      setScoring(choiceOf(exam?.netPenalty));
+      setSectionsLoading(Boolean(exam?.netPenalty));
+      setDrafts([]);
+      setExistingSections([]);
       setError(null);
       setSubmitting(false);
     }
   }, [open, classes, exam]);
+
+  // Düzenlenen netli sınavın bölümleri.
+  const editingNetExamId = open && exam?.netPenalty ? exam.id : null;
+  useEffect(() => {
+    if (!editingNetExamId) return;
+    let ignore = false;
+    loadExamSections(editingNetExamId)
+      .then(sections => {
+        if (ignore) return;
+        setExistingSections(sections);
+        setDrafts(
+          sections.map(section => ({
+            id: section.id,
+            subjectId: section.subjectId,
+            name: section.name,
+            questionCount: section.questionCount,
+          }))
+        );
+      })
+      .catch((err: unknown) => {
+        if (!ignore) setError(translateExamError(err));
+      })
+      .finally(() => {
+        if (!ignore) setSectionsLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [editingNetExamId]);
+
+  const isNet = scoring !== "score";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,8 +131,17 @@ export function ExamFormDialog({
       return;
     }
 
+    if (isNet) {
+      const sectionError = validateSections(drafts);
+      if (sectionError) {
+        setError(sectionError);
+        return;
+      }
+    }
+
     let parsedMaxScore: number | null = null;
-    if (maxScore.trim() !== "") {
+    // Netli sınavda tam puan girilmez; bölümlerin soru sayısı yeter.
+    if (!isNet && maxScore.trim() !== "") {
       const parsed = Number(maxScore);
       if (Number.isNaN(parsed) || parsed <= 0) {
         setError("Tam puan pozitif bir sayı olmalıdır.");
@@ -102,6 +165,7 @@ export function ExamFormDialog({
           name: trimmedName,
           examDate,
           maxScore: parsedMaxScore,
+          netPenalty: penaltyOf(scoring),
         });
         examId = exam.id;
       } else {
@@ -111,8 +175,17 @@ export function ExamFormDialog({
           name: trimmedName,
           examDate,
           maxScore: parsedMaxScore,
+          netPenalty: penaltyOf(scoring),
         });
         examId = created.id;
+      }
+      if (isNet) {
+        await saveExamSections(
+          organizationId,
+          examId,
+          drafts,
+          existingSections
+        );
       }
 
       toast.success(exam ? "Sınav güncellendi" : "Sınav oluşturuldu", {
@@ -127,6 +200,7 @@ export function ExamFormDialog({
         maxScore: parsedMaxScore,
         classId,
         participantCount: exam?.participantCount ?? null,
+        netPenalty: penaltyOf(scoring),
       });
     } catch (err: unknown) {
       const msg = translateExamError(err);
@@ -141,7 +215,7 @@ export function ExamFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
@@ -195,6 +269,47 @@ export function ExamFormDialog({
                 )}
               </select>
             </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="exam-scoring"
+                className="text-xs font-bold text-slate-700"
+              >
+                Puanlama
+              </Label>
+              <select
+                id="exam-scoring"
+                value={scoring}
+                onChange={e => setScoring(e.target.value as ScoringChoice)}
+                disabled={submitting}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm outline-none focus:border-blue-500"
+              >
+                {SCORING_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {exam ? (
+                <p className="text-[10px] text-slate-500">
+                  Sonuç girildikten sonra tek puan ile net arasında geçiş
+                  yapılamaz.
+                </p>
+              ) : null}
+            </div>
+            {isNet ? (
+              sectionsLoading ? (
+                <p className="text-[11px] text-slate-500">
+                  Dersler yükleniyor…
+                </p>
+              ) : (
+                <ExamSectionsEditor
+                  drafts={drafts}
+                  onChange={setDrafts}
+                  onTemplate={penalty => setScoring(penalty === 3 ? "3" : "4")}
+                  disabled={submitting}
+                />
+              )
+            ) : null}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label
@@ -212,7 +327,7 @@ export function ExamFormDialog({
                   className="text-xs"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 ${isNet ? "hidden" : ""}`}>
                 <Label
                   htmlFor="exam-max-score"
                   className="text-xs font-bold text-slate-700"
