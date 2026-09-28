@@ -281,6 +281,50 @@ create trigger exam_sections_keep_results
 before update on public.exam_sections
 for each row execute function public.enforce_section_keeps_results();
 
+-- Bir bölüm, sonucu olan bir öğrencinin son etkin bölümüyse arşivlenemez:
+-- aksi hâlde öğrencinin toplamı dayanaksız kalır, onu kaldırmak da bir
+-- silme olurdu (karar 2026-09-28: silme yerine engelle).
+create or replace function public.enforce_section_archive_keeps_totals()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  kalan integer;
+begin
+  if not (old.archived_at is null and new.archived_at is not null) then
+    return new;
+  end if;
+  select count(distinct sonuc.student_id) into kalan
+  from public.exam_section_results as sonuc
+  where sonuc.section_id = new.id
+    and not exists (
+      select 1
+      from public.exam_section_results as diger
+      join public.exam_sections as bolum on bolum.id = diger.section_id
+      where diger.exam_id = sonuc.exam_id
+        and diger.student_id = sonuc.student_id
+        and diger.section_id <> new.id
+        and bolum.archived_at is null
+    );
+  if kalan > 0 then
+    raise exception 'Bu ders kaldırılamaz: bazı öğrencilerin başka ders sonucu yok.'
+      using errcode = 'ORB06',
+            detail = format('%s öğrencinin tek sonucu bu derste', kalan),
+            hint = 'Önce bu öğrencilerin sonuçlarını başka bir derse girin.';
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.enforce_section_archive_keeps_totals()
+  from public, anon, authenticated;
+
+create trigger exam_sections_archive_keeps_totals
+before update of archived_at on public.exam_sections
+for each row execute function public.enforce_section_archive_keeps_totals();
+
 -- ---------------------------------------------------------------------------
 -- Toplam net: tek yazar
 -- ---------------------------------------------------------------------------
@@ -323,11 +367,11 @@ begin
   -- bu işareti görünce yazıya izin verir.
   perform set_config('orbit.writing_exam_net', 'on', true);
 
-  if not kayit_var then
-    -- Hiç bölüm sonucu kalmadıysa (bölümler arşivlendi) toplam da yoktur.
-    delete from public.exam_results
-    where exam_id = target_exam_id and student_id = target_student_id;
-  else
+  -- Öğrencinin hiç etkin bölüm sonucu yoksa yazılacak toplam da yoktur.
+  -- Bu durum oluşamaz: sonucu olan bir öğrencinin son etkin bölümü
+  -- arşivlenemez (`enforce_section_archive_keeps_totals`). Toplam satırı
+  -- hiçbir koşulda silinmez.
+  if kayit_var then
     insert into public.exam_results (organization_id, exam_id, student_id, score)
     values (kurum, target_exam_id, target_student_id, toplam)
     on conflict (exam_id, student_id) do update set score = excluded.score

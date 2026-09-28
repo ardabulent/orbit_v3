@@ -14,7 +14,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -267,6 +267,15 @@ select results_eq(
      order by section_id nulls first $$,
   $$ values (true, 3::bigint, 19.89::numeric), (false, 3::bigint, 19.89::numeric) $$,
   'with three results the total and the Türkçe section averages appear; the archived section is gone'
+);
+
+-- S2 ve S3'ün tek sonucu Türkçe'de: Türkçe kaldırılırsa toplamları
+-- dayanaksız kalırdı. Silme yok — kaldırma engellenir.
+select throws_ok(
+  $$ update public.exam_sections set archived_at = now()
+     where id = '98100000-0000-0000-0000-000000000981' $$,
+  'ORB06', null,
+  'a section that is some student''s only result cannot be removed'
 );
 
 -- Öğrenci S1: kendi sonucu + ortalama, başkasının puanı değil.
