@@ -974,57 +974,77 @@ describe("ClassesPage states (v1.4-02)", () => {
       createElement(ClassesPage, {
         role: "admin",
         classes: dummyClasses,
-        onNavigate: vi.fn(),
+        onOpen: vi.fn(),
       })
     );
 
-    // cls-1: 15/20 doluluk, tam dolu değil
-    expect(html).toContain("15/20 doluluk");
+    // cls-1: 15/20, tam dolu değil
+    expect(html).toContain("15/20");
 
-    // cls-2: 20/20 doluluk, Kontenjan dolu
-    expect(html).toContain("20/20 doluluk");
+    // cls-2: 20/20, Kontenjan dolu
+    expect(html).toContain("20/20");
     expect(html).toContain("Kontenjan dolu");
 
-    // cls-3: capacity null -> 8 kayıt, sahte payda uydurulmaz (K-03)
-    expect(html).toContain("8 kayıt");
+    // cls-3: capacity null -> yalnız sayı, sahte payda uydurulmaz (K-03)
     expect(html).not.toContain("8/null");
     expect(html).not.toContain("8/0");
   });
 
-  it("admin rolünde satır işlemleri (Öğrenciler, Düzenle, Arşivle) görünür", () => {
+  it("2026-09-28: kart tıklanabilir, işlemler karttan detay paneline taşındı", () => {
     const html = renderToStaticMarkup(
       createElement(ClassesPage, {
         role: "admin",
         classes: dummyClasses,
-        onNavigate: vi.fn(),
+        onOpen: vi.fn(),
         onAdd: vi.fn(),
-        onEdit: vi.fn(),
-        onArchive: vi.fn(),
-        onManageEnrollments: vi.fn(),
       })
     );
 
-    expect(html).toContain("Öğrenciler");
-    expect(html).toContain("Düzenle");
-    expect(html).toContain("Arşivle");
+    expect(html).toContain('aria-label="12-A Sayısal sınıf detayını aç"');
+    expect(html).toContain("Ayrıntılar");
+    // Düzenle / Arşivle / öğrenci ekleme artık panelde (ClassDetail).
+    expect(html).not.toContain(">Düzenle<");
+    expect(html).not.toContain(">Arşivle<");
   });
 
-  it("öğretmen rolünde yönetim düğmeleri (Düzenle, Arşivle) çizilmez", () => {
+  it("öğretmen rolünde de kart açılır, yönetim düğmesi çizilmez", () => {
     const html = renderToStaticMarkup(
       createElement(ClassesPage, {
         role: "teacher",
         classes: dummyClasses,
-        onNavigate: vi.fn(),
-        onAdd: vi.fn(),
-        onEdit: vi.fn(),
-        onArchive: vi.fn(),
-        onManageEnrollments: vi.fn(),
+        onOpen: vi.fn(),
       })
     );
 
-    expect(html).not.toContain("Düzenle");
-    expect(html).not.toContain("Arşivle");
-    expect(html).toContain("Öğrencileri görüntüle");
+    expect(html).not.toContain("Yeni sınıf");
+    expect(html).toContain("Ayrıntılar");
+  });
+
+  it("özet: haftalık ders, ders–öğretmen ve bugünkü yoklama karta yazılır", () => {
+    const html = renderToStaticMarkup(
+      createElement(ClassesPage, {
+        role: "admin",
+        classes: dummyClasses,
+        onOpen: vi.fn(),
+        summaries: new Map([
+          [
+            dummyClasses[0].id,
+            {
+              weeklyLessons: 4,
+              subjects: [{ title: "Matematik", teacher: "Murat Kaya" }],
+              today: "pending" as const,
+            },
+          ],
+        ]),
+      })
+    );
+
+    expect(html).toContain("Haftada 4 ders");
+    expect(html).toContain("Matematik · Murat Kaya");
+    expect(html).toContain("Bugün yoklama bekliyor");
+    // Özeti olmayan sınıf "ders yok" der, uydurma yapmaz.
+    expect(html).toContain("Ders programı boş");
+    expect(html).toContain("Bugün ders yok");
   });
 });
 

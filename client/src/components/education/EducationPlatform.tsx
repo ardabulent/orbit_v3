@@ -10,6 +10,8 @@ import { availableEducationSections } from "@/components/educationAccess";
 import { filterStudentsForRole } from "./scopeFilters";
 import { shouldConfirmLeaving } from "./navigationGuards";
 import { AdminDashboard } from "./dashboards/AdminDashboard";
+import { ClassDetail } from "./ClassDetail";
+import { buildClassSummaries, summaryFor } from "./pages/classSummaries";
 import type { StudentFilter } from "./pages/studentFilters";
 import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
@@ -40,6 +42,7 @@ import {
   useSchedule,
   useStudentGuardians,
   useStudents,
+  useTodayLessons,
   educationKeys,
 } from "@/education/educationQueries";
 import { useAuth } from "@/auth/useAuth";
@@ -195,6 +198,8 @@ export function EducationPlatform({
   const [newStudentOpen, setNewStudentOpen] = useState(false);
   const [studentForEdit, setStudentForEdit] = useState<Student | null>(null);
   const [classFormOpen, setClassFormOpen] = useState(false);
+  /** Açık sınıf detay paneli; sınıf listenin güncel satırından okunur. */
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [classForEdit, setClassForEdit] = useState<ClassGroup | null>(null);
   const [classEnrollmentOpen, setClassEnrollmentOpen] = useState(false);
   const [classForEnrollment, setClassForEnrollment] =
@@ -593,6 +598,18 @@ export function EducationPlatform({
     return scheduleQuery.data?.rows ?? [];
   }, [scheduleQuery.data?.rows]);
 
+  const todayLessonsForClasses = useTodayLessons({
+    enabled: !isDemoMode && (active === "Sınıflar" || Boolean(selectedClassId)),
+  });
+  const classSummaries = useMemo(
+    () =>
+      buildClassSummaries(activeSchedule, todayLessonsForClasses.data ?? []),
+    [activeSchedule, todayLessonsForClasses.data]
+  );
+  const selectedClass = selectedClassId
+    ? (activeClasses.find(c => c.id === selectedClassId) ?? null)
+    : null;
+
   const activePayments = useMemo(() => {
     if (isDemoMode) {
       return paymentRows;
@@ -859,7 +876,6 @@ export function EducationPlatform({
           onRetry={!isDemoMode ? () => void classesQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(classesQuery.data?.truncated)}
           limit={DEFAULT_CLASS_LIMIT}
-          onNavigate={navigate}
           onAdd={() => {
             if (isDemoMode) {
               toast.info("Demo modunda sınıf ekleme kapalı.");
@@ -868,31 +884,8 @@ export function EducationPlatform({
             setClassForEdit(null);
             setClassFormOpen(true);
           }}
-          onEdit={
-            !isDemoMode
-              ? cls => {
-                  setClassForEdit(cls);
-                  setClassFormOpen(true);
-                }
-              : undefined
-          }
-          onArchive={!isDemoMode ? handleArchiveClass : undefined}
-          onManageEnrollments={
-            !isDemoMode
-              ? cls => {
-                  setClassForEnrollment(cls);
-                  setClassEnrollmentOpen(true);
-                }
-              : undefined
-          }
-          onManageTeachers={
-            !isDemoMode && role === "admin"
-              ? cls => {
-                  setClassForTeachers(cls);
-                  setClassTeachersOpen(true);
-                }
-              : undefined
-          }
+          onOpen={cls => setSelectedClassId(cls.id)}
+          summaries={classSummaries}
         />
       );
     if (active === "Ders Programı")
@@ -1329,6 +1322,53 @@ export function EducationPlatform({
           </div>
         </main>
       </div>
+      {selectedClass ? (
+        <ClassDetail
+          cls={selectedClass}
+          role={role}
+          summary={summaryFor(classSummaries, selectedClass.id)}
+          lessons={activeSchedule.filter(l => l.classId === selectedClass.id)}
+          onClose={() => setSelectedClassId(null)}
+          onOpenStudent={studentId => {
+            const student = activeStudents.find(s => s.id === studentId);
+            if (!student) return;
+            setSelectedClassId(null);
+            setSelectedStudentSnapshot(student);
+          }}
+          onManageEnrollments={
+            !isDemoMode
+              ? cls => {
+                  setClassForEnrollment(cls);
+                  setClassEnrollmentOpen(true);
+                }
+              : undefined
+          }
+          onManageTeachers={
+            !isDemoMode && role === "admin"
+              ? cls => {
+                  setClassForTeachers(cls);
+                  setClassTeachersOpen(true);
+                }
+              : undefined
+          }
+          onEdit={
+            !isDemoMode
+              ? cls => {
+                  setClassForEdit(cls);
+                  setClassFormOpen(true);
+                }
+              : undefined
+          }
+          onArchive={
+            !isDemoMode
+              ? cls => {
+                  setSelectedClassId(null);
+                  void handleArchiveClass(cls);
+                }
+              : undefined
+          }
+        />
+      ) : null}
       {selectedStudent ? (
         <StudentDetail
           student={selectedStudent}
