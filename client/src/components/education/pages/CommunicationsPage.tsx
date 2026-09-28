@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Megaphone, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import { isDemoMode } from "@/auth/runtime";
 import { activeConversation, communicationsList } from "../educationData";
 import { EmptyState, MessageListItem, PageHeader } from "../shared";
 import type { Role } from "../types";
@@ -12,14 +13,20 @@ export function CommunicationsPage({
   setMessage,
   organizationId = "",
   classes = [],
+  isDemo = isDemoMode,
 }: {
   role: Role;
   message: string;
   setMessage: (value: string) => void;
   organizationId?: string;
   classes?: { id: string; name: string }[];
+  /** Üretimde (isDemoMode false) demoyu açamaz; yalnız kapatır. */
+  isDemo?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<"feed" | "messages">("feed");
+  // Birebir mesajlaşma henüz yok (karar 2026-09-29: ayrı planlanacak).
+  // Üretimde sekme hiç çizilmez; mesaj gönderemeyen bir kutu sunulmaz.
+  const showMessages = isDemoMode && isDemo;
 
   const submit = () => {
     if (!message.trim()) return toast.error("Mesajınızı yazın");
@@ -30,8 +37,15 @@ export function CommunicationsPage({
     setMessage("");
   };
 
-  const pageDescription =
-    role === "student"
+  const pageDescription = !showMessages
+    ? role === "student"
+      ? "Kurumun ve sınıfınızın duyurularını takip edin."
+      : role === "parent"
+        ? "Kurumun ve öğrencinizin sınıfının duyurularını takip edin."
+        : role === "teacher"
+          ? "Sınıflarınıza duyuru paylaşın."
+          : "Kurum geneline veya sınıflara duyuru yayınlayın."
+    : role === "student"
       ? "Duyuruları takip edin, öğretmenleriniz ve danışmanınızla doğrudan iletişim kurun."
       : role === "parent"
         ? "Duyuruları takip edin, öğrencinizin öğretmenleri ve danışmanıyla iletişim kurun."
@@ -44,45 +58,47 @@ export function CommunicationsPage({
       <PageHeader
         eyebrow="İletişim merkezi"
         title={
-          role === "student"
-            ? "Duyurular ve mesajlarım"
-            : role === "parent"
-              ? "Duyurular ve iletişim"
+          !showMessages
+            ? "Duyurular"
+            : role === "student"
+              ? "Duyurular ve mesajlarım"
               : "Duyurular ve iletişim"
         }
         description={pageDescription}
       />
 
-      {/* Sekmeler: Günlük Akış (Duyurular) vs Birebir Mesajlar */}
-      <div className="mt-6 flex border-b border-slate-200">
-        <button
-          type="button"
-          onClick={() => setActiveTab("feed")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-[12px] font-bold transition ${
-            activeTab === "feed"
-              ? "border-slate-900 text-slate-900"
-              : "border-transparent text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <Megaphone className="h-4 w-4" />
-          <span>Günlük Akış (Duyurular)</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("messages")}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-[12px] font-bold transition ${
-            activeTab === "messages"
-              ? "border-slate-900 text-slate-900"
-              : "border-transparent text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <MessageSquare className="h-4 w-4" />
-          <span>Birebir Mesajlar</span>
-        </button>
-      </div>
+      {/* Sekmeler: Günlük Akış (Duyurular) vs Birebir Mesajlar — yalnız demo */}
+      {showMessages ? (
+        <div className="mt-6 flex border-b border-slate-200">
+          <button
+            type="button"
+            onClick={() => setActiveTab("feed")}
+            className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-[12px] font-bold transition ${
+              activeTab === "feed"
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Megaphone className="h-4 w-4" />
+            <span>Günlük Akış (Duyurular)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("messages")}
+            className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-[12px] font-bold transition ${
+              activeTab === "messages"
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span>Birebir Mesajlar</span>
+          </button>
+        </div>
+      ) : null}
 
       <div className="mt-6">
-        {activeTab === "feed" ? (
+        {activeTab === "feed" || !showMessages ? (
           <DailyFeedSection
             role={role}
             organizationId={organizationId}

@@ -265,19 +265,24 @@ export const educationKeys = {
         ] as const)
       : (["education", "studentGuardians", { organizationId }] as const);
   },
+  // B16 / C-08: boş alanlar anahtara YAZILMAZ. React Query kısmi eşlemede
+  // nesne alanlarını tek tek karşılaştırır; `feed(org)` ile geçersiz kılmak
+  // `{ includeArchived: undefined }` taşısaydı listenin
+  // `{ includeArchived: false }` anahtarıyla eşleşmez ve pano paylaşımdan
+  // sonra yenilenmezdi (ölçüldü: 2026-09-19 ilk kullanım turu).
   feed: (
     organizationId: string,
     options?: { classId?: string | null; includeArchived?: boolean }
   ) => {
-    return [
-      "education",
-      "feed",
-      {
-        organizationId,
-        classId: options?.classId,
-        includeArchived: options?.includeArchived,
-      },
-    ] as const;
+    const scope: {
+      organizationId: string;
+      classId?: string | null;
+      includeArchived?: boolean;
+    } = { organizationId };
+    if (options?.classId !== undefined) scope.classId = options.classId;
+    if (options?.includeArchived !== undefined)
+      scope.includeArchived = options.includeArchived;
+    return ["education", "feed", scope] as const;
   },
   tasks: (
     organizationId: string,
