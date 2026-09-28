@@ -218,6 +218,13 @@ Deno.serve(async request => {
         password_expires_at: passwordExpiresAt,
         password_lock_set: membershipCreated,
         audit_written: membershipCreated,
+        // "Yeni öğrenci" akışı hesabı açtıktan sonra öğrenci ya da veli
+        // kaydına bağlar (2026-09-28). Bağlama çağıranın kendi yetkisiyle,
+        // `link_student_account` / `link_guardian_account` üzerinden yapılır;
+        // yetki SQL'de kalır. Kimlik bir sır değil: yönetici üye listesinde
+        // zaten görüyor. Tekrarlanan istekte (replayed) dönmez — o yol
+        // `finishFunctionCall` özetinden gelir ve kimlik taşımaz.
+        membership_id: membershipCreated ? membershipId : null,
       },
     },
     201,

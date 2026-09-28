@@ -602,6 +602,10 @@ export async function createMember(
     temporaryPassword,
     passwordLockSet,
     auditWritten,
+    membershipId:
+      typeof payload?.membership_id === "string"
+        ? payload.membership_id
+        : undefined,
   };
 }
 

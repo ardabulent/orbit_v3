@@ -65,6 +65,7 @@ import {
 } from "@/education/guardianService";
 import { DEFAULT_HOMEWORK_LIMIT } from "@/education/homeworkService";
 import { StudentFormDialog } from "./pages/StudentFormDialog";
+import { NewStudentDialog } from "./pages/NewStudentDialog";
 import { GuardianFormDialog } from "./pages/GuardianFormDialog";
 import { ClassFormDialog } from "./pages/ClassFormDialog";
 import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
@@ -190,6 +191,8 @@ export function EducationPlatform({
   const organizationId = identity?.membership?.organizationId ?? "";
   const queryClient = useQueryClient();
   const [studentFormOpen, setStudentFormOpen] = useState(false);
+  /** "Yeni öğrenci" tek akışı; `StudentFormDialog` yalnız düzenleme için. */
+  const [newStudentOpen, setNewStudentOpen] = useState(false);
   const [studentForEdit, setStudentForEdit] = useState<Student | null>(null);
   const [classFormOpen, setClassFormOpen] = useState(false);
   const [classForEdit, setClassForEdit] = useState<ClassGroup | null>(null);
@@ -802,8 +805,7 @@ export function EducationPlatform({
               });
               return;
             }
-            setStudentForEdit(null);
-            setStudentFormOpen(true);
+            setNewStudentOpen(true);
           }}
           guardians={activeGuardians}
           guardianQuery={guardianQuery}
@@ -1359,6 +1361,11 @@ export function EducationPlatform({
       ) : null}
       {!isDemoMode && (
         <>
+          <NewStudentDialog
+            open={newStudentOpen}
+            onOpenChange={setNewStudentOpen}
+            organizationId={organizationId}
+          />
           <StudentFormDialog
             open={studentFormOpen}
             onOpenChange={setStudentFormOpen}
