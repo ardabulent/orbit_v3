@@ -38,6 +38,11 @@ export type TodayLesson = {
    * `my_lessons_today`). "Alınmadı" ile aynı şey değil.
    */
   attendanceTaken: boolean | null;
+  /**
+   * Çağıran bu derse vekil olarak giriyor; `teacher` izinli öğretmendir.
+   * Yalnız `my_lessons_today` doldurur.
+   */
+  isSubstitute?: boolean;
 };
 
 export type TeacherOverviewCounts = {
@@ -68,6 +73,8 @@ type RawTodayLessonRow = {
   room: string | null;
   teacher_name: string | null;
   attendance_taken: boolean | null;
+  /** Yalnız `my_lessons_today` döner (`20261005000000`). */
+  is_substitute?: boolean | null;
 };
 
 type RawTeacherCountsRow = {
@@ -109,6 +116,7 @@ export function mapTodayLessonRow(row: RawTodayLessonRow): TodayLesson {
     room: row.room?.trim() || null,
     teacher: row.teacher_name?.trim() || null,
     attendanceTaken: row.attendance_taken ?? null,
+    isSubstitute: row.is_substitute === true,
   };
 }
 

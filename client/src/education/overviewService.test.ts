@@ -142,6 +142,26 @@ describe("mapTodayLessonRow", () => {
       attendance_taken: false,
     });
     expect(lesson.title).toBe("Fizik");
+    // today_lessons is_substitute döndürmez: vekillik değil.
+    expect(lesson.isSubstitute).toBe(false);
+  });
+
+  it("marks a lesson the caller covers as a substitute (my_lessons_today)", () => {
+    const lesson = mapTodayLessonRow({
+      entry_id: "e",
+      starts_at: "09:00:00",
+      ends_at: "09:40:00",
+      class_id: "c",
+      class_name: "12-A",
+      subject_name: "Matematik",
+      title: null,
+      room: null,
+      teacher_name: "Murat Kaya",
+      attendance_taken: false,
+      is_substitute: true,
+    });
+    expect(lesson.isSubstitute).toBe(true);
+    expect(lesson.teacher).toBe("Murat Kaya");
   });
 });
 

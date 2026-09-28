@@ -319,6 +319,11 @@ function LessonRow({
           </p>
         ) : null}
       </div>
+      {lesson.isSubstitute ? (
+        <Badge tone="violet">
+          {lesson.teacher ? `${lesson.teacher} yerine` : "Vekil"}
+        </Badge>
+      ) : null}
       {showAttendance ? (
         <AttendanceStatus
           taken={lesson.attendanceTaken}
