@@ -1075,84 +1075,85 @@ describe("ClassesPage states (v1.4-02)", () => {
 });
 
 describe("AttendancePage states (v1.4-03)", () => {
-  it("varsayılan durum seçilmemiştir: hiçbir öğrenci için 'Katıldı' ön işaretli gelmez (K-03)", () => {
-    const session = {
-      id: "sess-1",
-      classId: "cls-1",
-      className: "12-A",
-      subjectId: null,
-      subjectName: null,
-      sessionDate: "2026-09-10",
-      startsAt: null,
-      records: [
-        {
-          id: "rec-1",
-          studentId: "stu-1",
-          studentName: "Ali Can",
-          status: null,
-        },
-      ],
-    };
+  // 2026-09-28: yoklama ders başına; sayfa "Bugün" listesiyle açılır.
+  const lesson = (over: Record<string, unknown>) => ({
+    id: "e1",
+    time: "09:00",
+    endTime: "09:40",
+    classId: "cls-1",
+    className: "12-A",
+    title: "Matematik",
+    room: null,
+    teacher: "Murat Kaya",
+    attendanceTaken: false as boolean | null,
+    ...over,
+  });
+  const entry = (id: string) => ({
+    id,
+    day: "Pazartesi" as const,
+    time: "09:00",
+    title: "Matematik",
+    classId: "cls-1",
+    subjectId: "sub-1",
+    startsAt: "09:00:00",
+    dayOfWeek: 1,
+  });
 
+  it("bugünün dersleri: alınmamışta 'Yoklama al', alınmışta 'Düzenle', programda olmayanda düğme yok", () => {
     const html = renderToStaticMarkup(
       createElement(AttendancePage, {
         role: "teacher",
         attendances: {},
         setAttendances: vi.fn(),
-        session,
         isDemo: false,
+        organizationId: "org-1",
+        schedule: [entry("e1"), entry("e2")],
+        lessons: [
+          lesson({ id: "e1", attendanceTaken: false }),
+          lesson({ id: "e2", time: "10:00", attendanceTaken: true }),
+          // Program satırı yüklenmemiş ders açılmaz (yanlış oturum açılmaz).
+          lesson({ id: "e3", time: "11:00", attendanceTaken: false }),
+        ],
       })
     );
 
-    expect(html).toContain("Seçilmedi");
-    expect(html).not.toContain("bg-slate-900 text-white shadow-sm");
+    expect(html).toContain("Bekliyor");
+    expect(html).toContain("Alındı");
+    expect(html.match(/Yoklama al</g)?.length).toBe(1);
+    expect(html).toContain("Düzenle");
+    expect(html).toContain("3 dersten 1 tanesinin yoklaması alındı.");
   });
 
-  it("öğretmen rolünde akış açıktır: durum butonları devre dışı değildir ve kaydetme butonu mevcuttur", () => {
-    const session = {
-      id: "sess-1",
-      classId: "cls-1",
-      className: "12-A",
-      subjectId: null,
-      subjectName: null,
-      sessionDate: "2026-09-10",
-      startsAt: null,
-      records: [
-        {
-          id: "rec-1",
-          studentId: "stu-1",
-          studentName: "Ali Can",
-          status: "Katıldı" as const,
-        },
-      ],
-    };
-
+  it("vekil olunan ders 'Vekil' rozeti ve izinli öğretmenin adıyla gelir", () => {
     const html = renderToStaticMarkup(
       createElement(AttendancePage, {
         role: "teacher",
         attendances: {},
         setAttendances: vi.fn(),
-        session,
         isDemo: false,
+        organizationId: "org-1",
+        schedule: [entry("e1")],
+        lessons: [lesson({ id: "e1", isSubstitute: true })],
       })
     );
 
-    expect(html).not.toContain('disabled="" aria-disabled="true"');
-    expect(html).toContain("Yoklamayı kaydet");
+    expect(html).toContain("Vekil");
+    expect(html).toContain("Murat Kaya");
   });
 
-  it("üretimde oturum yoksa 'Henüz yoklama kaydı yok' boş durumunu gösterir (K-03)", () => {
+  it("bugün ders yoksa boş durum Geçmiş sekmesine yönlendirir", () => {
     const html = renderToStaticMarkup(
       createElement(AttendancePage, {
         role: "admin",
         attendances: {},
         setAttendances: vi.fn(),
-        session: null,
         isDemo: false,
+        lessons: [],
       })
     );
 
-    expect(html).toContain("Henüz yoklama kaydı yok");
+    expect(html).toContain("Bugün programda ders yok");
+    expect(html).toContain("Geçmiş");
   });
 
   it("demo modunda 'Taslak' rozeti ve toast bildirimi davranışı korunur", () => {

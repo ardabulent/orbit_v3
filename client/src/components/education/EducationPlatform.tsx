@@ -36,7 +36,6 @@ import {
   useClasses,
   useGuardians,
   useHomework,
-  useLatestAttendanceSession,
   useLatestExam,
   usePaymentOverview,
   usePayments,
@@ -46,6 +45,7 @@ import {
   useSchedule,
   useStudentGuardians,
   useStudents,
+  useMyLessonsToday,
   useSubstitutes,
   useTodayLessons,
   educationKeys,
@@ -553,7 +553,6 @@ export function EducationPlatform({
 
   const classesQuery = useClasses({ enabled: !isDemoMode });
   const scheduleQuery = useSchedule({ enabled: !isDemoMode });
-  const attendanceQuery = useLatestAttendanceSession({ enabled: !isDemoMode });
   const examQuery = useLatestExam({ enabled: !isDemoMode });
   const paymentsQuery = usePayments({ enabled: !isDemoMode });
   const paymentOverviewQuery = usePaymentOverview({ enabled: !isDemoMode });
@@ -604,8 +603,18 @@ export function EducationPlatform({
   }, [scheduleQuery.data?.rows]);
 
   const todayLessonsForClasses = useTodayLessons({
-    enabled: !isDemoMode && (active === "Sınıflar" || Boolean(selectedClassId)),
+    enabled:
+      !isDemoMode &&
+      (active === "Sınıflar" ||
+        Boolean(selectedClassId) ||
+        (active === "Yoklama" && role === "admin")),
   });
+  // Yoklama · Bugün: öğretmen yalnız kendi derslerini (vekillik dahil) görür.
+  const myLessonsForAttendance = useMyLessonsToday({
+    enabled: !isDemoMode && active === "Yoklama" && role !== "admin",
+  });
+  const attendanceLessonsQuery =
+    role === "admin" ? todayLessonsForClasses : myLessonsForAttendance;
   const classSummaries = useMemo(
     () =>
       buildClassSummaries(activeSchedule, todayLessonsForClasses.data ?? []),
@@ -942,13 +951,14 @@ export function EducationPlatform({
           classes={activeClasses}
           attendances={attendances}
           setAttendances={setAttendances}
-          session={
-            !isDemoMode ? (attendanceQuery.data?.session ?? null) : undefined
-          }
-          isLoading={!isDemoMode && attendanceQuery.isLoading}
-          error={!isDemoMode ? attendanceQuery.error : null}
+          schedule={activeSchedule}
+          lessons={attendanceLessonsQuery.data ?? []}
+          isLoading={!isDemoMode && attendanceLessonsQuery.isLoading}
+          error={!isDemoMode ? attendanceLessonsQuery.error : null}
           onRetry={
-            !isDemoMode ? () => void attendanceQuery.refetch() : undefined
+            !isDemoMode
+              ? () => void attendanceLessonsQuery.refetch()
+              : undefined
           }
           organizationId={organizationId}
           onNavigate={navigate}
@@ -963,6 +973,22 @@ export function EducationPlatform({
               }),
               queryClient.invalidateQueries({
                 queryKey: ["education", "attendanceSheet"],
+              }),
+              // Ders başına "alındı" rozetleri ve Genel Bakış sayıları.
+              queryClient.invalidateQueries({
+                queryKey: ["education", "attendanceHistory"],
+              }),
+              queryClient.invalidateQueries({
+                queryKey: educationKeys.todayLessons(organizationId),
+              }),
+              queryClient.invalidateQueries({
+                queryKey: educationKeys.myLessonsToday(organizationId),
+              }),
+              queryClient.invalidateQueries({
+                queryKey: educationKeys.adminOverview(organizationId),
+              }),
+              queryClient.invalidateQueries({
+                queryKey: educationKeys.teacherOverview(organizationId),
               }),
               queryClient.invalidateQueries({
                 queryKey: educationKeys.students(organizationId),

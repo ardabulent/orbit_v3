@@ -417,10 +417,13 @@ describe("attendanceService", () => {
         );
       });
 
+      // 2026-09-28: ders başına — oturumun kimliği ders ve saati de içerir.
       const result = await openAttendanceSession({
         organizationId: "org-1",
         classId: "cls-1",
         sessionDate: "2026-09-10",
+        subjectId: "sub-1",
+        startsAt: "09:00:00",
       });
 
       expect(result.id).toBe("existing-sess-1");
@@ -428,8 +431,37 @@ describe("attendanceService", () => {
         ["organization_id", "org-1"],
         ["class_id", "cls-1"],
         ["session_date", "2026-09-10"],
+        ["subject_id", "sub-1"],
+        ["starts_at", "09:00:00"],
       ]);
       expect(spy.isArgs).toEqual(["archived_at", null]);
+    });
+
+    it("dersi ve saati olmayan (günlük) oturum boş alanları is null ile arar", async () => {
+      const isCalls: [string, unknown][] = [];
+      fromMock.mockImplementation(() => {
+        const chain = createQueryChain({
+          data: { id: "daily-1" },
+          error: null,
+        });
+        chain.is = vi.fn((col: string, val: unknown) => {
+          isCalls.push([col, val]);
+          return chain;
+        });
+        return chain;
+      });
+
+      await openAttendanceSession({
+        organizationId: "org-1",
+        classId: "cls-1",
+        sessionDate: "2026-09-10",
+      });
+
+      expect(isCalls).toEqual([
+        ["archived_at", null],
+        ["subject_id", null],
+        ["starts_at", null],
+      ]);
     });
 
     it("⛔ oturum yoksa yeni oturum açar ve id GÖNDERMEZ (veritabanı üretir)", async () => {
@@ -464,6 +496,8 @@ describe("attendanceService", () => {
         organizationId: "org-1",
         classId: "cls-1",
         sessionDate: "2026-09-10",
+        subjectId: "sub-1",
+        startsAt: "09:00:00",
       });
 
       expect(result.id).toBe("new-generated-sess-id");
@@ -472,6 +506,8 @@ describe("attendanceService", () => {
         organization_id: "org-1",
         class_id: "cls-1",
         session_date: "2026-09-10",
+        subject_id: "sub-1",
+        starts_at: "09:00:00",
       });
       expect(
         (insertSpy.insertArg as Record<string, unknown>).id

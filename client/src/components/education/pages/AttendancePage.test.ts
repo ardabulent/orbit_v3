@@ -36,8 +36,9 @@ describe("AttendancePage (v1.4 kapanış taraması #304)", () => {
       })
     );
 
-    // Form varsayılan tarihi Türkiye saatindeki bugünün tarihi ("2026-09-14") olmalıdır
-    expect(html).toContain('value="2026-09-14"');
-    expect(html).not.toContain('value="2026-09-13"');
+    // 2026-09-28: sınıf/tarih formu kalktı (Bugün listesi). Sayfanın "bugün"ü
+    // başlıkta yazılıdır ve Türkiye saatindeki takvim günü olmalıdır.
+    expect(html).toContain("Bugün: 14 Eylül 2026");
+    expect(html).not.toContain("13 Eylül 2026");
   });
 });

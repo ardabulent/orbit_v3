@@ -291,6 +291,14 @@ export type OpenAttendanceSessionInput = {
   organizationId: string;
   classId: string;
   sessionDate: string;
+  /**
+   * Ders yoklaması (karar 2026-09-28, `20261006000000`): programdaki dersin
+   * dersi ve başlangıç saati. Dersi olmayan satırda (etüt) `subjectId` boş,
+   * saat dolu. İkisi de boşsa eski düzen günlük oturum açılır — o oturum
+   * günün bütün derslerini kapsar; yeni ekran bunu açmaz.
+   */
+  subjectId?: string | null;
+  startsAt?: string | null;
 };
 
 export type AttendanceSheetStudent = {
@@ -422,15 +430,30 @@ export async function loadLatestAttendanceSession(
 export async function openAttendanceSession(
   input: OpenAttendanceSessionInput
 ): Promise<{ id: string }> {
-  // 1. Önce aynı kurum, sınıf ve tarihte aktif bir oturum var mı kontrol et
-  const { data: existing, error: selectError } = await supabase
-    .from("attendance_sessions")
-    .select("id")
-    .eq("organization_id", input.organizationId)
-    .eq("class_id", input.classId)
-    .eq("session_date", input.sessionDate)
-    .is("archived_at", null)
-    .maybeSingle();
+  const subjectId = input.subjectId ?? null;
+  const startsAt = input.startsAt ?? null;
+
+  // Aynı oturumun kimliği: sınıf + gün + ders + saat (benzersiz dizinlerle
+  // aynı anahtar). Boş alan `is null` ile aranır; `eq(null)` hiç eşleşmez.
+  const findExisting = () => {
+    let query = supabase
+      .from("attendance_sessions")
+      .select("id")
+      .eq("organization_id", input.organizationId)
+      .eq("class_id", input.classId)
+      .eq("session_date", input.sessionDate)
+      .is("archived_at", null);
+    query = subjectId
+      ? query.eq("subject_id", subjectId)
+      : query.is("subject_id", null);
+    query = startsAt
+      ? query.eq("starts_at", startsAt)
+      : query.is("starts_at", null);
+    return query.maybeSingle();
+  };
+
+  // 1. Önce aynı oturum var mı
+  const { data: existing, error: selectError } = await findExisting();
 
   if (selectError) {
     throw new Error(translateAttendanceError(selectError));
@@ -447,6 +470,8 @@ export async function openAttendanceSession(
       organization_id: input.organizationId,
       class_id: input.classId,
       session_date: input.sessionDate,
+      subject_id: subjectId,
+      starts_at: startsAt,
     })
     .select("id")
     .single();
@@ -454,14 +479,7 @@ export async function openAttendanceSession(
   if (insertError) {
     // Eşzamanlı açma yarışında 23505 (unique ihlali) dönerse mevcut oturumu tekrar ara
     if ((insertError as { code?: string }).code === "23505") {
-      const { data: retryExisting } = await supabase
-        .from("attendance_sessions")
-        .select("id")
-        .eq("organization_id", input.organizationId)
-        .eq("class_id", input.classId)
-        .eq("session_date", input.sessionDate)
-        .is("archived_at", null)
-        .maybeSingle();
+      const { data: retryExisting } = await findExisting();
       if (retryExisting) {
         return { id: retryExisting.id };
       }
@@ -470,6 +488,95 @@ export async function openAttendanceSession(
   }
 
   return { id: data.id };
+}
+
+export type AttendanceHistoryRow = {
+  sessionId: string;
+  classId: string;
+  className: string | null;
+  subjectId: string | null;
+  subjectName: string | null;
+  sessionDate: string;
+  /** "HH:MM:SS" ya da günlük oturumda `null`. */
+  startsAt: string | null;
+  counts: Record<AttendanceDbStatus, number>;
+};
+
+export type AttendanceHistoryResult = {
+  rows: AttendanceHistoryRow[];
+  truncated: boolean;
+};
+
+export const DEFAULT_ATTENDANCE_HISTORY_LIMIT = 200;
+
+/**
+ * Geçmiş yoklama oturumları (en yeni önce), durum sayılarıyla.
+ *
+ * Kimse işaretlenmemiş oturum listelenir ama "alındı" sayılmaz — sayıları
+ * sıfırdır ve ekran bunu "boş" diye gösterir (`20261006000000`).
+ * Açık kurum süzgeci (K-19), üst sınır ve `truncated` (K-03), hata fırlatılır.
+ */
+export async function loadAttendanceHistory(
+  organizationId: string,
+  options: { since: string; classId?: string | null },
+  limit = DEFAULT_ATTENDANCE_HISTORY_LIMIT
+): Promise<AttendanceHistoryResult> {
+  if (!organizationId) return { rows: [], truncated: false };
+
+  let query = supabase
+    .from("attendance_sessions")
+    .select(
+      "id, class_id, subject_id, session_date, starts_at, classes(name), subjects(name), attendance_records(status)"
+    )
+    .eq("organization_id", organizationId)
+    .is("archived_at", null)
+    .gte("session_date", options.since)
+    .order("session_date", { ascending: false })
+    .order("starts_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (options.classId) query = query.eq("class_id", options.classId);
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(translateAttendanceError(error));
+  }
+
+  type Raw = {
+    id: string;
+    class_id: string;
+    subject_id: string | null;
+    session_date: string;
+    starts_at: string | null;
+    classes: unknown;
+    subjects: unknown;
+    attendance_records: { status: string }[] | null;
+  };
+
+  const rows = ((data ?? []) as Raw[]).map(row => {
+    const counts: Record<AttendanceDbStatus, number> = {
+      present: 0,
+      late: 0,
+      absent: 0,
+      excused: 0,
+    };
+    for (const record of row.attendance_records ?? []) {
+      if (record.status in counts) {
+        counts[record.status as AttendanceDbStatus] += 1;
+      }
+    }
+    return {
+      sessionId: row.id,
+      classId: row.class_id,
+      className: extractActiveName(row.classes),
+      subjectId: row.subject_id,
+      subjectName: extractActiveName(row.subjects),
+      sessionDate: row.session_date,
+      startsAt: row.starts_at,
+      counts,
+    };
+  });
+
+  return { rows, truncated: rows.length === limit };
 }
 
 /**

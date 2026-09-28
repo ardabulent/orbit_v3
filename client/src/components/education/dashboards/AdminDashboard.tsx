@@ -162,7 +162,7 @@ function adminAttentionItems(
     {
       count: counts.lessonsMissingAttendanceToday,
       label: "dersin bugünkü yoklaması alınmadı",
-      hint: "Bugün dersi olan sınıflar",
+      hint: "Yoklama her ders için ayrı alınır",
       target: "Yoklama",
     },
     {
