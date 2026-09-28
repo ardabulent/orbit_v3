@@ -112,8 +112,15 @@ values
    '5e000000-0000-0000-0000-00000000005e', '5d100000-0000-0000-0000-0000000d1001',
    (extract(isodow from public.orbit_today())::smallint % 7) + 1, '09:00', '09:40');
 
-insert into public.attendance_sessions (organization_id, class_id, session_date)
-values ('5a000000-0000-0000-0000-00000000005a', '5f100000-0000-0000-0000-0000000f1001', public.orbit_today());
+-- 12-A'nın bugünkü günlük yoklaması alınmış (en az bir öğrenci işaretli —
+-- boş oturum "alındı" sayılmaz, `20261006000000`).
+insert into public.attendance_sessions (id, organization_id, class_id, session_date)
+values ('5c500000-0000-0000-0000-0000000c5001', '5a000000-0000-0000-0000-00000000005a',
+        '5f100000-0000-0000-0000-0000000f1001', public.orbit_today());
+
+insert into public.attendance_records (organization_id, session_id, student_id, status)
+values ('5a000000-0000-0000-0000-00000000005a', '5c500000-0000-0000-0000-0000000c5001',
+        '6f100000-0000-0000-0000-000000000001', 'present');
 
 insert into public.homework_assignments
   (organization_id, class_id, title, assigned_by_membership_id, assigned_on, due_date,
@@ -161,9 +168,9 @@ select is(
 );
 
 select is(
-  (select classes_missing_attendance_today from public.teacher_overview_counts('5a000000-0000-0000-0000-00000000005a')),
+  (select lessons_missing_attendance_today from public.teacher_overview_counts('5a000000-0000-0000-0000-00000000005a')),
   1::bigint,
-  'missing attendance: 12-B only — 12-A is open and substitute 12-C cannot be seen, so it is not claimed'
+  'lessons missing attendance: 12-B''s lesson only — 12-A''s day is taken and the invisible 12-C is not claimed'
 );
 
 select is(

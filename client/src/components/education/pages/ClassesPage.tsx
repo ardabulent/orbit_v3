@@ -231,7 +231,7 @@ function ClassCard({
         </span>
         <span className="flex flex-wrap justify-end gap-1.5">
           {isFull ? <Badge tone="amber">Kontenjan dolu</Badge> : null}
-          <TodayAttendanceBadge today={summary.today} />
+          <TodayAttendanceBadge summary={summary} />
         </span>
       </span>
       <span className="mt-4 block font-display text-[18px] font-extrabold tracking-[-.035em] text-slate-900">

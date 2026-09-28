@@ -131,11 +131,17 @@ values
   ('4b000000-0000-0000-0000-00000000004b', '5b100000-0000-0000-0000-0000000b1001', 'Etüt',
    extract(isodow from public.orbit_today())::smallint, '09:00', '09:40');
 
--- 12-A'nın bugünkü günlük yoklaması açık; 12-B'ninki değil.
-insert into public.attendance_sessions (organization_id, class_id, session_date)
+-- 12-A'nın bugünkü günlük yoklaması alınmış (en az bir öğrenci işaretli —
+-- `20261006000000`: boş oturum "alındı" sayılmaz); 12-B'ninki yok.
+insert into public.attendance_sessions (id, organization_id, class_id, session_date)
 values
-  ('4a000000-0000-0000-0000-00000000004a', '5a100000-0000-0000-0000-0000000a1001',
-   public.orbit_today());
+  ('4c500000-0000-0000-0000-0000000c5001', '4a000000-0000-0000-0000-00000000004a',
+   '5a100000-0000-0000-0000-0000000a1001', public.orbit_today());
+
+insert into public.attendance_records (organization_id, session_id, student_id, status)
+values
+  ('4a000000-0000-0000-0000-00000000004a', '4c500000-0000-0000-0000-0000000c5001',
+   '6a100000-0000-0000-0000-0000000c1001', 'present');
 
 -- Arşivlemeler en sonda: satırlar önce aktifken kuruluyor, sonra kapanıyor.
 update public.classes set archived_at = now()
@@ -183,9 +189,9 @@ select is(
 );
 
 select is(
-  (select classes_missing_attendance_today from public.admin_overview_counts('4a000000-0000-0000-0000-00000000004a')),
+  (select lessons_missing_attendance_today from public.admin_overview_counts('4a000000-0000-0000-0000-00000000004a')),
   1::bigint,
-  'missing attendance today: 12-B only — 12-A''s daily session is open'
+  'lessons missing attendance today: 12-B''s lesson only — 12-A''s daily session covers its day'
 );
 
 select is(

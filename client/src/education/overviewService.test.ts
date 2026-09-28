@@ -32,7 +32,7 @@ describe("loadAdminOverviewCounts", () => {
           students_without_guardian: "5",
           active_classes: 4,
           lessons_today: "6",
-          classes_missing_attendance_today: 1,
+          lessons_missing_attendance_today: 1,
         },
       ],
       error: null,
@@ -49,7 +49,7 @@ describe("loadAdminOverviewCounts", () => {
       studentsWithoutGuardian: 5,
       activeClasses: 4,
       lessonsToday: 6,
-      classesMissingAttendanceToday: 1,
+      lessonsMissingAttendanceToday: 1,
     });
   });
 
@@ -173,7 +173,7 @@ describe("loadTeacherOverviewCounts", () => {
           my_classes: 2,
           my_students: "31",
           my_lessons_today: 3,
-          classes_missing_attendance_today: "1",
+          lessons_missing_attendance_today: "1",
           homework_awaiting_marking: 4,
         },
       ],
@@ -184,7 +184,7 @@ describe("loadTeacherOverviewCounts", () => {
       myClasses: 2,
       myStudents: 31,
       myLessonsToday: 3,
-      classesMissingAttendanceToday: 1,
+      lessonsMissingAttendanceToday: 1,
       homeworkAwaitingMarking: 4,
     });
     expect(rpcMock).toHaveBeenCalledWith("teacher_overview_counts", {

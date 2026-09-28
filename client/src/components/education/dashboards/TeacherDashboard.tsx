@@ -149,8 +149,8 @@ function TeacherStats({ counts }: { counts: TeacherOverviewCounts }) {
 function teacherAttentionItems(counts: TeacherOverviewCounts): AttentionItem[] {
   return [
     {
-      count: counts.classesMissingAttendanceToday,
-      label: "sınıfın bugünkü yoklaması alınmadı",
+      count: counts.lessonsMissingAttendanceToday,
+      label: "dersin bugünkü yoklaması alınmadı",
       hint: "Bugün dersiniz olan sınıflar",
       target: "Yoklama",
     },
