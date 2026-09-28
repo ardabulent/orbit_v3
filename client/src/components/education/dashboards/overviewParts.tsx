@@ -13,6 +13,7 @@ import type {
 import { formatTrDate, getOrbitToday } from "@/education/trDate";
 import { Badge, CardSkeleton, EmptyState, ErrorState } from "../shared";
 import type { Section } from "../types";
+import type { StudentFilter } from "../pages/studentFilters";
 
 /**
  * Genel Bakış ekranlarının ortak parçaları.
@@ -85,6 +86,11 @@ export type AttentionItem = {
   label: string;
   hint: string;
   target: Section;
+  /**
+   * Varsa satır, hedef sekme yerine öğrenci listesini bu süzgeç açık olarak
+   * açar: "2 öğrenci sınıfsız" satırına tıklayan o 2 öğrenciyi görür.
+   */
+  studentFilter?: StudentFilter;
 };
 
 /**
@@ -97,11 +103,13 @@ export function AttentionPanel({
   isPending,
   isError,
   onNavigate,
+  onOpenStudents,
 }: {
   items: AttentionItem[] | null;
   isPending: boolean;
   isError: boolean;
   onNavigate: Navigate;
+  onOpenStudents?: (filter: StudentFilter) => void;
 }) {
   const visibleItems = items?.filter(item => item.count > 0) ?? [];
 
@@ -132,7 +140,11 @@ export function AttentionPanel({
           <button
             key={item.label}
             type="button"
-            onClick={() => onNavigate(item.target)}
+            onClick={() =>
+              item.studentFilter && onOpenStudents
+                ? onOpenStudents(item.studentFilter)
+                : onNavigate(item.target)
+            }
             className="flex w-full items-center gap-3 rounded-xl border border-amber-100 bg-amber-50/50 px-3.5 py-3 text-left transition hover:border-amber-200 hover:bg-amber-50"
           >
             <span className="grid h-9 min-w-9 place-items-center rounded-lg bg-amber-100 px-2 font-display text-[15px] font-extrabold tabular-nums text-amber-800">

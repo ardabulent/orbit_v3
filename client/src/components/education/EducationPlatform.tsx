@@ -10,6 +10,7 @@ import { availableEducationSections } from "@/components/educationAccess";
 import { filterStudentsForRole } from "./scopeFilters";
 import { shouldConfirmLeaving } from "./navigationGuards";
 import { AdminDashboard } from "./dashboards/AdminDashboard";
+import type { StudentFilter } from "./pages/studentFilters";
 import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
 import { TeacherDashboard } from "./dashboards/TeacherDashboard";
@@ -695,7 +696,16 @@ export function EducationPlatform({
     });
   };
 
+  /**
+   * Genel Bakış'ın "sınıfsız / velisiz" satırından gelişte öğrenci listesinin
+   * açılacağı süzgeç. Başka bir gezinmede temizlenir; kenar menüsünden
+   * Öğrenciler'e gelen kişi süzgeçsiz liste görür.
+   */
+  const [studentFilterPreset, setStudentFilterPreset] =
+    useState<StudentFilter | null>(null);
+
   const navigate = (section: Section) => {
+    setStudentFilterPreset(null);
     if (shouldConfirmLeaving(active, section, isCurrentSectionDirty)) {
       requestConfirmLeave(() => {
         setIsAttendanceDirty(false);
@@ -713,7 +723,15 @@ export function EducationPlatform({
     if (role === "teacher") return <TeacherDashboard onNavigate={navigate} />;
     if (role === "student") return <StudentDashboard onNavigate={navigate} />;
     if (role === "parent") return <ParentDashboard onNavigate={navigate} />;
-    return <AdminDashboard onNavigate={navigate} />;
+    return (
+      <AdminDashboard
+        onNavigate={navigate}
+        onOpenStudents={filter => {
+          navigate("Öğrenciler");
+          setStudentFilterPreset(filter);
+        }}
+      />
+    );
   };
 
   const renderPage = () => {
@@ -748,6 +766,9 @@ export function EducationPlatform({
     if (active === "Öğrenciler")
       return (
         <StudentsPage
+          // Süzgeç her gelişte yeniden uygulansın diye liste yeniden kurulur.
+          key={studentFilterPreset ?? "all"}
+          initialFilter={studentFilterPreset ?? "all"}
           role={role}
           students={visibleStudents}
           query={query}
