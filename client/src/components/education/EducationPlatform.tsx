@@ -979,6 +979,9 @@ export function EducationPlatform({
                 queryKey: ["education", "attendanceHistory"],
               }),
               queryClient.invalidateQueries({
+                queryKey: ["education", "studentAttendance"],
+              }),
+              queryClient.invalidateQueries({
                 queryKey: educationKeys.todayLessons(organizationId),
               }),
               queryClient.invalidateQueries({

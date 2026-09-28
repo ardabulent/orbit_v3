@@ -7,6 +7,7 @@ import {
 import type { StudentOverview } from "@/education/overviewService";
 import { formatTrDate } from "@/education/trDate";
 import { ErrorState, StatCard } from "../shared";
+import { AttendanceRecordsPanel } from "./AttendanceRecordsPanel";
 import type { Section } from "../types";
 import {
   AttentionPanel,
@@ -98,6 +99,7 @@ export function StudentOverviewSections({
           />
         </div>
       </div>
+      <AttendanceRecordsPanel studentId={studentId} />
     </>
   );
 }
@@ -128,7 +130,8 @@ export function StudentStats({
       />
       <StatCard
         label="Devamsızlık"
-        value={`${overview.absentCount} gün`}
+        // Yoklama ders başına alınır (2026-09-28): sayı derstir, gün değil.
+        value={`${overview.absentCount} ders`}
         detail={
           overview.lateCount > 0
             ? `${overview.lateCount} kez geç kaldı`
