@@ -8,10 +8,13 @@ import {
 } from "@/education/homeworkService";
 import { filterHomeworkForRole } from "../scopeFilters";
 import { CardSkeleton, ErrorState, PageHeader } from "../shared";
-import type { Homework, Role, ClassGroup } from "../types";
+import { getOrbitToday } from "@/education/trDate";
+import type { Homework, Role, ClassGroup, Student } from "../types";
 import { HomeworkCard } from "./HomeworkCard";
 import { HomeworkCreateDialog } from "./HomeworkCreateDialog";
 import { HomeworkSubmissionsDialog } from "./HomeworkSubmissionsDialog";
+import { StaffHomeworkList } from "./StaffHomeworkList";
+import { StudentHomeworkView } from "./StudentHomeworkView";
 
 export type HomeworkPageProps = {
   role: Role;
@@ -28,6 +31,8 @@ export type HomeworkPageProps = {
   onSaved?: () => Promise<void> | void;
   onEdit?: (item: Homework) => void;
   onArchive?: (item: Homework) => void | Promise<void>;
+  /** Öğrenci/veli: öğrencinin kendisi ya da velinin çocukları. */
+  students?: Student[];
 };
 
 export function HomeworkPage({
@@ -45,6 +50,7 @@ export function HomeworkPage({
   onSaved,
   onEdit,
   onArchive,
+  students = [],
 }: HomeworkPageProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingHomework, setEditingHomework] = useState<Homework | null>(null);
@@ -165,6 +171,24 @@ export function HomeworkPage({
           title="Ödevler yüklenemedi"
           message={error.message || "Ödevler yüklenirken bir hata oluştu."}
           onRetry={onRetry}
+        />
+      ) : !activeDemo && canManage ? (
+        // 2026-09-29: kontrol bekleyen · aktif · kontrolü biten listesi.
+        <StaffHomeworkList
+          items={visible}
+          today={getOrbitToday()}
+          classes={classes}
+          archivingId={archivingId}
+          onManageSubmissions={setSubmissionsHomework}
+          onEdit={handleEdit}
+          onArchive={item => void handleArchive(item)}
+        />
+      ) : !activeDemo ? (
+        // Öğrenci/veli: her ödevde kendi durumu.
+        <StudentHomeworkView
+          role={role}
+          homework={visible}
+          students={students}
         />
       ) : visible.length === 0 ? (
         <p className="mt-6 rounded-2xl border border-dashed border-slate-200 p-8 text-center text-[12px] text-slate-400">
