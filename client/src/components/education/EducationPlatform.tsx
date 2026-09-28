@@ -12,6 +12,7 @@ import { shouldConfirmLeaving } from "./navigationGuards";
 import { AdminDashboard } from "./dashboards/AdminDashboard";
 import { ClassDetail } from "./ClassDetail";
 import { buildClassSummaries, summaryFor } from "./pages/classSummaries";
+import { buildSubjectUsage } from "./pages/subjectUsage";
 import type { StudentFilter } from "./pages/studentFilters";
 import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
@@ -606,6 +607,10 @@ export function EducationPlatform({
       buildClassSummaries(activeSchedule, todayLessonsForClasses.data ?? []),
     [activeSchedule, todayLessonsForClasses.data]
   );
+  const subjectUsage = useMemo(
+    () => buildSubjectUsage(activeSchedule),
+    [activeSchedule]
+  );
   const selectedClass = selectedClassId
     ? (activeClasses.find(c => c.id === selectedClassId) ?? null)
     : null;
@@ -886,6 +891,7 @@ export function EducationPlatform({
           }}
           onOpen={cls => setSelectedClassId(cls.id)}
           summaries={classSummaries}
+          subjectUsage={subjectUsage}
         />
       );
     if (active === "Ders Programı")

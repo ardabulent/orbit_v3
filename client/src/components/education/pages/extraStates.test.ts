@@ -1020,6 +1020,30 @@ describe("ClassesPage states (v1.4-02)", () => {
     expect(html).toContain("Ayrıntılar");
   });
 
+  it("2026-09-28: Dersler alt sekmesi yalnız yöneticide çizilir", () => {
+    const admin = renderToStaticMarkup(
+      createElement(ClassesPage, {
+        role: "admin",
+        classes: dummyClasses,
+        onOpen: vi.fn(),
+        onAdd: vi.fn(),
+      })
+    );
+    expect(admin).toContain(">Dersler</span>");
+    // Varsayılan sekme Sınıflar; ekleme düğmesi o sekmenin düğmesi.
+    expect(admin).toContain("Yeni sınıf");
+    expect(admin).not.toContain("Yeni ders");
+
+    const teacher = renderToStaticMarkup(
+      createElement(ClassesPage, {
+        role: "teacher",
+        classes: dummyClasses,
+        onOpen: vi.fn(),
+      })
+    );
+    expect(teacher).not.toContain(">Dersler</span>");
+  });
+
   it("özet: haftalık ders, ders–öğretmen ve bugünkü yoklama karta yazılır", () => {
     const html = renderToStaticMarkup(
       createElement(ClassesPage, {

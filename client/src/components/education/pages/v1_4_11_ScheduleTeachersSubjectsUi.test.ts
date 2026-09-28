@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthContext } from "@/auth/AuthContext";
 import type { AuthContextValue } from "@/auth/types";
 import type { EducationRole } from "@/components/educationAccess";
-import { SettingsSubjectsSection } from "./SettingsSubjectsSection";
+import { SubjectsTab } from "./SubjectsTab";
 import { ClassTeachersDialog } from "./ClassTeachersDialog";
 import { SchedulePage } from "./SchedulePage";
 import { ClassesPage } from "./ClassesPage";
@@ -187,10 +187,16 @@ describe("v1.4-11 Arayüz ve Sözleşme Testleri (#287 / K-23)", () => {
   });
 
   describe("1. Yönetici olmayan rolde yazma eylemleri çizilmiyor", () => {
-    it("SettingsSubjectsSection: öğretmen rolünde 'Yeni Ders', 'Düzenle', 'Kapat' çizilmez", () => {
-      const html = renderWithAuth(createElement(SettingsSubjectsSection), {
-        role: "teacher",
-      });
+    it("SubjectsTab: öğretmen rolünde 'Düzenle', 'Kapat' çizilmez", () => {
+      const html = renderWithAuth(
+        createElement(SubjectsTab, {
+          addOpen: false,
+          onAddOpenChange: vi.fn(),
+        }),
+        {
+          role: "teacher",
+        }
+      );
 
       expect(html).toContain("Matematik");
       expect(html).not.toContain("<span>Yeni Ders</span>");
@@ -264,7 +270,7 @@ describe("v1.4-11 Arayüz ve Sözleşme Testleri (#287 / K-23)", () => {
   });
 
   describe("2. Liste tavana dayandığında kesilme söyleniyor", () => {
-    it("SettingsSubjectsSection: truncated true iken üst sınır uyarısı gösterilir", () => {
+    it("SubjectsTab: truncated true iken üst sınır uyarısı gösterilir", () => {
       vi.mocked(useSubjects).mockReturnValue({
         data: {
           rows: [
@@ -281,9 +287,15 @@ describe("v1.4-11 Arayüz ve Sözleşme Testleri (#287 / K-23)", () => {
         error: null,
       } as unknown as ReturnType<typeof useSubjects>);
 
-      const html = renderWithAuth(createElement(SettingsSubjectsSection), {
-        role: "admin",
-      });
+      const html = renderWithAuth(
+        createElement(SubjectsTab, {
+          addOpen: false,
+          onAddOpenChange: vi.fn(),
+        }),
+        {
+          role: "admin",
+        }
+      );
 
       expect(html).toContain("Ders listesi üst sınıra ulaştı");
     });
@@ -390,9 +402,9 @@ describe("v1.4-11 Arayüz ve Sözleşme Testleri (#287 / K-23)", () => {
   });
 
   describe("5. Ekran hata cümlesini ikinci kez çevirmiyor (servis çevirir, ekran taşır)", () => {
-    it("SettingsSubjectsSection translateSubjectError çağırmaz, servisin cümlesini taşır", () => {
+    it("SubjectsTab translateSubjectError çağırmaz, servisin cümlesini taşır", () => {
       const dosya = readFileSync(
-        path.join(import.meta.dirname, "SettingsSubjectsSection.tsx"),
+        path.join(import.meta.dirname, "SubjectsTab.tsx"),
         "utf8"
       );
       const kod = dosya
