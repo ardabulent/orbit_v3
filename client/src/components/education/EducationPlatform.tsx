@@ -52,6 +52,10 @@ import {
   useTodayLessons,
   educationKeys,
 } from "@/education/educationQueries";
+import {
+  DEFAULT_REPORT_RANGE,
+  type ReportRange,
+} from "@/education/reportService";
 import { useAuth } from "@/auth/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsMembers } from "@/settings/settingsQueries";
@@ -207,6 +211,8 @@ export function EducationPlatform({
   const [classFormOpen, setClassFormOpen] = useState(false);
   /** Açık sınıf detay paneli; sınıf listenin güncel satırından okunur. */
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [reportRange, setReportRange] =
+    useState<ReportRange>(DEFAULT_REPORT_RANGE);
   const [classForEdit, setClassForEdit] = useState<ClassGroup | null>(null);
   const [classEnrollmentOpen, setClassEnrollmentOpen] = useState(false);
   const [classForEnrollment, setClassForEnrollment] =
@@ -569,13 +575,16 @@ export function EducationPlatform({
   const paymentOverviewQuery = usePaymentOverview({ enabled: !isDemoMode });
   const homeworkQuery = useHomework({ enabled: !isDemoMode });
   const reportAttendanceQuery = useReportAttendanceWeeks({
-    enabled: !isDemoMode,
+    enabled: !isDemoMode && active === "Raporlar",
+    range: reportRange,
   });
   const reportExamQuery = useReportExamAverages({
-    enabled: !isDemoMode,
+    enabled: !isDemoMode && active === "Raporlar",
+    range: reportRange,
   });
   const reportHomeworkQuery = useReportHomeworkWeeks({
-    enabled: !isDemoMode,
+    enabled: !isDemoMode && active === "Raporlar",
+    range: reportRange,
   });
 
   // Aktif kurumun Realtime kanalına tekil abonelik (v1.3-05).
@@ -1166,6 +1175,9 @@ export function EducationPlatform({
           attendanceWeeks={reportAttendanceQuery.data}
           examAverages={reportExamQuery.data}
           homeworkWeeks={reportHomeworkQuery.data}
+          range={reportRange}
+          onRangeChange={setReportRange}
+          classes={activeClasses}
           isLoading={
             !isDemoMode &&
             (reportAttendanceQuery.isLoading ||

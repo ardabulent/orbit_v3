@@ -19,13 +19,30 @@ export type AttendanceWeek = {
   attendancePercent?: number; // payda 0 ise undefined
 };
 
+/**
+ * Net ile puanlanan denemede `averageNet`, puanla okunan sınavda
+ * `averagePercent` dolu (2026-09-29). İkisi aynı grafikte karışmaz.
+ */
 export type ExamAverage = {
   examId: string;
   examName: string;
   examDate: string;
-  averagePercent: number;
+  isNet: boolean;
+  averagePercent?: number;
+  averageNet?: number;
   resultCount: number;
 };
+
+/** Raporun okuduğu dilim: 4/8/12 hafta (denemede son N sınav) ve sınıf. */
+export type ReportWeeks = 4 | 8 | 12;
+export const REPORT_WEEK_OPTIONS: ReportWeeks[] = [4, 8, 12];
+
+export type ReportRange = {
+  weeks: ReportWeeks;
+  classId: string | null;
+};
+
+export const DEFAULT_REPORT_RANGE: ReportRange = { weeks: 4, classId: null };
 
 export type HomeworkWeek = {
   weekStart: string;
@@ -79,8 +96,13 @@ function translateReportError(error: unknown): string {
  *
  * Dördü de boşsa (hiçbir haftada geçerli ölçüm yoksa) `null` döner; kart boş durum gösterir.
  */
-export async function loadAttendanceWeeks(): Promise<AttendanceWeek[] | null> {
-  const { data, error } = await supabase.rpc("report_attendance_weeks");
+export async function loadAttendanceWeeks(
+  range: ReportRange = DEFAULT_REPORT_RANGE
+): Promise<AttendanceWeek[] | null> {
+  const { data, error } = await supabase.rpc("report_attendance_weeks", {
+    p_weeks: range.weeks,
+    p_class_id: range.classId,
+  });
 
   if (error) {
     throw new Error(translateReportError(error));
@@ -140,15 +162,21 @@ export async function loadAttendanceWeeks(): Promise<AttendanceWeek[] | null> {
 }
 
 /**
- * Deneme gelişimi için son 0-4 sınavın yüzde ortalamasını çeker.
+ * Deneme gelişimi için son N net denemenin ortalama netini ve son N puanlı
+ * sınavın yüzde ortalamasını çeker (N = aralığın hafta sayısı).
  *
  * `max_score` boş veya 0 olan sınavlar fonksiyon tarafından elenmiştir (K-04).
  * Sınav adı okunamayan satırlar çizilmez (classService deseni).
  *
  * Satır yoksa veya çağıranın görebildiği sınav sonucu yoksa `null` döner.
  */
-export async function loadExamAverages(): Promise<ExamAverage[] | null> {
-  const { data, error } = await supabase.rpc("report_exam_averages");
+export async function loadExamAverages(
+  range: ReportRange = DEFAULT_REPORT_RANGE
+): Promise<ExamAverage[] | null> {
+  const { data, error } = await supabase.rpc("report_exam_averages", {
+    p_limit: range.weeks,
+    p_class_id: range.classId,
+  });
 
   if (error) {
     throw new Error(translateReportError(error));
@@ -169,6 +197,8 @@ export async function loadExamAverages(): Promise<ExamAverage[] | null> {
     exam_name?: string | null;
     exam_date?: string | null;
     average_percent?: number | string | null;
+    average_net?: number | string | null;
+    is_net?: boolean | null;
     result_count?: number | string | null;
   }[]) {
     const examName = row.exam_name?.trim();
@@ -176,12 +206,16 @@ export async function loadExamAverages(): Promise<ExamAverage[] | null> {
       continue;
     }
 
-    if (row.average_percent === null || row.average_percent === undefined) {
+    // Net denemede ortalama net, puanlı sınavda yüzde okunur; ilgili değer
+    // yoksa satır çizilmez (uydurma sıfır üretilmez).
+    const isNet = row.is_net === true;
+    const raw = isNet ? row.average_net : row.average_percent;
+    if (raw === null || raw === undefined) {
       continue;
     }
 
-    const averagePercent = Number(row.average_percent);
-    if (Number.isNaN(averagePercent)) {
+    const value = Number(raw);
+    if (Number.isNaN(value)) {
       continue;
     }
 
@@ -191,7 +225,8 @@ export async function loadExamAverages(): Promise<ExamAverage[] | null> {
       examId: row.exam_id,
       examName,
       examDate: row.exam_date,
-      averagePercent,
+      isNet,
+      ...(isNet ? { averageNet: value } : { averagePercent: value }),
       resultCount: Number.isNaN(resultCount) ? 0 : resultCount,
     });
   }
@@ -211,8 +246,13 @@ export async function loadExamAverages(): Promise<ExamAverage[] | null> {
  *
  * Dördü de boşsa `null` döner; kart boş durum gösterir.
  */
-export async function loadHomeworkWeeks(): Promise<HomeworkWeek[] | null> {
-  const { data, error } = await supabase.rpc("report_homework_weeks");
+export async function loadHomeworkWeeks(
+  range: ReportRange = DEFAULT_REPORT_RANGE
+): Promise<HomeworkWeek[] | null> {
+  const { data, error } = await supabase.rpc("report_homework_weeks", {
+    p_weeks: range.weeks,
+    p_class_id: range.classId,
+  });
 
   if (error) {
     throw new Error(translateReportError(error));

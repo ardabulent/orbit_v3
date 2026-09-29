@@ -222,18 +222,27 @@ export function MessageListItem({
   );
 }
 
+/**
+ * Çubuk grafik kartı. Varsayılan ölçek yüzdedir (0–100); ortalama net gibi
+ * yüzde olmayan bir değer için `scaleMax` verilir ve `valueLabels` çubuğun
+ * üstüne okunacak sayıyı yazar.
+ */
 export function ReportCard({
   title,
   subtitle,
   values,
   labels,
   color,
+  scaleMax = 100,
+  valueLabels,
 }: {
   title: string;
   subtitle: string;
   values: (number | undefined)[];
   labels: string[];
   color: string;
+  scaleMax?: number;
+  valueLabels?: string[];
 }) {
   const veriYok =
     values.length === 0 || values.every(value => value === undefined);
@@ -252,7 +261,9 @@ export function ReportCard({
           />
         </div>
       ) : (
-        <div className="mt-6 flex h-36 items-end justify-between gap-3">
+        <div
+          className={`mt-6 flex h-36 items-end justify-between ${values.length > 6 ? "gap-1" : "gap-3"}`}
+        >
           {values.map((value, index) => (
             <div
               key={labels[index] ?? index}
@@ -271,11 +282,20 @@ export function ReportCard({
                   className={`h-[2px] w-full rounded-sm ${color}`}
                 />
               ) : (
-                <span
-                  data-testid="report-bar-measured"
-                  style={{ height: `${Math.min(Math.max(value, 0), 100)}%` }}
-                  className={`w-full rounded-t-md ${color}`}
-                />
+                <>
+                  {valueLabels?.[index] ? (
+                    <span className="mb-1 text-center text-[10px] font-extrabold text-slate-700">
+                      {valueLabels[index]}
+                    </span>
+                  ) : null}
+                  <span
+                    data-testid="report-bar-measured"
+                    style={{
+                      height: `${(Math.min(Math.max(value, 0), scaleMax) / scaleMax) * 100}%`,
+                    }}
+                    className={`w-full rounded-t-md ${color}`}
+                  />
+                </>
               )}
               <span className="mt-2 text-center text-[9px] font-bold text-slate-400 truncate">
                 {labels[index]}
