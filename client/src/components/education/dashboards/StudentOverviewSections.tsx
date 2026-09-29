@@ -9,6 +9,7 @@ import { formatTrDate } from "@/education/trDate";
 import { ErrorState, StatCard } from "../shared";
 import { AttendanceRecordsPanel } from "./AttendanceRecordsPanel";
 import { UpcomingExamsPanel } from "./UpcomingExamsPanel";
+import { ImportantNoticesPanel } from "./ImportantNoticesPanel";
 import type { Section } from "../types";
 import {
   AttentionPanel,
@@ -51,6 +52,7 @@ export function StudentOverviewSections({
 
   return (
     <>
+      <ImportantNoticesPanel onNavigate={onNavigate} />
       {overviewQuery.isPending ? (
         <StatsSkeleton />
       ) : overviewQuery.isError || !overviewQuery.data ? (

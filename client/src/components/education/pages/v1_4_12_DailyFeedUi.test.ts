@@ -145,6 +145,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T10:00:00Z",
           updatedAt: "2026-09-13T10:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
         {
           id: "post-other",
@@ -158,6 +160,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T09:00:00Z",
           updatedAt: "2026-09-13T09:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
       ];
 
@@ -205,6 +209,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T10:00:00Z",
           updatedAt: "2026-09-13T10:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
         {
           id: "post-2",
@@ -218,6 +224,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T09:00:00Z",
           updatedAt: "2026-09-13T09:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
       ];
 
@@ -256,7 +264,7 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
         { role: "teacher" }
       );
 
-      expect(html).not.toContain("Kurum Geneli (Tüm Sınıflar ve Veliler)");
+      expect(html).not.toContain("Kurum Geneli (Tüm Sınıflar)");
       expect(html).toContain("12-A Sınıfı");
       expect(html).toContain("11-B Sınıfı");
     });
@@ -273,7 +281,7 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
         { role: "admin" }
       );
 
-      expect(html).toContain("Kurum Geneli (Tüm Sınıflar ve Veliler)");
+      expect(html).toContain("Kurum Geneli (Tüm Sınıflar)");
     });
   });
 
@@ -292,6 +300,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T10:00:00Z",
           updatedAt: "2026-09-13T10:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
         {
           id: "p-cls",
@@ -305,6 +315,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T09:00:00Z",
           updatedAt: "2026-09-13T09:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
       ];
 
@@ -344,6 +356,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T10:00:00Z",
           updatedAt: "2026-09-13T10:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
       ];
 
@@ -383,6 +397,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T10:00:00Z",
           updatedAt: "2026-09-13T10:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
         {
           id: "p-with-body",
@@ -396,6 +412,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T09:00:00Z",
           updatedAt: "2026-09-13T09:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
       ];
 
@@ -480,6 +498,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           createdAt: "2026-09-13T10:00:00Z",
           updatedAt: "2026-09-13T10:00:00Z",
           archivedAt: null,
+          audience: "all" as const,
+          pinned: false,
         },
       ];
 

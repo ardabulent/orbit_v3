@@ -18,6 +18,7 @@ import {
   DEFAULT_FEED_LIMIT,
   type FeedPost,
 } from "@/education/feedService";
+import { FEED_AUDIENCE_LABELS } from "@/education/feedService";
 import { Badge, EmptyState, ErrorState, TableSkeleton } from "../shared";
 import type { Role } from "../types";
 import { FeedPostFormDialog } from "./FeedPostFormDialog";
@@ -55,7 +56,11 @@ export function DailyFeedSection({
     enabled: Boolean(organizationId),
   });
 
-  const posts = feedQuery.data?.rows ?? [];
+  // Önemli duyurular üstte (2026-09-29); kendi aralarında ve diğerleri
+  // sunucunun sırasıyla (en yeni önce). Sıralama kararlı.
+  const posts = [...(feedQuery.data?.rows ?? [])].sort(
+    (a, b) => Number(b.pinned) - Number(a.pinned)
+  );
   const truncated = feedQuery.data?.truncated ?? false;
   const isLoading = feedQuery.isLoading;
   const error = feedQuery.error;
@@ -198,6 +203,12 @@ export function DailyFeedSection({
                         {post.className || "Sınıf Duyurusu"}
                       </Badge>
                     )}
+                    {post.pinned ? <Badge tone="rose">Önemli</Badge> : null}
+                    {post.audience !== "all" ? (
+                      <Badge tone="blue">
+                        {FEED_AUDIENCE_LABELS[post.audience]}
+                      </Badge>
+                    ) : null}
                     {post.archivedAt ? (
                       <Badge tone="amber">Arşivde</Badge>
                     ) : null}

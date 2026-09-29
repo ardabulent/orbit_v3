@@ -1,5 +1,18 @@
 import { supabase } from "@/lib/supabaseClient";
 
+/**
+ * Duyurunun hedef kitlesi (`20261009000000`): herkes, yalnız veliler, yalnız
+ * öğrenciler. Uygulayan veritabanı (kısıtlayıcı politika); ekran yalnız
+ * seçtirir ve gösterir.
+ */
+export type FeedAudience = "all" | "guardians" | "students";
+
+export const FEED_AUDIENCE_LABELS: Record<FeedAudience, string> = {
+  all: "Herkes",
+  guardians: "Yalnız veliler",
+  students: "Yalnız öğrenciler",
+};
+
 export type FeedPost = {
   id: string;
   organizationId: string;
@@ -12,6 +25,9 @@ export type FeedPost = {
   createdAt: string;
   updatedAt: string;
   archivedAt: string | null;
+  audience: FeedAudience;
+  /** Önemli: listenin üstünde, öğrenci/veli Genel Bakış'ında. */
+  pinned: boolean;
 };
 
 export type FeedPostListResult = {
@@ -30,12 +46,16 @@ export type CreateFeedPostInput = {
   classId?: string | null;
   title: string;
   body?: string | null;
+  audience?: FeedAudience;
+  pinned?: boolean;
 };
 
 export type UpdateFeedPostInput = {
   classId?: string | null;
   title?: string;
   body?: string | null;
+  audience?: FeedAudience;
+  pinned?: boolean;
 };
 
 export const DEFAULT_FEED_LIMIT = 50;
@@ -50,6 +70,8 @@ type RawFeedPostRow = {
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+  audience?: string | null;
+  pinned?: boolean | null;
   classes?:
     { id: string; name: string } | { id: string; name: string }[] | null;
 };
@@ -116,6 +138,11 @@ function mapFeedPostRow(
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
+    audience:
+      row.audience === "guardians" || row.audience === "students"
+        ? row.audience
+        : "all",
+    pinned: row.pinned === true,
   };
 }
 
@@ -213,6 +240,8 @@ export async function loadFeedPosts(
       created_at,
       updated_at,
       archived_at,
+      audience,
+      pinned,
       classes ( id, name )
     `
     )
@@ -267,6 +296,8 @@ export async function createFeedPost(
     class_id: input.classId || null,
     title: trimmedTitle,
     body: input.body?.trim() || null,
+    ...(input.audience ? { audience: input.audience } : {}),
+    ...(input.pinned !== undefined ? { pinned: input.pinned } : {}),
   };
 
   const { data, error } = await supabase
@@ -283,6 +314,8 @@ export async function createFeedPost(
       created_at,
       updated_at,
       archived_at,
+      audience,
+      pinned,
       classes ( id, name )
     `
     )
@@ -317,7 +350,11 @@ export async function updateFeedPost(
     class_id?: string | null;
     title?: string;
     body?: string | null;
+    audience?: FeedAudience;
+    pinned?: boolean;
   } = {};
+  if (input.audience !== undefined) payload.audience = input.audience;
+  if (input.pinned !== undefined) payload.pinned = input.pinned;
 
   if (input.classId !== undefined) {
     payload.class_id = input.classId || null;
@@ -348,6 +385,8 @@ export async function updateFeedPost(
       created_at,
       updated_at,
       archived_at,
+      audience,
+      pinned,
       classes ( id, name )
     `
     );

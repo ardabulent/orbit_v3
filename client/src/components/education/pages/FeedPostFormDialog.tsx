@@ -16,6 +16,8 @@ import {
   createFeedPost,
   updateFeedPost,
   type FeedPost,
+  FEED_AUDIENCE_LABELS,
+  type FeedAudience,
 } from "@/education/feedService";
 import type { Role } from "../types";
 
@@ -50,6 +52,12 @@ export function FeedPostFormDialog({
   );
   const [title, setTitle] = useState<string>(() => post?.title ?? "");
   const [body, setBody] = useState<string>(() => post?.body ?? "");
+  // Hedef kitle ve önemli (karar 2026-09-29). Veritabanı uygular; burada
+  // yalnız seçilir.
+  const [audience, setAudience] = useState<FeedAudience>(
+    () => post?.audience ?? "all"
+  );
+  const [pinned, setPinned] = useState<boolean>(() => post?.pinned ?? false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +87,8 @@ export function FeedPostFormDialog({
           classId: classId ? classId : null,
           title: trimmedTitle,
           body: body.trim() || null,
+          audience,
+          pinned,
         });
         toast.success("Duyuru güncellendi", {
           description: `"${trimmedTitle}" başlıklı duyuru başarıyla güncellendi.`,
@@ -89,6 +99,8 @@ export function FeedPostFormDialog({
           classId: classId ? classId : null,
           title: trimmedTitle,
           body: body.trim() || null,
+          audience,
+          pinned,
         });
         toast.success("Duyuru paylaşıldı", {
           description: `"${trimmedTitle}" başlıklı duyuru başarıyla yayınlandı.`,
@@ -160,7 +172,7 @@ export function FeedPostFormDialog({
               className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12px] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             >
               {role === "admin" ? (
-                <option value="">Kurum Geneli (Tüm Sınıflar ve Veliler)</option>
+                <option value="">Kurum Geneli (Tüm Sınıflar)</option>
               ) : null}
               {classes.map(cls => (
                 <option key={cls.id} value={cls.id}>
@@ -168,6 +180,45 @@ export function FeedPostFormDialog({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Hedef kitle ve önemli */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="feed-audience"
+                className="text-[12px] font-semibold"
+              >
+                Kimler görsün
+              </Label>
+              <select
+                id="feed-audience"
+                value={audience}
+                onChange={e => setAudience(e.target.value as FeedAudience)}
+                disabled={loading || isTeacherWithoutClasses}
+                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12px] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                {(Object.keys(FEED_AUDIENCE_LABELS) as FeedAudience[]).map(
+                  value => (
+                    <option key={value} value={value}>
+                      {FEED_AUDIENCE_LABELS[value]}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+            <label className="flex items-end gap-2 pb-2">
+              <input
+                type="checkbox"
+                checked={pinned}
+                onChange={e => setPinned(e.target.checked)}
+                disabled={loading || isTeacherWithoutClasses}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              <span className="text-[12px] font-semibold text-slate-700">
+                Önemli — listenin üstünde dursun
+              </span>
+            </label>
           </div>
 
           {/* Duyuru Başlığı */}
