@@ -6,7 +6,6 @@ import {
   CircleAlert,
   ClipboardCheck,
   Clock3,
-  Sparkles,
   Users,
   WalletCards,
 } from "lucide-react";
@@ -16,7 +15,6 @@ import {
   type PaymentOverviewCounts,
 } from "@/education/paymentService";
 import {
-  adminAutomationActivities as demoAdminAutomationActivities,
   adminFollowUpNote as demoAdminFollowUpNote,
   adminOverviewHeader as demoAdminOverviewHeader,
   attendanceLessonInfo as demoAttendanceLessonInfo,
@@ -34,7 +32,6 @@ import {
   demoStudentOverviewStatValues,
   demoTeacherOverviewStatValues,
   initialAttendances as demoInitialAttendances,
-  initialAutomations as demoInitialAutomations,
   initialHomework as demoInitialHomework,
   organizationMembers as demoOrganizationMembers,
   parentCommunicationItems as demoParentCommunicationItems,
@@ -59,7 +56,6 @@ export type {
   AssessmentHeaderInfo,
   AssessmentSubject,
   AttendanceLessonInfo,
-  AutomationActivity,
   CommunicationItem,
   ConversationMessage,
   OverviewStat,
@@ -90,7 +86,6 @@ export const students = isDemoMode ? demoStudents : [];
 export const organizationMembers = isDemoMode ? demoOrganizationMembers : [];
 
 export const initialAttendances = isDemoMode ? demoInitialAttendances : {};
-export const initialAutomations = isDemoMode ? demoInitialAutomations : [];
 export const initialHomework = isDemoMode ? demoInitialHomework : [];
 export const dayPlanTasksByRole = isDemoMode
   ? demoDayPlanTasksByRole
@@ -134,14 +129,6 @@ export const adminOverviewStatTemplates: OverviewStatTemplate[] = [
     tone: "violet",
     emptyValue: "₺0",
     emptyDetail: "Bu hafta vadesi gelen taksit yok",
-  },
-  {
-    key: "active-automations",
-    label: "Çalışan otomasyon",
-    icon: Sparkles,
-    tone: "blue",
-    emptyValue: "0",
-    emptyDetail: "Son 24 saatte 0 işlem",
   },
 ];
 
@@ -343,9 +330,6 @@ export const adminOverviewStats = buildStatCards(
   isDemoMode ? demoAdminOverviewStatValues : null
 );
 export const adminFollowUpNote = isDemoMode ? demoAdminFollowUpNote : null;
-export const adminAutomationActivities = isDemoMode
-  ? demoAdminAutomationActivities
-  : [];
 
 export const teacherOverviewStats = buildStatCards(
   teacherOverviewStatTemplates,

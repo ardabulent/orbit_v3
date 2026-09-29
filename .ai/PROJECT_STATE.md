@@ -140,7 +140,7 @@ client/src/
 │   ├── OrganizationProfileDialog.tsx # Kurum profili ve şifre sıfırlama
 │   └── PlatformOperators.tsx / PlatformAuditLog.tsx
 ├── contexts/               # ThemeProvider
-├── hooks/                  # useMobile, useComposition
+├── hooks/                  # useComposition
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue, documents (ÖLÜ KOD)
 │   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)
 │   └── cspConnectSrc.ts    # CSP connect-src ↔ VITE_SUPABASE_URL denetleyicisi; `vite.config.ts` çağırır (v1.5-09)

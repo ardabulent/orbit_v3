@@ -24,7 +24,6 @@ import {
   classes,
   dayPlanTasksByRole,
   initialAttendances,
-  initialAutomations,
   initialHomework,
   paymentOverviewStats,
   paymentRows,
@@ -111,7 +110,6 @@ import { allNav } from "./navigation";
 import { roleMeta } from "./roleMeta";
 import { AssessmentsPage } from "./pages/AssessmentsPage";
 import { AttendancePage } from "./pages/AttendancePage";
-import { AutomationsPage } from "./pages/AutomationsPage";
 import { ClassesPage } from "./pages/ClassesPage";
 import { CommunicationsPage } from "./pages/CommunicationsPage";
 import { DayPlanPage } from "./pages/DayPlanPage";
@@ -187,9 +185,6 @@ export function EducationPlatform({
   const [attendances, setAttendances] = useState<
     Record<string, AttendanceState>
   >(() => readDemoData("attendances", initialAttendances));
-  const [automations, setAutomations] = useState(() =>
-    readDemoData("automations", initialAutomations)
-  );
   const [dayPlanTasks, setDayPlanTasks] = useState<
     Record<DayPlanRole, DayPlanTask[]>
   >(() => readDemoData("dayPlanTasks", dayPlanTasksByRole));
@@ -755,10 +750,6 @@ export function EducationPlatform({
   }, [attendances]);
 
   useEffect(() => {
-    writeDemoData("automations", automations);
-  }, [automations]);
-
-  useEffect(() => {
     writeDemoData("dayPlanTasks", dayPlanTasks);
   }, [dayPlanTasks]);
 
@@ -768,16 +759,16 @@ export function EducationPlatform({
 
   const resetDemoData = () => {
     clearDemoData("attendances");
+    // Otomasyon sekmesi kaldırıldı (v1.5-10); eski demo kaydı yine silinir.
     clearDemoData("automations");
     clearDemoData("dayPlanTasks");
     clearDemoData("homework");
     setAttendances(initialAttendances);
-    setAutomations(initialAutomations);
     setDayPlanTasks(dayPlanTasksByRole);
     setHomework(initialHomework);
     toast.success("Demo verileri sıfırlandı", {
       description:
-        "Yoklama, otomasyon, gün planı ve ödev verileri ilk demo durumuna döndürüldü.",
+        "Yoklama, gün planı ve ödev verileri ilk demo durumuna döndürüldü.",
     });
   };
 
@@ -1169,13 +1160,6 @@ export function EducationPlatform({
             });
             setPaymentPlanDetailOpen(true);
           }}
-        />
-      );
-    if (active === "Otomasyonlar")
-      return (
-        <AutomationsPage
-          automations={automations}
-          setAutomations={setAutomations}
         />
       );
     if (active === "Raporlar")

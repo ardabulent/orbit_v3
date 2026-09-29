@@ -1,13 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  ArrowRight,
-  BookOpen,
-  ChevronRight,
-  Plus,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { ArrowRight, BookOpen, ChevronRight, Plus, Users } from "lucide-react";
 
 export function Badge({
   children,
@@ -124,28 +117,6 @@ export function PageHeader({
           {action}
         </button>
       ) : null}
-    </div>
-  );
-}
-
-export function AutomationMini({
-  title,
-  detail,
-  icon: Icon,
-}: {
-  title: string;
-  detail: string;
-  icon: typeof Sparkles;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-100 p-3">
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-violet-600">
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[11px] font-extrabold text-slate-700">{title}</p>
-        <p className="mt-0.5 truncate text-[10px] text-slate-500">{detail}</p>
-      </div>
     </div>
   );
 }

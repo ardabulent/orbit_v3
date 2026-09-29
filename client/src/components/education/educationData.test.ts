@@ -27,7 +27,6 @@ describe("educationData ortam dallanması", () => {
       expect(data.schedule).toEqual([]);
       expect(data.students).toEqual([]);
       expect(data.paymentRows).toEqual([]);
-      expect(data.initialAutomations).toEqual([]);
       expect(data.initialHomework).toEqual([]);
       expect(data.initialAttendances).toEqual({});
     });
@@ -69,7 +68,7 @@ describe("educationData ortam dallanması", () => {
         data.paymentOverviewStats,
       ];
 
-      expect(data.adminOverviewStats).toHaveLength(5);
+      expect(data.adminOverviewStats).toHaveLength(4); // "Çalışan otomasyon" kartı kaldırıldı (v1.5-10)
       expect(data.teacherOverviewStats).toHaveLength(4);
       expect(data.studentOverviewStats).toHaveLength(4);
       expect(data.parentOverviewStats).toHaveLength(4);
@@ -85,10 +84,9 @@ describe("educationData ortam dallanması", () => {
       }
     });
 
-    it("takip, otomasyon, sınav ve rapor aksiyon içeriklerini boş döndürür", async () => {
+    it("takip, sınav ve rapor aksiyon içeriklerini boş döndürür", async () => {
       const data = await loadEducationData(false);
 
-      expect(data.adminAutomationActivities).toEqual([]);
       expect(data.adminFollowUpNote).toBeNull();
 
       expect(data.teacherFollowUpItems).toEqual([]);
@@ -161,7 +159,6 @@ describe("educationData ortam dallanması", () => {
       expect(data.schedule.length).toBeGreaterThan(0);
       expect(data.students.length).toBeGreaterThan(0);
       expect(data.paymentRows.length).toBeGreaterThan(0);
-      expect(data.initialAutomations.length).toBeGreaterThan(0);
       expect(data.initialHomework.length).toBeGreaterThan(0);
       expect(Object.keys(data.initialAttendances).length).toBeGreaterThan(0);
 
@@ -180,7 +177,6 @@ describe("educationData ortam dallanması", () => {
       const data = await loadEducationData(true);
 
       expect(data.adminOverviewStats.length).toBeGreaterThan(0);
-      expect(data.adminAutomationActivities.length).toBeGreaterThan(0);
       expect(data.adminFollowUpNote).not.toBeNull();
 
       expect(data.teacherOverviewStats.length).toBeGreaterThan(0);

@@ -11,13 +11,11 @@ import {
   ClipboardCheck,
   FileText,
   MessageSquare,
-  Sparkles,
   UserRoundCheck,
   Users,
 } from "lucide-react";
 import type { OrganizationMember } from "@/organization/memberService";
 import type {
-  Automation,
   AttendanceState,
   ClassGroup,
   DayPlanEvent,
@@ -236,49 +234,6 @@ export const schedule: ScheduleItem[] = [
   },
 ];
 
-export const initialAutomations: Automation[] = [
-  {
-    id: "auto-1",
-    title: "Aday kayıt takibi",
-    description:
-      "Yeni aday kaydını danışmana atar, ilk görüşme tamamlanana kadar takip görevi açar.",
-    trigger: "Yeni aday formu geldiğinde",
-    impact: "4 aday takipte",
-    active: true,
-    category: "Kayıt",
-  },
-  {
-    id: "auto-2",
-    title: "Devamsızlık bildirimi",
-    description:
-      "Yoklamada görünmeyen öğrenci için veliye onaylı bildirim ve rehberlik görevi oluşturur.",
-    trigger: "Yoklama tamamlandığında",
-    impact: "Bugün 3 öğrenci işlendi",
-    active: true,
-    category: "Devam",
-  },
-  {
-    id: "auto-3",
-    title: "Deneme sonucu takibi",
-    description:
-      "Deneme sonucu yayınlandığında öğrenci, veli ve öğretmen için takip özeti hazırlar.",
-    trigger: "Sınav sonucu yayınlandığında",
-    impact: "Son 7 gün · 42 özet",
-    active: true,
-    category: "Akademik",
-  },
-  {
-    id: "auto-4",
-    title: "Veli iletişim merkezi",
-    description:
-      "Duyuru ve görüşme taslaklarını doğru sınıf veya veli grubuna yönlendirir.",
-    trigger: "İletişim görevi oluşturulduğunda",
-    impact: "2 görüşme önerisi bekliyor",
-    active: false,
-    category: "İletişim",
-  },
-];
-
 export const paymentRows: PaymentRow[] = [
   {
     id: "plan-demo-001",
@@ -467,16 +422,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Sınav",
       duration: "60 dk",
       dueLabel: "Bugün 13:00",
-    },
-    {
-      id: "dpt-a6",
-      title: "Yoklama otomasyon kontrolü",
-      detail: "Devamsızlık bildirim otomasyonunun çalıştığını doğrula.",
-      status: "Tamamlandı",
-      priority: "Orta",
-      category: "Yoklama",
-      duration: "10 dk",
-      dueLabel: "Dün tamamlandı",
     },
   ],
   teacher: [
@@ -739,12 +684,6 @@ export type AdminFollowUpNote = {
   actionLabel: string;
 };
 
-export type AutomationActivity = {
-  title: string;
-  detail: string;
-  icon: typeof Sparkles;
-};
-
 export type TeacherFollowUpItem = {
   id: string;
   student: string;
@@ -841,7 +780,6 @@ export const demoAdminOverviewStatValues: Record<string, OverviewStatValue> = {
   "today-attendance": { value: "%93", detail: "4 yoklama tamamlandı" },
   "follow-up": { value: "4", detail: "Akademik veya devam sinyali" },
   "upcoming-payment": { value: "₺86.400", detail: "7 taksit bu hafta vade" },
-  "active-automations": { value: "3", detail: "Son 24 saatte 15 işlem" },
 };
 
 export const adminFollowUpNote: AdminFollowUpNote = {
@@ -850,29 +788,6 @@ export const adminFollowUpNote: AdminFollowUpNote = {
     "Efe Demir’in son iki deneme sonucunda gerileme ve Aras Öztürk’te devamsızlık sinyali var.",
   actionLabel: "Öğrencileri incele",
 };
-
-export const adminAutomationActivities: AutomationActivity[] = [
-  {
-    title: "Aday kayıt takibi",
-    detail: "4 aday için sonraki adım açıldı",
-    icon: UserRoundCheck,
-  },
-  {
-    title: "Devamsızlık bildirimi",
-    detail: "3 veli bildirimi taslağı hazırlandı",
-    icon: ClipboardCheck,
-  },
-  {
-    title: "Deneme sonucu takibi",
-    detail: "42 öğrenci gelişim özeti aldı",
-    icon: BarChart3,
-  },
-  {
-    title: "Veli iletişim merkezi",
-    detail: "2 görüşme önerisi bekliyor",
-    icon: MessageSquare,
-  },
-];
 
 export const demoTeacherOverviewStatValues: Record<string, OverviewStatValue> =
   {
@@ -1041,12 +956,6 @@ export const demoCommunicationsList: CommunicationItem[] = [
     id: "comm-2",
     name: "Çorlu Şube",
     detail: "20 Ağustos veli görüşmesi",
-    time: "Dün",
-  },
-  {
-    id: "comm-3",
-    name: "ORBIT Otomasyon",
-    detail: "Devamsızlık bildirimi hazırlandı",
     time: "Dün",
   },
 ];

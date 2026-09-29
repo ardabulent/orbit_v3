@@ -11,7 +11,6 @@ export type EducationSection =
   | "Ödevler"
   | "İletişim"
   | "Kayıt ve Ödemeler"
-  | "Otomasyonlar"
   | "Raporlar"
   | "Denetim Kaydı"
   | "Ayarlar";
@@ -28,7 +27,6 @@ const access: Record<EducationRole, EducationSection[]> = {
     "Ödevler",
     "İletişim",
     "Kayıt ve Ödemeler",
-    "Otomasyonlar",
     "Raporlar",
     "Denetim Kaydı",
     "Ayarlar",

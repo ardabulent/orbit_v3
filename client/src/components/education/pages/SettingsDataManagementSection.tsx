@@ -96,8 +96,7 @@ export function SettingsDataManagementSection({
                   Demo verilerini sıfırla
                 </h3>
                 <p className="mt-0.5 text-[10px] text-slate-500">
-                  Yoklama, otomasyon ve gün planı verileri başlangıç durumuna
-                  döner.
+                  Yoklama ve gün planı verileri başlangıç durumuna döner.
                 </p>
               </div>
             </div>
@@ -113,8 +112,8 @@ export function SettingsDataManagementSection({
                     Demo verilerini sıfırlamak üzeresiniz
                   </DialogTitle>
                   <DialogDescription>
-                    Yoklama, otomasyon ve gün planı üzerinde yaptığınız tüm
-                    değişiklikler kaybolacak. Bu işlem geri alınamaz.
+                    Yoklama ve gün planı üzerinde yaptığınız tüm değişiklikler
+                    kaybolacak. Bu işlem geri alınamaz.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
