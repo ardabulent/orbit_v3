@@ -12,8 +12,8 @@ import { findPasswordProblem } from "./passwordPolicy";
  * bir oturumun başında oturan birinin şifreyi değiştirip hesabı ele
  * geçirmesini önler.
  *
- * Denetim kaydı veritabanında yazılır (`handle_password_change`,
- * 20261016000000); şifrenin kendisi hiçbir yere — log, analitik, hata
+ * Denetim kaydı değişimden sonra `log_own_password_change` ile yazılır
+ * (20261017000000); şifrenin kendisi hiçbir yere — log, analitik, hata
  * iletisi — gitmez.
  */
 export async function changeOwnPassword(input: {
@@ -56,5 +56,14 @@ export async function changeOwnPassword(input: {
           ? "Yeni şifre kuralları karşılamıyor."
           : "Şifre değiştirilemedi; mevcut şifreniz geçerli kaldı. Lütfen yeniden deneyin."
     );
+  }
+
+  // Denetim izi (20261017000000). Üretimde GoTrue olayları veritabanına
+  // yazılmadığı için izi uygulama bırakır. Şifre zaten değişti; iz
+  // yazılamazsa değişiklik geri alınmaz ama sessizce de geçilmez — kişisel
+  // veri içermeyen bir uyarı düşülür.
+  const { error: logError } = await supabase.rpc("log_own_password_change");
+  if (logError) {
+    console.warn("[ORBIT] Şifre değişimi denetim kaydına yazılamadı.");
   }
 }

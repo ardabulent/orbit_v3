@@ -62,7 +62,7 @@ describe("GuardiansTab UI — K-22, K-03, K-06 Güvenceleri", () => {
     expect(html).toContain("+49 170 1234567");
   });
 
-  it("hesabı bağlı olmayan veli için 'Hesap bağlı değil' rozeti çizilir, hesabı olanda çizilmez (K-22)", () => {
+  it("hesabı bağlı olmayan veli için 'Giriş hesabı yok' rozeti çizilir, hesabı olanda çizilmez (K-22)", () => {
     const htmlUnlinked = renderToStaticMarkup(
       createElement(GuardiansTab, {
         guardians: [
@@ -81,7 +81,7 @@ describe("GuardiansTab UI — K-22, K-03, K-06 Güvenceleri", () => {
         onArchive: vi.fn(),
       })
     );
-    expect(htmlUnlinked).toContain("Hesap bağlı değil");
+    expect(htmlUnlinked).toContain("Giriş hesabı yok");
 
     const htmlLinked = renderToStaticMarkup(
       createElement(GuardiansTab, {
@@ -101,7 +101,7 @@ describe("GuardiansTab UI — K-22, K-03, K-06 Güvenceleri", () => {
         onArchive: vi.fn(),
       })
     );
-    expect(htmlLinked).not.toContain("Hesap bağlı değil");
+    expect(htmlLinked).not.toContain("Giriş hesabı yok");
   });
 
   it("veli listesi tavana dayandığında kesilme söylenir ve öğüdü yapılabilir bir eylemdir (K-06)", () => {
@@ -171,7 +171,7 @@ describe("LinkGuardianAccountPopover — R1 ve Boş Durum Güvenceleri", () => {
       })
     );
 
-    expect(html).toContain("Kurumda bağlanabilir veli hesabı bulunmuyor.");
+    expect(html).toContain("Boşta veli hesabı yok.");
     expect(html).not.toContain("<select");
   });
 });

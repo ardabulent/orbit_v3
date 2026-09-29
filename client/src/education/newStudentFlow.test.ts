@@ -111,7 +111,7 @@ describe("runNewStudentFlow", () => {
     expect(result.accounts[0].credentials.temporaryPassword).toBe("gecici");
     const failed = result.steps.find(step => !step.ok);
     expect(failed?.label).toBe("Öğrenci hesabı açıldı ama bağlanamadı");
-    expect(failed?.message).toContain('"Hesap bağla"');
+    expect(failed?.message).toContain('"Giriş hesabı ata"');
     // Sonraki adım yine denendi.
     expect(deps.linkGuardianAccount).toHaveBeenCalled();
   });

@@ -5,6 +5,12 @@ const templateRoot = path.resolve(import.meta.dirname);
 
 export default defineConfig({
   root: templateRoot,
+  // Testler hiçbir .env dosyası OKUMAZ (2026-09-30). Yerelde .env üretim
+  // Supabase adresini taşıyor ve taklit edilmemiş bir çağrı gerçek üretime
+  // gidiyordu: bir test dosyası her çalıştırmada üretimdeki switch-account'a
+  // istek attı (üç günde ~80 reddedilmiş istek). CI'da .env yok; yerel test
+  // ortamı artık CI ile aynı. Kapı: supabase/tests/deployment/testsNeverReachProduction.test.ts
+  envDir: path.resolve(templateRoot, "supabase", "tests", "no-env"),
   resolve: {
     alias: {
       "@": path.resolve(templateRoot, "client", "src"),

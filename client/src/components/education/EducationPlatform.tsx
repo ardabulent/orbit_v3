@@ -115,6 +115,7 @@ import { CommunicationsPage } from "./pages/CommunicationsPage";
 import { DayPlanPage } from "./pages/DayPlanPage";
 import { HomeworkPage } from "./pages/HomeworkPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
+import { linkableMembers } from "@/organization/linkableMembers";
 import { AuditLogPage } from "./pages/AuditLogPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SchedulePage } from "./pages/SchedulePage";
@@ -252,7 +253,7 @@ export function EducationPlatform({
     enabled: role === "admin" && !isDemoMode,
   });
   const studentMembers = useMemo(
-    () => (membersQuery.data ?? []).filter(m => m.role === "student"),
+    () => linkableMembers(membersQuery.data ?? [], "student"),
     [membersQuery.data]
   );
 
@@ -340,7 +341,7 @@ export function EducationPlatform({
     membershipId: string
   ) => {
     await linkStudentAccount(studentId, membershipId);
-    toast.success("Hesap bağlandı", {
+    toast.success("Giriş hesabı atandı", {
       description: "Öğrenciye giriş hesabı bağlandı.",
     });
     await Promise.all([
@@ -373,7 +374,7 @@ export function EducationPlatform({
   const [guardianForEdit, setGuardianForEdit] = useState<Guardian | null>(null);
 
   const parentMembers = useMemo(
-    () => (membersQuery.data ?? []).filter(m => m.role === "parent"),
+    () => linkableMembers(membersQuery.data ?? [], "parent"),
     [membersQuery.data]
   );
 
@@ -434,7 +435,7 @@ export function EducationPlatform({
   ) => {
     try {
       await linkGuardianAccount(guardianId, membershipId);
-      toast.success("Hesap bağlandı", {
+      toast.success("Giriş hesabı atandı", {
         description: "Veliye giriş hesabı bağlandı.",
       });
       await Promise.all([

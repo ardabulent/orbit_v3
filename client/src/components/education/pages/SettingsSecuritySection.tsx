@@ -258,17 +258,19 @@ export function SettingsSecuritySection() {
       {/* Şifremi değiştir (2026-09-29) */}
       <ChangePasswordCard disabled={isDemoMode} />
 
-      {/* Hesap Bağlama ve Geçiş (v1.4-17) */}
+      {/* Hesaplarım arasında geçiş (v1.4-17; ad 2026-09-30) */}
       <div className="mt-8 border-t border-slate-200 pt-6">
         <div className="flex items-center gap-2">
           <Link2 className="h-5 w-5 text-slate-700" />
           <h3 className="font-display text-[16px] font-extrabold text-slate-900">
-            Hesap Bağlama ve Geçiş
+            Hesaplarım arasında geçiş
           </h3>
         </div>
         <p className="mt-1 text-[12px] text-slate-500">
-          Aynı kişinin farklı kurumlardaki veya rollerdeki hesaplarını
-          bağlayarak tek sekmede şifresiz geçiş yapabilirsiniz.
+          Birden fazla hesabınız varsa (ör. hem öğretmen hem veli hesabınız)
+          onları birleştirip üst çubuktaki "Hesap Değiştir" ile şifre girmeden
+          geçiş yapabilirsiniz. Veli ile öğrenciyi birbirine bağlamak burada
+          değil, Öğrenciler sekmesinde yapılır.
         </p>
 
         {/* Mevcut Durum */}
