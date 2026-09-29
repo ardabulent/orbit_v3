@@ -158,6 +158,7 @@ vi.mock("@/components/ui/popover", () => ({
 
 vi.mock("@/audit/auditQueries", () => ({
   useOrganizationAuditEvents: vi.fn(),
+  useAuditActors: () => ({ data: [] }),
 }));
 
 vi.mock("@/settings/settingsQueries", () => ({

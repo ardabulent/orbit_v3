@@ -14,6 +14,8 @@ const mockUseAuth = vi.fn();
 
 vi.mock("@tanstack/react-query", () => ({
   useInfiniteQuery: (options: unknown) => mockUseInfiniteQuery(options),
+  // Sayfa "Kim yaptı" süzgeci için kişi listesini de ister (2026-09-29).
+  useQuery: () => ({ data: [] }),
 }));
 
 vi.mock("@/auth/useAuth", () => ({
@@ -35,7 +37,34 @@ describe("auditKeys (K-19 ve Cache İzolasyonu)", () => {
 
   it("kurum denetim kaydı anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır", () => {
     const key = auditKeys.events("org-999");
-    expect(key).toEqual(["audit", "events", { organizationId: "org-999" }]);
+    expect(key).toEqual([
+      "audit",
+      "events",
+      {
+        organizationId: "org-999",
+        actorUserId: null,
+        actionKind: null,
+        entityType: null,
+        from: null,
+        to: null,
+      },
+    ]);
+  });
+
+  it("süzgeç anahtara girer: farklı süzgeç farklı önbellek demektir", () => {
+    const hepsi = auditKeys.events("org-1");
+    const guncellemeler = auditKeys.events("org-1", {
+      actorUserId: null,
+      actionKind: "updated",
+      entityType: null,
+      from: null,
+      to: null,
+    });
+    expect(guncellemeler).not.toEqual(hepsi);
+    expect(guncellemeler[2]).toMatchObject({
+      organizationId: "org-1",
+      actionKind: "updated",
+    });
   });
 });
 
@@ -109,7 +138,8 @@ describe("useOrganizationAuditEvents (TanStack useInfiniteQuery)", () => {
     expect(loadOrganizationAuditEvents).toHaveBeenCalledWith(
       "org-123",
       25,
-      555
+      555,
+      expect.objectContaining({ actionKind: null })
     );
   });
 });
@@ -128,6 +158,8 @@ describe("AuditLogPage UI rendering (v1.3-06 pagination)", () => {
                 entityType: "organization_membership",
                 entityId: "id-1",
                 createdAt: "2026-09-09T10:00:00Z",
+                label: null,
+                changed: [],
               },
             ],
             nextCursor: 1,
@@ -161,6 +193,8 @@ describe("AuditLogPage UI rendering (v1.3-06 pagination)", () => {
                 entityType: "organization_membership",
                 entityId: "id-1",
                 createdAt: "2026-09-09T10:00:00Z",
+                label: null,
+                changed: [],
               },
             ],
             nextCursor: null,
@@ -194,6 +228,8 @@ describe("AuditLogPage UI rendering (v1.3-06 pagination)", () => {
                 entityType: "organization_membership",
                 entityId: "id-1",
                 createdAt: "2026-09-09T10:00:00Z",
+                label: null,
+                changed: [],
               },
             ],
             nextCursor: 1,
@@ -213,5 +249,50 @@ describe("AuditLogPage UI rendering (v1.3-06 pagination)", () => {
     expect(html).toContain("Ayşe Yılmaz");
     expect(html).toContain("Yükleniyor…");
     expect(html).toContain("disabled");
+  });
+});
+
+describe("AuditLogPage kayıt adı ve süzgeç (2026-09-29)", () => {
+  it("satırda kaydın adı ve değişen alanların Türkçe adı görünür", () => {
+    mockUseAuth.mockReturnValue({
+      identity: { membership: { organizationId: "org-1" } },
+    });
+    mockUseInfiniteQuery.mockReturnValue({
+      data: {
+        pages: [
+          {
+            rows: [
+              {
+                id: 9,
+                actor: { kind: "member", name: "Ali Veli" },
+                action: "guardian.updated",
+                entityType: "guardian",
+                entityId: "g1",
+                createdAt: "2026-09-29T10:00:00Z",
+                label: "Ayşe Koç",
+                changed: ["phone", "full_name"],
+              },
+            ],
+            nextCursor: null,
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    });
+
+    const html = renderToStaticMarkup(createElement(AuditLogPage));
+
+    expect(html).toContain("Veli güncellendi");
+    expect(html).toContain("Ayşe Koç");
+    expect(html).toContain("Telefon, Ad soyad");
+    expect(html).toContain("değişti");
+    // Süzgeç çubuğu
+    expect(html).toContain("Kim yaptı");
+    expect(html).toContain("İşlem türü");
+    expect(html).toContain("Kayıt türü");
+    expect(html).toContain("Başlangıç");
   });
 });

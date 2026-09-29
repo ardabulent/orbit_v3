@@ -1,11 +1,18 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
+  EMPTY_AUDIT_FILTERS,
   describeAuditAction,
   describeAuditEntity,
+  describeAuditField,
   formatAuditMoment,
   type AuditActor,
+  type AuditFilters,
 } from "@/audit/auditService";
-import { useOrganizationAuditEvents } from "@/audit/auditQueries";
+import {
+  useAuditActors,
+  useOrganizationAuditEvents,
+} from "@/audit/auditQueries";
+import { AuditFiltersBar } from "./AuditFiltersBar";
 import {
   Badge,
   EmptyState,
@@ -26,9 +33,10 @@ import {
  * veritabanını okuyor. Bu yüzden yükleniyor ve hata durumları burada gerçek —
  * uydurma değil.
  *
- * **Kapsam bilinçli olarak dar** (#149): kim, ne zaman, hangi işlem, hangi
- * varlık. `metadata` gösterilmiyor; bugün içinde `login_number` taşıyor ve
- * kişinin giriş numarasını yeni bir ekrana taşımak için sebep yok.
+ * **Kayıt adı ve değişen alanlar** (karar 2026-09-29): her satır etkilenen
+ * kaydın adını ve güncellemede değişen alanların ADLARINI gösterir. Değerler
+ * gösterilmez ve istemciye hiç inmez: `organization_audit_feed` `metadata`'yı
+ * döndürmez (telefon, öğrenci numarası, giriş numarası orada durur).
  */
 
 /**
@@ -71,6 +79,8 @@ function aktorGorunumu(actor: AuditActor): {
 }
 
 export function AuditLogPage() {
+  const [filters, setFilters] = useState<AuditFilters>(EMPTY_AUDIT_FILTERS);
+  const actorsQuery = useAuditActors();
   const {
     data,
     isLoading,
@@ -80,7 +90,8 @@ export function AuditLogPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useOrganizationAuditEvents();
+  } = useOrganizationAuditEvents({ filters });
+  const filtered = Object.values(filters).some(value => value !== null);
 
   const kayitlar = useMemo(
     () => data?.pages.flatMap(page => page.rows) ?? [],
@@ -95,7 +106,12 @@ export function AuditLogPage() {
       <PageHeader
         eyebrow="Kurum yönetimi"
         title="Denetim Kaydı"
-        description="Kurumda kimin ne zaman hangi işlemi yaptığı. Kişisel veri içermez."
+        description="Kurumda kimin ne zaman hangi işlemi yaptığı. Değişen alanların adı görünür, değerleri görünmez."
+      />
+      <AuditFiltersBar
+        filters={filters}
+        onChange={setFilters}
+        actors={actorsQuery.data ?? []}
       />
 
       {isLoading ? (
@@ -111,10 +127,17 @@ export function AuditLogPage() {
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
           {kayitlar.length === 0 ? (
             <div className="px-5 py-8">
-              <EmptyState
-                title="Henüz kayıt yok"
-                description="Kurumda iz bırakan bir işlem yapıldığında burada görünecek."
-              />
+              {filtered ? (
+                <EmptyState
+                  title="Bu süzgece uyan kayıt yok"
+                  description="Süzgeci genişletmeyi ya da temizlemeyi deneyin."
+                />
+              ) : (
+                <EmptyState
+                  title="Henüz kayıt yok"
+                  description="Kurumda iz bırakan bir işlem yapıldığında burada görünecek."
+                />
+              )}
             </div>
           ) : null}
 
@@ -134,7 +157,7 @@ export function AuditLogPage() {
                         İşlem
                       </th>
                       <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-                        Varlık
+                        Kayıt
                       </th>
                     </tr>
                   </thead>
@@ -170,7 +193,22 @@ export function AuditLogPage() {
                             </Badge>
                           </td>
                           <td className="px-5 py-3 align-top text-[12px] text-slate-700">
-                            {describeAuditEntity(kayit.entityType)}
+                            <span className="text-slate-500">
+                              {describeAuditEntity(kayit.entityType)}
+                            </span>
+                            {kayit.label ? (
+                              <span className="block font-bold text-slate-800">
+                                {kayit.label}
+                              </span>
+                            ) : null}
+                            {kayit.changed.length > 0 ? (
+                              <span className="mt-0.5 block text-[11px] text-slate-500">
+                                {kayit.changed
+                                  .map(describeAuditField)
+                                  .join(", ")}{" "}
+                                değişti
+                              </span>
+                            ) : null}
                           </td>
                         </tr>
                       );

@@ -1,8 +1,15 @@
-import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
 import {
   DEFAULT_AUDIT_LIMIT,
+  EMPTY_AUDIT_FILTERS,
+  loadAuditActors,
   loadOrganizationAuditEvents,
+  type AuditFilters,
   type AuditPage,
   type OrganizationAuditEvent,
 } from "./auditService";
@@ -23,13 +30,18 @@ import {
  */
 export const auditKeys = {
   all: ["audit"] as const,
-  events: (organizationId: string) =>
-    ["audit", "events", { organizationId }] as const,
+  events: (
+    organizationId: string,
+    filters: AuditFilters = EMPTY_AUDIT_FILTERS
+  ) => ["audit", "events", { organizationId, ...filters }] as const,
+  actors: (organizationId: string) =>
+    ["audit", "actors", { organizationId }] as const,
 };
 
 export type UseOrganizationAuditEventsOptions = {
   organizationId?: string;
   limit?: number;
+  filters?: AuditFilters;
 };
 
 /**
@@ -45,23 +57,36 @@ export function useOrganizationAuditEvents(
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
   const limit = options?.limit ?? DEFAULT_AUDIT_LIMIT;
+  const filters = options?.filters ?? EMPTY_AUDIT_FILTERS;
 
   return useInfiniteQuery<
     AuditPage<OrganizationAuditEvent>,
     Error,
     InfiniteData<AuditPage<OrganizationAuditEvent>, number | null>,
-    readonly [string, string, { readonly organizationId: string }],
+    ReturnType<typeof auditKeys.events>,
     number | null
   >({
     queryKey: organizationId
-      ? auditKeys.events(organizationId)
-      : (["audit", "events", { organizationId: "" }] as const),
+      ? auditKeys.events(organizationId, filters)
+      : auditKeys.events("", filters),
     queryFn: ({ pageParam }) =>
       // `organizationId` burada kesin dolu: `enabled` onsuz sorguyu hiç
       // çalıştırmıyor ve anahtar da onu taşıyor.
-      loadOrganizationAuditEvents(organizationId!, limit, pageParam),
+      loadOrganizationAuditEvents(organizationId!, limit, pageParam, filters),
     initialPageParam: null,
     getNextPageParam: lastPage => lastPage.nextCursor,
+    enabled: Boolean(organizationId),
+  });
+}
+
+/** "Kim yaptı" süzgecinin kişi listesi. */
+export function useAuditActors() {
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId;
+
+  return useQuery({
+    queryKey: auditKeys.actors(organizationId ?? ""),
+    queryFn: loadAuditActors,
     enabled: Boolean(organizationId),
   });
 }
