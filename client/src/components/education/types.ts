@@ -92,6 +92,17 @@ export type PaymentRow = {
   amount: string;
   totalAmount: number;
   status?: "Güncel" | "Hatırlatma gerekli" | "Gecikme riski" | "Takip gerekli";
+  /**
+   * `payment_plan_summaries`'tan (2026-09-29, `20261010000000`). Özet
+   * alınamadıysa yoktur — sıfır uydurulmaz (K-03).
+   */
+  overdueCount?: number;
+  /** "YYYY-MM-DD" — süzgeç için ham tarih; `due` ekrana yazılan. */
+  nextDueDate?: string | null;
+  installmentCount?: number;
+  paidCount?: number;
+  scheduledAmount?: number;
+  paidAmount?: number;
 };
 
 export type DayPlanRole = Extract<Role, "admin" | "teacher">;

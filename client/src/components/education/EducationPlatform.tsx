@@ -47,6 +47,7 @@ import {
   useStudents,
   useExams,
   useMyLessonsToday,
+  usePlansInstallments,
   useSubstitutes,
   useTodayLessons,
   educationKeys,
@@ -678,6 +679,12 @@ export function EducationPlatform({
     ? (activeClasses.find(c => c.id === selectedClassId) ?? null)
     : null;
 
+  // Veli ödeme görünümü: planlarının taksitleri tek sorguda (2026-09-29).
+  const parentInstallmentsQuery = usePlansInstallments({
+    planIds: (paymentsQuery.data?.rows ?? []).map(row => row.id),
+    enabled: !isDemoMode && role === "parent" && active === "Kayıt ve Ödemeler",
+  });
+
   const activePayments = useMemo(() => {
     if (isDemoMode) {
       return paymentRows;
@@ -1127,6 +1134,8 @@ export function EducationPlatform({
           }
           truncated={!isDemoMode && Boolean(paymentsQuery.data?.truncated)}
           limit={DEFAULT_PAYMENT_LIMIT}
+          installments={parentInstallmentsQuery.data}
+          installmentsError={parentInstallmentsQuery.isError}
           onAddPlan={() => {
             setPaymentPlanForEdit(null);
             setPaymentPlanFormOpen(true);

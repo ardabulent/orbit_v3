@@ -482,8 +482,10 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
       // Kart 1: Bu ay tahsilat
       expect(stats[0].label).toBe("Bu ay tahsilat");
       expect(stats[0].value).toBe("₺1.500");
-      // ⛔ "Planlanan tahsilatın %82'si" ÜRETİMDE ÜRETİLMEZ; şablonun emptyDetail'i kalır:
-      expect(stats[0].detail).toBe("Vadesi gelen taksit yok");
+      // ⛔ "Planlanan tahsilatın %82'si" ÜRETİMDE ÜRETİLMEZ.
+      // 2026-09-29: alt metin sayıyla çelişmez (eskiden "₺1.500 · Vadesi
+      // gelen taksit yok" basılıyordu ve bu test onu sabitliyordu).
+      expect(stats[0].detail).toBe("Bu ay ödenen taksitler");
       expect(stats[0].detail).not.toContain("%82");
 
       // Kart 2: Yaklaşan taksit
@@ -494,7 +496,16 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
       // Kart 3: Takip gereken
       expect(stats[2].label).toBe("Takip gereken");
       expect(stats[2].value).toBe("2");
-      expect(stats[2].detail).toBe("Takip gereken ödeme yok");
+      expect(stats[2].detail).toBe("Vadesi geçmiş, ödenmemiş taksit");
+
+      // Sıfırken "…yok" metni doğru ve kalır.
+      const empty = buildPaymentStats({
+        collectedThisMonth: 0,
+        upcomingCount: 0,
+        overdueCount: 0,
+      });
+      expect(empty[0].detail).toBe("Bu ay henüz ödeme yok");
+      expect(empty[2].detail).toBe("Takip gereken ödeme yok");
     });
   });
 

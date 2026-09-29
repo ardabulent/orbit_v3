@@ -76,6 +76,10 @@ export type PaymentPlanSummary = {
   overdueCount: number;
   nextDueDate: string | null;
   nextDueAmount: number | null;
+  installmentCount?: number;
+  paidCount?: number;
+  scheduledAmount?: number;
+  paidAmount?: number;
 };
 
 export type PaymentOverviewCounts = {
@@ -139,7 +143,7 @@ export function mapPaymentRow(
     status = summary.overdueCount > 0 ? "Takip gerekli" : "Güncel";
   }
 
-  return {
+  const row: PaymentRow = {
     id: plan.id,
     studentId: plan.student_id,
     student: studentName,
@@ -149,6 +153,18 @@ export function mapPaymentRow(
     totalAmount: Number(plan.total_amount) || 0,
     status,
   };
+  // Özet yoksa (yetki/hata) ilerleme alanları hiç yazılmaz — sıfır uydurulmaz.
+  if (summary) {
+    row.overdueCount = summary.overdueCount;
+    row.nextDueDate = summary.nextDueDate;
+    if (summary.installmentCount !== undefined) {
+      row.installmentCount = summary.installmentCount;
+      row.paidCount = summary.paidCount;
+      row.scheduledAmount = summary.scheduledAmount;
+      row.paidAmount = summary.paidAmount;
+    }
+  }
+  return row;
 }
 
 /**
@@ -183,6 +199,10 @@ export async function loadPaymentPlanSummaries(
     overdue_count: number | string;
     next_due_date: string | null;
     next_due_amount: number | string | null;
+    installment_count?: number | string | null;
+    paid_count?: number | string | null;
+    scheduled_amount?: number | string | null;
+    paid_amount?: number | string | null;
   }[]) {
     const planId = row.plan_id;
     if (!planId) continue;
@@ -196,12 +216,20 @@ export async function loadPaymentPlanSummaries(
       }
     }
 
-    resultMap.set(planId, {
+    const summary: PaymentPlanSummary = {
       planId,
       overdueCount: Number.isNaN(overdueCount) ? 0 : overdueCount,
       nextDueDate: row.next_due_date || null,
       nextDueAmount,
-    });
+    };
+    // Dört yeni sütun (`20261010000000`): bigint/numeric dizge gelebilir.
+    if (row.installment_count !== undefined && row.installment_count !== null) {
+      summary.installmentCount = Number(row.installment_count) || 0;
+      summary.paidCount = Number(row.paid_count) || 0;
+      summary.scheduledAmount = Number(row.scheduled_amount) || 0;
+      summary.paidAmount = Number(row.paid_amount) || 0;
+    }
+    resultMap.set(planId, summary);
   }
 
   return resultMap;
@@ -645,6 +673,53 @@ export async function loadPlanInstallments(
     archivedAt: row.archived_at ?? null,
     createdAt: row.created_at,
   }));
+}
+
+/**
+ * Birden çok planın aktif taksitleri tek sorguda (veli görünümü,
+ * 2026-09-29): plan kimliğine göre, sıra numarasıyla. Kapsam RLS'te — veli
+ * yalnız çocuğunun planlarının taksitlerini görür.
+ */
+export async function loadInstallmentsForPlans(
+  organizationId: string,
+  planIds: string[]
+): Promise<Map<string, Installment[]>> {
+  const ids = [...new Set(planIds.filter(Boolean))];
+  const result = new Map<string, Installment[]>();
+  if (!organizationId || ids.length === 0) return result;
+
+  const { data, error } = await supabase
+    .from("installments")
+    .select(
+      "id, organization_id, plan_id, sequence_no, due_date, amount, paid_at, archived_at, created_at"
+    )
+    .eq("organization_id", organizationId)
+    .in("plan_id", ids)
+    .is("archived_at", null)
+    .order("sequence_no", { ascending: true })
+    .order("due_date", { ascending: true });
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  for (const row of data ?? []) {
+    const item: Installment = {
+      id: row.id,
+      organizationId: row.organization_id,
+      planId: row.plan_id,
+      sequenceNo: Number(row.sequence_no),
+      dueDate: row.due_date,
+      amount: Number(row.amount),
+      paidAt: row.paid_at ?? null,
+      archivedAt: row.archived_at ?? null,
+      createdAt: row.created_at,
+    };
+    const list = result.get(item.planId);
+    if (list) list.push(item);
+    else result.set(item.planId, [item]);
+  }
+  return result;
 }
 
 /**
