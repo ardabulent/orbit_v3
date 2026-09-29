@@ -30,6 +30,7 @@ import {
   loadPaymentOverviewCounts,
   loadPayments,
   loadPlanInstallments,
+  loadInstallmentsForPlans,
   type PaymentListResult,
   type PaymentOverviewCounts,
   type Installment,
@@ -576,6 +577,30 @@ export function usePaymentOverview(options?: UsePaymentOverviewOptions) {
       ? educationKeys.paymentOverview(organizationId)
       : (["education", "paymentOverview", { organizationId: "" }] as const),
     queryFn: () => loadPaymentOverviewCounts(),
+    enabled: isEnabled,
+  });
+}
+
+/** Birden çok planın taksitleri tek sorguda (veli ödeme görünümü). */
+export function usePlansInstallments(options: {
+  planIds: string[];
+  organizationId?: string;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId =
+    options.organizationId ?? identity?.membership?.organizationId;
+  const ids = [...options.planIds].sort();
+  const isEnabled =
+    (options.enabled ?? true) && Boolean(organizationId) && ids.length > 0;
+
+  return useQuery<Map<string, Installment[]>, Error>({
+    queryKey: [
+      "education",
+      "planInstallments",
+      { organizationId: organizationId ?? "", planIds: ids },
+    ] as const,
+    queryFn: () => loadInstallmentsForPlans(organizationId as string, ids),
     enabled: isEnabled,
   });
 }

@@ -1,7 +1,11 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
-import { DEFAULT_PAYMENT_LIMIT } from "@/education/paymentService";
+import {
+  DEFAULT_PAYMENT_LIMIT,
+  type Installment,
+} from "@/education/paymentService";
+import { getOrbitToday } from "@/education/trDate";
 import {
   paymentOverviewStats as demoPaymentOverviewStats,
   paymentRows as demoPaymentRows,
@@ -17,6 +21,8 @@ import {
   TableSkeleton,
 } from "../shared";
 import type { PaymentRow, Role } from "../types";
+import { AdminPaymentsTable } from "./AdminPaymentsTable";
+import { ParentPaymentCards } from "./ParentPaymentCards";
 
 export type PaymentsPageProps = {
   role: Role;
@@ -30,6 +36,9 @@ export type PaymentsPageProps = {
   isDemo?: boolean;
   onAddPlan?: () => void;
   onSelectPlan?: (plan: PaymentRow) => void;
+  /** Veli görünümü: planların taksitleri (tek sorguda, yukarıdan). */
+  installments?: Map<string, Installment[]>;
+  installmentsError?: boolean;
 };
 
 export function PaymentsPage({
@@ -44,6 +53,8 @@ export function PaymentsPage({
   isDemo = isDemoMode,
   onAddPlan,
   onSelectPlan,
+  installments,
+  installmentsError = false,
 }: PaymentsPageProps) {
   // Güvenlik kapısı (K-06): isDemo prop'u üretimde (isDemoMode === false) demoyu AÇAMAZ.
   // Prop yalnızca test ortamında veya demo modunda demoyu KAPATMAK (isDemo={false}) için kullanılabilir.
@@ -124,6 +135,21 @@ export function PaymentsPage({
             error.message || "Ödeme bilgileri yüklenirken bir hata oluştu."
           }
           onRetry={onRetry}
+        />
+      ) : !activeDemo && role === "parent" ? (
+        // 2026-09-29: veli her planı kart olarak, bütün taksitleriyle görür.
+        <ParentPaymentCards
+          rows={visible}
+          installments={installments ?? new Map()}
+          installmentsError={installmentsError}
+          today={getOrbitToday()}
+        />
+      ) : !activeDemo ? (
+        // 2026-09-29: süzgeç, arama, ödenen/kalan ilerlemesi.
+        <AdminPaymentsTable
+          rows={visible}
+          today={getOrbitToday()}
+          onSelectPlan={onSelectPlan}
         />
       ) : (
         <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">

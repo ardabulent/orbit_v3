@@ -304,20 +304,34 @@ export function buildPaymentStats(
     return [];
   }
 
+  // 2026-09-29: alt metin sayının ne olduğunu söyler; "…yok" yalnız sayı
+  // gerçekten sıfırken. Eskiden şablonun boş metni gerçek sayıyla birlikte
+  // basılıyordu: "2 · Takip gereken ödeme yok" gibi kendiyle çelişen kartlar
+  // (K-03). Uydurulmuş bir oran ("%82") hâlâ üretilmez.
   return paymentOverviewStatTemplates.map(tmpl => {
     let value = tmpl.emptyValue;
+    let detail = tmpl.emptyDetail;
     if (tmpl.key === "monthly-collection") {
       value = formatCurrency(counts.collectedThisMonth);
+      detail =
+        counts.collectedThisMonth > 0
+          ? "Bu ay ödenen taksitler"
+          : "Bu ay henüz ödeme yok";
     } else if (tmpl.key === "upcoming-installments") {
       value = String(counts.upcomingCount);
+      detail = "Önümüzdeki 7 gün";
     } else if (tmpl.key === "follow-up-payments") {
       value = String(counts.overdueCount);
+      detail =
+        counts.overdueCount > 0
+          ? "Vadesi geçmiş, ödenmemiş taksit"
+          : tmpl.emptyDetail;
     }
 
     return {
       label: tmpl.label,
       value,
-      detail: tmpl.emptyDetail,
+      detail,
       icon: tmpl.icon,
       tone: tmpl.tone,
     };
