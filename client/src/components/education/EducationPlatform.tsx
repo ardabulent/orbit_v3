@@ -41,6 +41,7 @@ import {
   usePayments,
   useReportAttendanceWeeks,
   useReportExamAverages,
+  useReportClassComparison,
   useReportHomeworkWeeks,
   useSchedule,
   useStudentGuardians,
@@ -581,6 +582,10 @@ export function EducationPlatform({
   const reportExamQuery = useReportExamAverages({
     enabled: !isDemoMode && active === "Raporlar",
     range: reportRange,
+  });
+  const reportComparisonQuery = useReportClassComparison({
+    enabled: !isDemoMode && active === "Raporlar",
+    weeks: reportRange.weeks,
   });
   const reportHomeworkQuery = useReportHomeworkWeeks({
     enabled: !isDemoMode && active === "Raporlar",
@@ -1178,6 +1183,11 @@ export function EducationPlatform({
           range={reportRange}
           onRangeChange={setReportRange}
           classes={activeClasses}
+          comparison={{
+            rows: reportComparisonQuery.data,
+            isLoading: reportComparisonQuery.isLoading,
+            error: reportComparisonQuery.error,
+          }}
           isLoading={
             !isDemoMode &&
             (reportAttendanceQuery.isLoading ||

@@ -1,7 +1,8 @@
 import { isDemoMode } from "@/auth/runtime";
-import { formatTrWeekLabel } from "@/education/trDate";
+import { formatTrWeekLabel, getOrbitToday } from "@/education/trDate";
 import type {
   AttendanceWeek,
+  ClassComparisonRow,
   ExamAverage,
   HomeworkWeek,
   ReportRange,
@@ -22,6 +23,7 @@ import {
   ReportCard,
 } from "../shared";
 import type { Role } from "../types";
+import { ClassComparisonTable } from "./ClassComparisonTable";
 import { ReportsToolbar } from "./ReportsToolbar";
 
 export type ReportsPageProps = {
@@ -37,6 +39,11 @@ export type ReportsPageProps = {
   range?: ReportRange;
   onRangeChange?: (range: ReportRange) => void;
   classes?: { id: string; name: string }[];
+  comparison?: {
+    rows: ClassComparisonRow[] | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
 };
 
 const formatNet = (value: number) =>
@@ -58,6 +65,7 @@ export function ReportsPage({
   range,
   onRangeChange,
   classes = [],
+  comparison,
 }: ReportsPageProps) {
   const isTeacher = role === "teacher";
   const activeDemo = isDemoMode && isDemo;
@@ -201,6 +209,17 @@ export function ReportsPage({
           ) : null}
         </div>
       )}
+      {!activeDemo && range && onRangeChange && comparison && !error ? (
+        <ClassComparisonTable
+          rows={comparison.rows}
+          isLoading={comparison.isLoading}
+          error={comparison.error}
+          weeks={range.weeks}
+          selectedClassId={range.classId}
+          onSelectClass={classId => onRangeChange({ ...range, classId })}
+          today={getOrbitToday()}
+        />
+      ) : null}
       {actions.length > 0 ? (
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
           <h2 className="font-display text-[17px] font-extrabold text-slate-900">

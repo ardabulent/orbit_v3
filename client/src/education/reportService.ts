@@ -313,3 +313,80 @@ export async function loadHomeworkWeeks(
 
   return weeks;
 }
+
+/**
+ * Sınıf karşılaştırmasının bir satırı (2026-09-29). Ölçülmeyen değer
+ * `undefined` kalır — tabloda "—", CSV'de boş hücre (K-22).
+ */
+export type ClassComparisonRow = {
+  classId: string;
+  className: string;
+  studentCount: number;
+  attendancePercent?: number;
+  homeworkPercent?: number;
+  netExamCount?: number;
+  netAverage?: number;
+};
+
+const optionalNumber = (value: unknown): number | undefined => {
+  if (value === null || value === undefined) return undefined;
+  const n = Number(value);
+  return Number.isNaN(n) ? undefined : n;
+};
+
+/**
+ * Her sınıf için devam, ödev ve net deneme ortalaması
+ * (`report_class_comparison`). Sayım veritabanında (K-03); devam yüzdesi
+ * yine `calculateAttendancePercentage`'tan (K-06).
+ */
+export async function loadClassComparison(
+  weeks: ReportWeeks
+): Promise<ClassComparisonRow[]> {
+  const { data, error } = await supabase.rpc("report_class_comparison", {
+    p_weeks: weeks,
+  });
+
+  if (error) {
+    throw new Error(translateReportError(error));
+  }
+
+  const rows: ClassComparisonRow[] = [];
+  for (const row of (data ?? []) as {
+    class_id?: string | null;
+    class_name?: string | null;
+    student_count?: number | string | null;
+    present_count?: number | string | null;
+    late_count?: number | string | null;
+    absent_count?: number | string | null;
+    submission_count?: number | string | null;
+    expected_count?: number | string | null;
+    net_exam_count?: number | string | null;
+    net_average?: number | string | null;
+  }[]) {
+    const className = row.class_name?.trim();
+    if (!row.class_id || !className) continue;
+
+    const present = optionalNumber(row.present_count);
+    const late = optionalNumber(row.late_count);
+    const absent = optionalNumber(row.absent_count);
+    const submitted = optionalNumber(row.submission_count);
+    const expected = optionalNumber(row.expected_count);
+
+    rows.push({
+      classId: row.class_id,
+      className,
+      studentCount: optionalNumber(row.student_count) ?? 0,
+      attendancePercent:
+        present !== undefined && late !== undefined && absent !== undefined
+          ? calculateAttendancePercentage({ present, late, absent })
+          : undefined,
+      homeworkPercent:
+        submitted !== undefined && expected !== undefined && expected > 0
+          ? Math.round((submitted / expected) * 100)
+          : undefined,
+      netExamCount: optionalNumber(row.net_exam_count),
+      netAverage: optionalNumber(row.net_average),
+    });
+  }
+  return rows;
+}
