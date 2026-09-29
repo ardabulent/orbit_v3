@@ -128,6 +128,8 @@ describe("feedService", () => {
         createdAt: "2026-09-13T10:00:00Z",
         updatedAt: "2026-09-13T10:00:00Z",
         archivedAt: null,
+        audience: "all",
+        pinned: false,
       });
 
       // 2. 🔴 R1 ASIL İDDİA: Kurum geneli duyurunun (class_id: null) yazar adı BAŞARIYLA ÇÖZÜLÜR!

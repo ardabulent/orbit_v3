@@ -60,8 +60,8 @@ const migrationKoku = path.join(depoKoku, "supabase", "migrations");
  * `EN_BUYUK_ANAHTAR` güncellenmeden adet artıyorsa, yeni dosya en üste
  * gelmemiştir — kapının yakaladığı hâl tam olarak bu.
  */
-const BEKLENEN_ADET = 83;
-const EN_BUYUK_ANAHTAR = "20261008000000";
+const BEKLENEN_ADET = 84;
+const EN_BUYUK_ANAHTAR = "20261009000000";
 
 function migrationlar(): { ad: string; anahtar: string }[] {
   return readdirSync(migrationKoku)
