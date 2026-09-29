@@ -390,3 +390,75 @@ export async function loadClassComparison(
   }
   return rows;
 }
+
+/**
+ * Dikkat listesinin bir satırı (2026-09-29). Bayraklar veritabanında
+ * hesaplanır (`report_attention_students`); ekran yalnız ham sayılardan
+ * nedeni yazar, bayrağı yeniden hesaplamaz.
+ */
+export type AttentionStudent = {
+  studentId: string;
+  studentName: string;
+  classNames: string;
+  lessonCount?: number;
+  attendedCount?: number;
+  homeworkExpected?: number;
+  homeworkSubmitted?: number;
+  lastNet?: number;
+  previousNet?: number;
+  classAverage?: number;
+  lowAttendance: boolean;
+  lowHomework: boolean;
+  netDrop: boolean;
+  belowAverage: boolean;
+};
+
+export async function loadAttentionStudents(
+  weeks: ReportWeeks
+): Promise<AttentionStudent[]> {
+  const { data, error } = await supabase.rpc("report_attention_students", {
+    p_weeks: weeks,
+  });
+
+  if (error) {
+    throw new Error(translateReportError(error));
+  }
+
+  const rows: AttentionStudent[] = [];
+  for (const row of (data ?? []) as {
+    student_id?: string | null;
+    student_name?: string | null;
+    class_names?: string | null;
+    lesson_count?: number | string | null;
+    attended_count?: number | string | null;
+    homework_expected?: number | string | null;
+    homework_submitted?: number | string | null;
+    last_net?: number | string | null;
+    previous_net?: number | string | null;
+    class_average?: number | string | null;
+    low_attendance?: boolean | null;
+    low_homework?: boolean | null;
+    net_drop?: boolean | null;
+    below_average?: boolean | null;
+  }[]) {
+    const studentName = row.student_name?.trim();
+    if (!row.student_id || !studentName) continue;
+    rows.push({
+      studentId: row.student_id,
+      studentName,
+      classNames: row.class_names ?? "",
+      lessonCount: optionalNumber(row.lesson_count),
+      attendedCount: optionalNumber(row.attended_count),
+      homeworkExpected: optionalNumber(row.homework_expected),
+      homeworkSubmitted: optionalNumber(row.homework_submitted),
+      lastNet: optionalNumber(row.last_net),
+      previousNet: optionalNumber(row.previous_net),
+      classAverage: optionalNumber(row.class_average),
+      lowAttendance: row.low_attendance === true,
+      lowHomework: row.low_homework === true,
+      netDrop: row.net_drop === true,
+      belowAverage: row.below_average === true,
+    });
+  }
+  return rows;
+}

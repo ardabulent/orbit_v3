@@ -1,6 +1,7 @@
 import { isDemoMode } from "@/auth/runtime";
 import { formatTrWeekLabel, getOrbitToday } from "@/education/trDate";
 import type {
+  AttentionStudent,
   AttendanceWeek,
   ClassComparisonRow,
   ExamAverage,
@@ -23,6 +24,7 @@ import {
   ReportCard,
 } from "../shared";
 import type { Role } from "../types";
+import { AttentionList } from "./AttentionList";
 import { ClassComparisonTable } from "./ClassComparisonTable";
 import { ReportsToolbar } from "./ReportsToolbar";
 
@@ -44,6 +46,12 @@ export type ReportsPageProps = {
     isLoading: boolean;
     error: Error | null;
   };
+  attention?: {
+    rows: AttentionStudent[] | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
+  onOpenStudent?: (studentId: string) => void;
 };
 
 const formatNet = (value: number) =>
@@ -66,6 +74,8 @@ export function ReportsPage({
   onRangeChange,
   classes = [],
   comparison,
+  attention,
+  onOpenStudent,
 }: ReportsPageProps) {
   const isTeacher = role === "teacher";
   const activeDemo = isDemoMode && isDemo;
@@ -209,6 +219,15 @@ export function ReportsPage({
           ) : null}
         </div>
       )}
+      {!activeDemo && range && attention && onOpenStudent && !error ? (
+        <AttentionList
+          rows={attention.rows}
+          isLoading={attention.isLoading}
+          error={attention.error}
+          weeks={range.weeks}
+          onOpenStudent={onOpenStudent}
+        />
+      ) : null}
       {!activeDemo && range && onRangeChange && comparison && !error ? (
         <ClassComparisonTable
           rows={comparison.rows}

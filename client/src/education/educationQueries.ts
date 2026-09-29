@@ -81,7 +81,9 @@ import {
   loadAttendanceWeeks,
   loadExamAverages,
   loadHomeworkWeeks,
+  loadAttentionStudents,
   loadClassComparison,
+  type AttentionStudent,
   DEFAULT_REPORT_RANGE,
   type ClassComparisonRow,
   type ReportWeeks,
@@ -331,6 +333,12 @@ export const educationKeys = {
       "education",
       "reportExamAverages",
       { organizationId, weeks: range.weeks, classId: range.classId },
+    ] as const,
+  reportAttentionStudents: (organizationId: string, weeks: ReportWeeks) =>
+    [
+      "education",
+      "reportAttentionStudents",
+      { organizationId, weeks },
     ] as const,
   reportClassComparison: (organizationId: string, weeks: ReportWeeks) =>
     ["education", "reportClassComparison", { organizationId, weeks }] as const,
@@ -1126,6 +1134,25 @@ export function useReportClassComparison(options: {
       options.weeks
     ),
     queryFn: () => loadClassComparison(options.weeks),
+    enabled: isEnabled,
+  });
+}
+
+/** Dikkat listesi (`report_attention_students`, 2026-09-29). */
+export function useReportAttentionStudents(options: {
+  weeks: ReportWeeks;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId;
+  const isEnabled = (options.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<AttentionStudent[], Error>({
+    queryKey: educationKeys.reportAttentionStudents(
+      organizationId ?? "",
+      options.weeks
+    ),
+    queryFn: () => loadAttentionStudents(options.weeks),
     enabled: isEnabled,
   });
 }
