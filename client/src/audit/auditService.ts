@@ -194,6 +194,7 @@ const ACTION_LABELS: Record<string, string> = {
   "membership.removed": "Üyelik kaldırıldı",
   "membership.role_changed": "Üyenin rolü değişti",
   "membership.password_reset": "Şifre sıfırlandı",
+  "account.password_changed": "Kişi kendi şifresini değiştirdi",
   "student.account_linked": "Öğrenci hesabı bağlandı",
   "student.account_unlinked": "Öğrenci hesap bağı çözüldü",
   "guardian.account_linked": "Veli hesabı bağlandı",

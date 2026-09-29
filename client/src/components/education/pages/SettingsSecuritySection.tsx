@@ -21,6 +21,7 @@ import {
   useLinkedAccounts,
 } from "@/auth/accountLinkService";
 import { roleMeta } from "@/components/education/roleMeta";
+import { ChangePasswordCard } from "./ChangePasswordCard";
 import {
   Select,
   SelectContent,
@@ -253,6 +254,9 @@ export function SettingsSecuritySection() {
           kurtarma durumu gerçek bilgidir.
         </span>
       </p>
+
+      {/* Şifremi değiştir (2026-09-29) */}
+      <ChangePasswordCard disabled={isDemoMode} />
 
       {/* Hesap Bağlama ve Geçiş (v1.4-17) */}
       <div className="mt-8 border-t border-slate-200 pt-6">
