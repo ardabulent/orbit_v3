@@ -81,7 +81,10 @@ import {
   loadAttendanceWeeks,
   loadExamAverages,
   loadHomeworkWeeks,
+  loadClassComparison,
   DEFAULT_REPORT_RANGE,
+  type ClassComparisonRow,
+  type ReportWeeks,
   type AttendanceWeek,
   type ReportRange,
   type ExamAverage,
@@ -329,6 +332,8 @@ export const educationKeys = {
       "reportExamAverages",
       { organizationId, weeks: range.weeks, classId: range.classId },
     ] as const,
+  reportClassComparison: (organizationId: string, weeks: ReportWeeks) =>
+    ["education", "reportClassComparison", { organizationId, weeks }] as const,
   reportHomeworkWeeks: (organizationId: string, range: ReportRange) =>
     [
       "education",
@@ -1099,6 +1104,28 @@ export function useReportHomeworkWeeks(
       ? educationKeys.reportHomeworkWeeks(organizationId, range)
       : (["education", "reportHomeworkWeeks", { organizationId: "" }] as const),
     queryFn: () => loadHomeworkWeeks(range),
+    enabled: isEnabled,
+  });
+}
+
+/**
+ * Sınıf karşılaştırması (`report_class_comparison`, 2026-09-29). Sınıf
+ * süzgecinden bağımsızdır: tablo her zaman bütün görünür sınıfları gösterir.
+ */
+export function useReportClassComparison(options: {
+  weeks: ReportWeeks;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId;
+  const isEnabled = (options.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<ClassComparisonRow[], Error>({
+    queryKey: educationKeys.reportClassComparison(
+      organizationId ?? "",
+      options.weeks
+    ),
+    queryFn: () => loadClassComparison(options.weeks),
     enabled: isEnabled,
   });
 }
