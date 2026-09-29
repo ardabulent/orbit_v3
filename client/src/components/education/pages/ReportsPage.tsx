@@ -4,6 +4,7 @@ import type {
   AttendanceWeek,
   ExamAverage,
   HomeworkWeek,
+  ReportRange,
 } from "@/education/reportService";
 import {
   demoReportActions,
@@ -21,6 +22,7 @@ import {
   ReportCard,
 } from "../shared";
 import type { Role } from "../types";
+import { ReportsToolbar } from "./ReportsToolbar";
 
 export type ReportsPageProps = {
   role: Role;
@@ -31,7 +33,18 @@ export type ReportsPageProps = {
   isLoading?: boolean;
   error?: Error | null;
   onRetry?: () => void;
+  /** Süzgeç: verilmezse (demo) çubuk gösterilmez. */
+  range?: ReportRange;
+  onRangeChange?: (range: ReportRange) => void;
+  classes?: { id: string; name: string }[];
 };
+
+const formatNet = (value: number) =>
+  value.toLocaleString("tr-TR", { maximumFractionDigits: 1 });
+
+// Deneme adları çoğu zaman aynı başlar ("TYT Deneme 1/2"); kısaltılınca
+// ayırt edilemiyor. Çubuğun altına sınavın tarihi yazılır.
+const examLabel = (exam: ExamAverage) => formatTrWeekLabel(exam.examDate);
 
 export function ReportsPage({
   role,
@@ -42,6 +55,9 @@ export function ReportsPage({
   isLoading = false,
   error = null,
   onRetry,
+  range,
+  onRangeChange,
+  classes = [],
 }: ReportsPageProps) {
   const isTeacher = role === "teacher";
   const activeDemo = isDemoMode && isDemo;
@@ -54,7 +70,14 @@ export function ReportsPage({
       ? `${formatTrWeekLabel(referenceWeeks[0].weekStart)} – ${formatTrWeekLabel(
           referenceWeeks[referenceWeeks.length - 1].weekStart
         )} haftaları`
-      : "Son 4 takvim haftası";
+      : `Son ${range?.weeks ?? 4} takvim haftası`;
+
+  const allLabel = isTeacher ? "Bütün sınıflarım" : "Bütün kurum";
+  const scopeLabel = range?.classId
+    ? (classes.find(c => c.id === range.classId)?.name ?? "Seçili sınıf")
+    : isTeacher
+      ? "Sınıflarınızın ortalaması"
+      : "Kurum ortalaması";
 
   // 1. Devam görünümü
   const attendanceValues: (number | undefined)[] = activeDemo
@@ -68,22 +91,20 @@ export function ReportsPage({
       ? attendanceWeeks.map(w => formatTrWeekLabel(w.weekStart))
       : [];
 
-  // 2. Deneme gelişimi: servis eksik alanlı satırları eler (R1-C / K-06)
+  // 2. Deneme gelişimi (2026-09-29): net denemeler ortalama netle, puanlı
+  //    sınavlar ayrı kartta yüzdeyle — ikisi aynı grafikte karışmaz.
+  const netExams = (examAverages ?? []).filter(e => e.isNet);
+  const scoredExams = (examAverages ?? []).filter(e => !e.isNet);
   const examValues: (number | undefined)[] = activeDemo
     ? demoReportExamValues
-    : examAverages && examAverages.length > 0
-      ? examAverages.map(e => e.averagePercent)
-      : [];
+    : netExams.map(e => e.averageNet);
   const examLabels: string[] = activeDemo
     ? demoReportExamLabels
-    : examAverages && examAverages.length > 0
-      ? examAverages.map(e =>
-          e.examName.length > 8 ? `${e.examName.slice(0, 7)}…` : e.examName
-        )
-      : [];
-  const examSubtitle = isTeacher
-    ? "Sınıflarınızın ortalaması"
-    : "Kurum ortalaması";
+    : netExams.map(examLabel);
+  const netMax = Math.max(...netExams.map(e => e.averageNet ?? 0), 1);
+  const examSubtitle = activeDemo
+    ? scopeLabel
+    : `Son ${range?.weeks ?? 4} deneme · ortalama net · ${scopeLabel}`;
 
   // 3. Ödev tamamlama
   const homeworkValues: (number | undefined)[] = activeDemo
@@ -110,6 +131,14 @@ export function ReportsPage({
             : "Akademik, devam ve operasyon görünümünü karar vermeyi kolaylaştıracak şekilde izleyin."
         }
       />
+      {!activeDemo && range && onRangeChange ? (
+        <ReportsToolbar
+          classes={classes}
+          range={range}
+          onRangeChange={onRangeChange}
+          allLabel={allLabel}
+        />
+      ) : null}
       {error ? (
         <ErrorState
           className="mt-6"
@@ -140,6 +169,14 @@ export function ReportsPage({
             values={examValues}
             labels={examLabels}
             color="bg-violet-500"
+            {...(activeDemo
+              ? {}
+              : {
+                  scaleMax: netMax * 1.15,
+                  valueLabels: netExams.map(e =>
+                    e.averageNet !== undefined ? formatNet(e.averageNet) : ""
+                  ),
+                })}
           />
           <ReportCard
             title="Ödev tamamlama"
@@ -148,6 +185,20 @@ export function ReportsPage({
             labels={homeworkLabels}
             color="bg-blue-500"
           />
+          {scoredExams.length > 0 ? (
+            <ReportCard
+              title="Puanlı sınavlar"
+              subtitle={`Son ${range?.weeks ?? 4} sınav · başarı yüzdesi · ${scopeLabel}`}
+              values={scoredExams.map(e => e.averagePercent)}
+              labels={scoredExams.map(examLabel)}
+              valueLabels={scoredExams.map(e =>
+                e.averagePercent !== undefined
+                  ? `%${formatNet(e.averagePercent)}`
+                  : ""
+              )}
+              color="bg-amber-500"
+            />
+          ) : null}
         </div>
       )}
       {actions.length > 0 ? (

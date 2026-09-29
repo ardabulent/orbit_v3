@@ -81,7 +81,9 @@ import {
   loadAttendanceWeeks,
   loadExamAverages,
   loadHomeworkWeeks,
+  DEFAULT_REPORT_RANGE,
   type AttendanceWeek,
+  type ReportRange,
   type ExamAverage,
   type HomeworkWeek,
 } from "./reportService";
@@ -315,12 +317,24 @@ export const educationKeys = {
       },
     ] as const;
   },
-  reportAttendanceWeeks: (organizationId: string) =>
-    ["education", "reportAttendanceWeeks", { organizationId }] as const,
-  reportExamAverages: (organizationId: string) =>
-    ["education", "reportExamAverages", { organizationId }] as const,
-  reportHomeworkWeeks: (organizationId: string) =>
-    ["education", "reportHomeworkWeeks", { organizationId }] as const,
+  reportAttendanceWeeks: (organizationId: string, range: ReportRange) =>
+    [
+      "education",
+      "reportAttendanceWeeks",
+      { organizationId, weeks: range.weeks, classId: range.classId },
+    ] as const,
+  reportExamAverages: (organizationId: string, range: ReportRange) =>
+    [
+      "education",
+      "reportExamAverages",
+      { organizationId, weeks: range.weeks, classId: range.classId },
+    ] as const,
+  reportHomeworkWeeks: (organizationId: string, range: ReportRange) =>
+    [
+      "education",
+      "reportHomeworkWeeks",
+      { organizationId, weeks: range.weeks, classId: range.classId },
+    ] as const,
 };
 
 export type UseStudentsOptions = {
@@ -1009,6 +1023,7 @@ export function useCalendarEvents(options?: UseCalendarEventsOptions) {
 export type UseReportAttendanceWeeksOptions = {
   organizationId?: string;
   enabled?: boolean;
+  range?: ReportRange;
 };
 
 /**
@@ -1021,16 +1036,17 @@ export function useReportAttendanceWeeks(
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
   const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+  const range = options?.range ?? DEFAULT_REPORT_RANGE;
 
   return useQuery<AttendanceWeek[] | null, Error>({
     queryKey: organizationId
-      ? educationKeys.reportAttendanceWeeks(organizationId)
+      ? educationKeys.reportAttendanceWeeks(organizationId, range)
       : ([
           "education",
           "reportAttendanceWeeks",
           { organizationId: "" },
         ] as const),
-    queryFn: () => loadAttendanceWeeks(),
+    queryFn: () => loadAttendanceWeeks(range),
     enabled: isEnabled,
   });
 }
@@ -1038,6 +1054,7 @@ export function useReportAttendanceWeeks(
 export type UseReportExamAveragesOptions = {
   organizationId?: string;
   enabled?: boolean;
+  range?: ReportRange;
 };
 
 /**
@@ -1048,12 +1065,13 @@ export function useReportExamAverages(options?: UseReportExamAveragesOptions) {
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
   const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+  const range = options?.range ?? DEFAULT_REPORT_RANGE;
 
   return useQuery<ExamAverage[] | null, Error>({
     queryKey: organizationId
-      ? educationKeys.reportExamAverages(organizationId)
+      ? educationKeys.reportExamAverages(organizationId, range)
       : (["education", "reportExamAverages", { organizationId: "" }] as const),
-    queryFn: () => loadExamAverages(),
+    queryFn: () => loadExamAverages(range),
     enabled: isEnabled,
   });
 }
@@ -1061,6 +1079,7 @@ export function useReportExamAverages(options?: UseReportExamAveragesOptions) {
 export type UseReportHomeworkWeeksOptions = {
   organizationId?: string;
   enabled?: boolean;
+  range?: ReportRange;
 };
 
 /**
@@ -1073,12 +1092,13 @@ export function useReportHomeworkWeeks(
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
   const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+  const range = options?.range ?? DEFAULT_REPORT_RANGE;
 
   return useQuery<HomeworkWeek[] | null, Error>({
     queryKey: organizationId
-      ? educationKeys.reportHomeworkWeeks(organizationId)
+      ? educationKeys.reportHomeworkWeeks(organizationId, range)
       : (["education", "reportHomeworkWeeks", { organizationId: "" }] as const),
-    queryFn: () => loadHomeworkWeeks(),
+    queryFn: () => loadHomeworkWeeks(range),
     enabled: isEnabled,
   });
 }
