@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getUser = vi.fn();
 const signInWithPassword = vi.fn();
 const updateUser = vi.fn();
+const rpc = vi.fn();
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
@@ -16,6 +17,7 @@ vi.mock("@/lib/supabaseClient", () => ({
       signInWithPassword: (args: unknown) => signInWithPassword(args),
       updateUser: (args: unknown) => updateUser(args),
     },
+    rpc: (name: string) => rpc(name),
   },
 }));
 
@@ -33,6 +35,7 @@ describe("changeOwnPassword (2026-09-29)", () => {
     });
     signInWithPassword.mockResolvedValue({ error: null });
     updateUser.mockResolvedValue({ error: null });
+    rpc.mockResolvedValue({ data: true, error: null });
   });
 
   it("kurala uymayan yeni şifre ağa hiç gitmez", async () => {
@@ -104,6 +107,36 @@ describe("changeOwnPassword (2026-09-29)", () => {
       password: "Eski1234",
     });
     expect(updateUser).toHaveBeenCalledWith({ password: GECERLI });
+    // Üretimde GoTrue olayı veritabanına düşmediği için iz uygulamadan yazılır.
+    expect(rpc).toHaveBeenCalledWith("log_own_password_change");
+  });
+
+  it("⛔ şifre değişmezse denetim izi yazılmaz", async () => {
+    signInWithPassword.mockResolvedValue({ error: { status: 400 } });
+    await expect(
+      changeOwnPassword({
+        currentPassword: "Yanlis123",
+        newPassword: GECERLI,
+        confirmation: GECERLI,
+      })
+    ).rejects.toThrow();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("iz yazılamazsa şifre değişikliği yine başarılıdır, uyarı düşülür", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "x" } });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(
+      changeOwnPassword({
+        currentPassword: "Eski1234",
+        newPassword: GECERLI,
+        confirmation: GECERLI,
+      })
+    ).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      "[ORBIT] Şifre değişimi denetim kaydına yazılamadı."
+    );
+    warn.mockRestore();
   });
 
   it("sunucu hatası Türkçe ve ham iletiyi göstermeden söylenir", async () => {

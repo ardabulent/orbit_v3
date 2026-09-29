@@ -7,7 +7,12 @@ import {
 import type { OrganizationMember } from "@/organization/memberService";
 import type { Student } from "../types";
 
-/** Öğrenci kaydına var olan bir öğrenci hesabını bağlar. */
+/**
+ * Öğrenci KAYDINA (ad, sınıf, veli) öğrencinin ORBIT'e girdiği HESABI atar.
+ * Liste yalnız hiçbir kayda bağlı olmayan öğrenci hesaplarıdır (2026-09-30);
+ * "hesap bağlama" sözcüğü aynı kişinin iki hesabını birleştirmek için
+ * Ayarlar'da ayrıca kullanıldığından burada "giriş hesabı ata" denir.
+ */
 export function LinkAccountPopover({
   student,
   members,
@@ -46,20 +51,24 @@ export function LinkAccountPopover({
           type="button"
           className="rounded-lg px-2 py-1 text-[11px] font-semibold text-blue-600 transition hover:bg-blue-50"
         >
-          Hesap bağla
+          Giriş hesabı ata
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4" align="end">
         <div className="space-y-3">
           <div>
-            <h4 className="text-xs font-bold text-slate-800">Hesap Bağla</h4>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {student.name} kaydına bağlanacak öğrenci hesabını seçin.
+            <h4 className="text-xs font-bold text-slate-800">
+              Giriş hesabı ata
+            </h4>
+            <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+              {student.name} bu hesapla ORBIT'e girecek. Listede yalnız henüz
+              hiçbir öğrenciye atanmamış hesaplar var.
             </p>
           </div>
           {members.length === 0 ? (
             <p className="py-1 text-[11px] text-slate-500">
-              Kurumda bağlanabilir öğrenci hesabı bulunmuyor.
+              Boşta öğrenci hesabı yok. Yeni öğrenci eklerken hesap da
+              açılabilir; ya da Ayarlar → Üyeler'den açın.
             </p>
           ) : (
             <div className="space-y-2">
@@ -97,7 +106,7 @@ export function LinkAccountPopover({
                   disabled={!selectedMembershipId || linking}
                   className="rounded-md bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
                 >
-                  {linking ? "Bağlanıyor…" : "Bağla"}
+                  {linking ? "Atanıyor…" : "Ata"}
                 </button>
               </div>
             </div>

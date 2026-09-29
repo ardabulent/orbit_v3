@@ -77,20 +77,24 @@ export function LinkGuardianAccountPopover({
           type="button"
           className="rounded-lg px-2 py-1 text-[11px] font-semibold text-blue-600 transition hover:bg-blue-50"
         >
-          Hesap bağla
+          Giriş hesabı ata
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4" align="end">
         <div className="space-y-3">
           <div>
-            <h4 className="text-xs font-bold text-slate-800">Hesap Bağla</h4>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {guardian.fullName} kaydına bağlanacak veli hesabını seçin.
+            <h4 className="text-xs font-bold text-slate-800">
+              Giriş hesabı ata
+            </h4>
+            <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+              {guardian.fullName} bu hesapla ORBIT'e girecek. Listede yalnız
+              henüz hiçbir veliye atanmamış hesaplar var.
             </p>
           </div>
           {members.length === 0 ? (
             <p className="py-1 text-[11px] text-slate-500">
-              Kurumda bağlanabilir veli hesabı bulunmuyor.
+              Boşta veli hesabı yok. Ayarlar → Üyeler'den veli hesabı
+              açabilirsiniz.
             </p>
           ) : (
             <div className="space-y-2">
@@ -252,7 +256,7 @@ export function GuardiansTab({
                               </p>
                               {/* K-22: Hesabı olmayan veli slate rozet taşır */}
                               {!guardian.hasAccount ? (
-                                <Badge tone="slate">Hesap bağlı değil</Badge>
+                                <Badge tone="slate">Giriş hesabı yok</Badge>
                               ) : null}
                             </div>
                           </div>

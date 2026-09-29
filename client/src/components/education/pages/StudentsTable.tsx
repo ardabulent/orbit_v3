@@ -281,7 +281,7 @@ function StudentRow({
               {student.code ? <span>{student.code}</span> : null}
               {/* K-22: Hesabı olmayan öğrenci kırmızı değil slate rozet taşır */}
               {isAdmin && student.hasAccount === false ? (
-                <Badge tone="slate">Hesap yok</Badge>
+                <Badge tone="slate">Giriş hesabı yok</Badge>
               ) : null}
             </span>
           </span>
@@ -335,7 +335,7 @@ function StudentRow({
                     disabled={unlinking}
                     className="rounded-lg px-2 py-1 text-[11px] font-semibold text-amber-600 transition hover:bg-amber-50 disabled:opacity-50"
                   >
-                    {unlinking ? "Çözülüyor…" : "Hesap bağını çöz"}
+                    {unlinking ? "Ayrılıyor…" : "Giriş hesabını ayır"}
                   </button>
                 ) : null
               ) : onLinkAccount ? (

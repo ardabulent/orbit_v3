@@ -191,7 +191,7 @@ export async function runNewStudentFlow(
       branchId: input.branchId,
       link: membershipId => deps.linkStudentAccount(studentId, membershipId),
       manualHint:
-        'Öğrenciler listesindeki "Hesap bağla" ile bu hesabı bağlayabilirsiniz.',
+        'Öğrenciler listesindeki "Giriş hesabı ata" ile bu hesabı atayabilirsiniz.',
     });
   }
 
@@ -220,7 +220,7 @@ export async function runNewStudentFlow(
         branchId: input.branchId,
         link: membershipId => deps.linkGuardianAccount(id, membershipId),
         manualHint:
-          'Veliler listesindeki "Hesap bağla" ile bu hesabı bağlayabilirsiniz.',
+          'Veliler listesindeki "Giriş hesabı ata" ile bu hesabı atayabilirsiniz.',
       });
     }
   }
