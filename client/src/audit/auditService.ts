@@ -30,6 +30,10 @@ export type OrganizationAuditEvent = {
   entityType: string;
   entityId: string | null;
   createdAt: string;
+  /** Etkilenen kaydın sunucuda kurulan adı; kurulamadıysa `null` (K-03). */
+  label: string | null;
+  /** Güncellemede değişen alanların ADLARI — değerleri asla gelmez. */
+  changed: string[];
 };
 
 type AuditRow = {
@@ -39,6 +43,37 @@ type AuditRow = {
   entity_type: string;
   entity_id: string | null;
   created_at: string;
+  label: string | null;
+  changed: string[] | null;
+};
+
+/** Denetim Kaydı süzgeci (karar 2026-09-29). Boş alan = süzme yok. */
+export type AuditActionKind =
+  "created" | "updated" | "archived" | "restored" | "other";
+
+export type AuditFilters = {
+  actorUserId: string | null;
+  actionKind: AuditActionKind | null;
+  entityType: string | null;
+  /** İstanbul günü, "YYYY-MM-DD". */
+  from: string | null;
+  to: string | null;
+};
+
+export const EMPTY_AUDIT_FILTERS: AuditFilters = {
+  actorUserId: null,
+  actionKind: null,
+  entityType: null,
+  from: null,
+  to: null,
+};
+
+export const AUDIT_ACTION_KIND_LABELS: Record<AuditActionKind, string> = {
+  created: "Ekleme",
+  updated: "Değiştirme",
+  archived: "Arşivleme",
+  restored: "Geri yükleme",
+  other: "Diğer (hesap, şifre, kurum)",
 };
 
 /**
@@ -74,30 +109,98 @@ export function resolveAuditActor(
   return name === undefined ? { kind: "outside" } : { kind: "member", name };
 }
 
+const ENTITY_LABELS: Record<string, string> = {
+  organization: "Kurum",
+  organization_membership: "Üyelik",
+  branch: "Şube",
+  student: "Öğrenci",
+  guardian: "Veli",
+  student_guardian: "Öğrenci–Veli Bağı",
+  class: "Sınıf",
+  class_enrollment: "Sınıf Kaydı",
+  class_teacher: "Sınıf Öğretmeni",
+  subject: "Ders",
+  schedule_entry: "Ders Programı",
+  substitute_assignment: "Vekil Öğretmen",
+  attendance_session: "Yoklama Oturumu",
+  attendance_record: "Yoklama Kaydı",
+  exam: "Sınav",
+  exam_section: "Sınav Bölümü",
+  exam_result: "Sınav Sonucu",
+  exam_section_result: "Bölüm Sonucu",
+  homework: "Ödev",
+  homework_submission: "Ödev Teslimi",
+  feed_post: "Duyuru",
+  payment_plan: "Ödeme Planı",
+  installment: "Taksit",
+};
+
 /**
- * `action` ve `entity_type` değerlerinin Türkçe karşılıkları.
+ * Tetikleyicinin (`audit_row_change`) yazdığı standart eylemler. Liste elle
+ * tutulur ve bilerek türetilmez: `attendance_record.created` gibi hiç
+ * yazılmayan bir eylem için etiket UYDURULMAZ (hacim kısıtı, §4.12). Burada
+ * olmayan eylem ekranda ham koduyla görünür (K-03).
+ */
+const TRIGGER_ACTIONS: Record<string, string[]> = {
+  branch: ["created", "updated", "archived", "restored"],
+  student: ["created", "updated", "archived", "restored"],
+  guardian: ["created", "updated", "archived", "restored"],
+  student_guardian: ["created", "archived", "restored"],
+  class: ["created", "updated", "archived", "restored"],
+  class_enrollment: ["created", "archived", "restored"],
+  class_teacher: ["created", "updated", "archived", "restored"],
+  subject: ["created", "updated", "archived", "restored"],
+  schedule_entry: ["created", "updated", "archived", "restored"],
+  substitute_assignment: ["created", "updated", "archived", "restored"],
+  attendance_session: ["created", "updated", "archived", "restored"],
+  attendance_record: ["updated"],
+  exam: ["created", "updated", "archived", "restored"],
+  exam_section: ["created", "updated", "archived", "restored"],
+  exam_result: ["created", "updated", "archived", "restored"],
+  exam_section_result: ["created", "updated", "archived", "restored"],
+  homework: ["created", "updated", "archived", "restored"],
+  homework_submission: ["created", "archived", "restored"],
+  feed_post: ["created", "updated", "archived", "restored"],
+  payment_plan: ["created", "updated", "archived", "restored"],
+  installment: ["created", "updated", "archived", "restored"],
+};
+
+const VERB_LABELS: Record<string, string> = {
+  created: "eklendi",
+  updated: "güncellendi",
+  archived: "arşivlendi",
+  restored: "geri yüklendi",
+};
+
+/**
+ * `action` değerlerinin Türkçe karşılıkları.
  *
- * ⚠️ Bu iki tablo, Edge Function'lardaki dize sabitlerinin **ikizidir** (K-06).
- * Orada yeni bir eylem yazıldığında burası güncellenmezse ekran ham kodu
- * gösterir — uydurma bir etiket üretmez (K-03). Bozulma biçimi bilinçli
+ * ⚠️ Özel eylemler Edge Function'lardaki dize sabitlerinin **ikizidir**
+ * (K-06). Orada yeni bir eylem yazıldığında burası güncellenmezse ekran ham
+ * kodu gösterir — uydurma bir etiket üretmez (K-03). Bozulma biçimi bilinçli
  * seçildi: ham kod çirkin ama doğru, uydurulmuş etiket güzel ama yanlış olurdu.
  */
 const ACTION_LABELS: Record<string, string> = {
+  ...Object.fromEntries(
+    Object.entries(TRIGGER_ACTIONS).flatMap(([entity, verbs]) =>
+      verbs.map(verb => [
+        `${entity}.${verb}`,
+        `${ENTITY_LABELS[entity]} ${VERB_LABELS[verb]}`,
+      ])
+    )
+  ),
   "organization.bootstrap": "Kurum kuruldu",
   "membership.created": "Üye eklendi",
+  "membership.removed": "Üyelik kaldırıldı",
+  "membership.role_changed": "Üyenin rolü değişti",
   "membership.password_reset": "Şifre sıfırlandı",
-  "student.created": "Öğrenci eklendi",
-  "student.updated": "Öğrenci güncellendi",
-  "student.archived": "Öğrenci arşivlendi",
-  "student.restored": "Öğrenci geri yüklendi",
   "student.account_linked": "Öğrenci hesabı bağlandı",
   "student.account_unlinked": "Öğrenci hesap bağı çözüldü",
   "guardian.account_linked": "Veli hesabı bağlandı",
   "guardian.account_unlinked": "Veli hesap bağı çözüldü",
-  "class.created": "Sınıf eklendi",
-  "class.updated": "Sınıf güncellendi",
-  "class.archived": "Sınıf arşivlendi",
-  "class.restored": "Sınıf geri yüklendi",
+  "person.accounts_linked": "Kişinin hesapları birleştirildi",
+  "person.account_switched": "Hesap değiştirildi",
+  "account_link.severed": "Hesap bağı koparıldı",
   "class_enrollment.created": "Sınıfa öğrenci kaydedildi",
   "class_enrollment.archived": "Öğrencinin sınıf kaydı sonlandırıldı",
   "class_enrollment.restored": "Öğrencinin sınıf kaydı geri yüklendi",
@@ -106,26 +209,72 @@ const ACTION_LABELS: Record<string, string> = {
   "attendance_session.archived": "Yoklama oturumu arşivlendi",
   "attendance_session.restored": "Yoklama oturumu geri yüklendi",
   "attendance_record.updated": "Yoklama kaydı güncellendi",
-  "exam.created": "Sınav eklendi",
-  "exam.updated": "Sınav güncellendi",
-  "exam.archived": "Sınav arşivlendi",
-  "exam.restored": "Sınav geri yüklendi",
   "exam_result.created": "Sınav sonucu eklendi",
   "exam_result.updated": "Sınav sonucu güncellendi",
+  "feed_post.created": "Duyuru paylaşıldı",
 };
 
-const ENTITY_LABELS: Record<string, string> = {
-  organization: "Kurum",
-  organization_membership: "Üyelik",
-  student: "Öğrenci",
-  guardian: "Veli",
-  class: "Sınıf",
-  class_enrollment: "Sınıf Kaydı",
-  attendance_session: "Yoklama Oturumu",
-  attendance_record: "Yoklama Kaydı",
-  exam: "Sınav",
-  exam_result: "Sınav Sonucu",
+/** Süzgeçte seçilebilen kayıt türleri, Türkçe ada göre sıralı. */
+export const AUDIT_ENTITY_OPTIONS = Object.entries(ENTITY_LABELS)
+  .map(([value, label]) => ({ value, label }))
+  .sort((x, y) => x.label.localeCompare(y.label, "tr"));
+
+/**
+ * Değişen alan adlarının Türkçesi. Değerler hiç gelmez; yalnız ad. Bilinmeyen
+ * alan ham adıyla görünür (K-03).
+ */
+const FIELD_LABELS: Record<string, string> = {
+  full_name: "Ad soyad",
+  phone: "Telefon",
+  student_number: "Öğrenci numarası",
+  auth_user_id: "Hesap bağlantısı",
+  branch_id: "Şube",
+  is_default: "Varsayılan şube",
+  name: "Ad",
+  title: "Başlık",
+  description: "Açıklama",
+  program: "Program",
+  capacity: "Kontenjan",
+  mentor_membership_id: "Rehber öğretmen",
+  membership_id: "Öğretmen",
+  absent_membership_id: "Gelmeyen öğretmen",
+  substitute_membership_id: "Vekil öğretmen",
+  class_id: "Sınıf",
+  subject_id: "Ders",
+  student_id: "Öğrenci",
+  guardian_id: "Veli",
+  session_id: "Yoklama oturumu",
+  session_date: "Tarih",
+  starts_at: "Başlangıç saati",
+  day_of_week: "Gün",
+  room: "Derslik",
+  starts_on: "Başlangıç günü",
+  ends_on: "Bitiş günü",
+  status: "Durum",
+  exam_id: "Sınav",
+  section_id: "Bölüm",
+  exam_date: "Sınav tarihi",
+  max_score: "Tam puan",
+  net_penalty: "Yanlış cezası",
+  question_count: "Soru sayısı",
+  score: "Puan / net",
+  correct: "Doğru",
+  wrong: "Yanlış",
+  homework_id: "Ödev",
+  due_date: "Tarih",
+  submissions_recorded_at: "Teslim işaretlemesi",
+  audience: "Hedef kitle",
+  pinned: "Sabitleme",
+  plan_id: "Ödeme planı",
+  total_amount: "Toplam tutar",
+  amount: "Tutar",
+  sequence_no: "Taksit sırası",
+  paid_at: "Ödeme",
 };
+
+export function describeAuditField(field: string): string {
+  return FIELD_LABELS[field] ?? field;
+}
 
 export function describeAuditAction(action: string): string {
   return ACTION_LABELS[action] ?? action;
@@ -189,6 +338,27 @@ async function loadMemberNames(
   return new Map((data ?? []).map(row => [row.id, row.display_name]));
 }
 
+/**
+ * "Kim yaptı" süzgecinin seçenekleri: yöneticinin görebildiği kişiler
+ * (`profiles_select_organization_admin` — kendi kurumundakiler), ada göre.
+ */
+export async function loadAuditActors(): Promise<
+  { id: string; name: string }[]
+> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .order("display_name");
+
+  if (error) {
+    throw new Error("Kişi listesi yüklenemedi.");
+  }
+
+  return (data ?? [])
+    .filter(row => Boolean(row.display_name))
+    .map(row => ({ id: row.id, name: row.display_name }));
+}
+
 export type AuditPage<T> = {
   rows: T[];
   /** Sonraki sayfanın imleci. `null` ise liste GERÇEKTEN bitti. */
@@ -225,19 +395,23 @@ export const DEFAULT_AUDIT_LIMIT = 50;
 export async function loadOrganizationAuditEvents(
   organizationId: string,
   limit = DEFAULT_AUDIT_LIMIT,
-  cursor?: number | null
+  cursor?: number | null,
+  filters: AuditFilters = EMPTY_AUDIT_FILTERS
 ): Promise<AuditPage<OrganizationAuditEvent>> {
-  let query = supabase
-    .from("audit_events")
-    .select("id, actor_user_id, action, entity_type, entity_id, created_at")
-    .eq("organization_id", organizationId)
-    .order("id", { ascending: false });
-
-  if (cursor !== undefined && cursor !== null) {
-    query = query.lt("id", cursor);
-  }
-
-  const { data, error } = await query.limit(limit + 1);
+  // `organization_audit_feed` (2026-09-29): süzgeç sunucuda uygulanır ve
+  // `metadata` istemciye hiç inmez — yalnız kaydın adı ve değişen alanların
+  // adları gelir. Sıra ve imleç yine `id`, kurum kimliği yine açıkça gider
+  // (yukarıdaki dizin notu fonksiyonun içinde de geçerli).
+  const { data, error } = await supabase.rpc("organization_audit_feed", {
+    p_organization_id: organizationId,
+    p_limit: limit + 1,
+    p_before_id: cursor ?? null,
+    p_actor_user_id: filters.actorUserId,
+    p_action_kind: filters.actionKind,
+    p_entity_type: filters.entityType,
+    p_from: filters.from,
+    p_to: filters.to,
+  });
 
   if (error) {
     throw new Error("Denetim kaydı yüklenemedi.");
@@ -264,6 +438,8 @@ export async function loadOrganizationAuditEvents(
     entityType: row.entity_type,
     entityId: row.entity_id,
     createdAt: row.created_at,
+    label: row.label ?? null,
+    changed: row.changed ?? [],
   }));
 
   return {

@@ -3,16 +3,19 @@ import {
   DEFAULT_AUDIT_LIMIT,
   describeAuditAction,
   describeAuditEntity,
+  describeAuditField,
   formatAuditMoment,
   loadOrganizationAuditEvents,
   resolveAuditActor,
 } from "./auditService";
 
 const fromMock = vi.fn();
+const rpcMock = vi.fn();
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
     from: (table: string) => fromMock(table),
+    rpc: (name: string, args: unknown) => rpcMock(name, args),
   },
 }));
 
@@ -149,52 +152,28 @@ describe("formatAuditMoment", () => {
   });
 });
 
-describe("loadOrganizationAuditEvents (v1.3-06 pagination sözleşmesi)", () => {
+describe("loadOrganizationAuditEvents (v1.3-06 sayfalama sözleşmesi, 2026-09-29 fonksiyonla)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  function setupAuditMocks(options: {
-    rows?: Array<{
-      id: number;
-      actor_user_id: string | null;
-      action: string;
-      entity_type: string;
-      entity_id: string | null;
-      created_at: string;
-    }>;
-    error?: Error | null;
-  }) {
-    const orderSpy = vi.fn();
-    const ltSpy = vi.fn();
-    const limitSpy = vi.fn();
-    const eqSpy = vi.fn();
+  type FeedRow = {
+    id: number;
+    actor_user_id: string | null;
+    action: string;
+    entity_type: string;
+    entity_id: string | null;
+    created_at: string;
+    label: string | null;
+    changed: string[] | null;
+  };
 
+  function setupFeed(options: { rows?: FeedRow[]; error?: Error | null }) {
+    rpcMock.mockResolvedValue({
+      data: options.error ? null : (options.rows ?? []),
+      error: options.error ?? null,
+    });
     fromMock.mockImplementation((table: string) => {
-      if (table === "audit_events") {
-        const chain: Record<string, unknown> = {};
-        chain.select = vi.fn().mockReturnValue(chain);
-        chain.eq = vi.fn((col: string, val: string) => {
-          eqSpy(col, val);
-          return chain;
-        });
-        chain.order = vi.fn((col: string, opts: { ascending: boolean }) => {
-          orderSpy(col, opts);
-          return chain;
-        });
-        chain.lt = vi.fn((col: string, val: number) => {
-          ltSpy(col, val);
-          return chain;
-        });
-        chain.limit = vi.fn((n: number) => {
-          limitSpy(n);
-          return Promise.resolve({
-            data: options.error ? null : (options.rows ?? []),
-            error: options.error ?? null,
-          });
-        });
-        return chain;
-      }
       if (table === "profiles") {
         const chain: Record<string, unknown> = {};
         chain.select = vi.fn().mockReturnValue(chain);
@@ -204,114 +183,158 @@ describe("loadOrganizationAuditEvents (v1.3-06 pagination sözleşmesi)", () => 
         });
         return chain;
       }
-      throw new Error(`Unexpected table: ${table}`);
+      throw new Error(`Beklenmeyen tablo: ${table}`);
     });
-
-    return { orderSpy, ltSpy, limitSpy, eqSpy };
   }
 
-  it("⛔ sorgu created_at'e göre sıralamaz; id'ye göre azalan sırada sıralar", async () => {
-    const { orderSpy } = setupAuditMocks({ rows: [] });
-
-    await loadOrganizationAuditEvents("org-1", 50);
-
-    expect(orderSpy).toHaveBeenCalledWith("id", { ascending: false });
-    expect(orderSpy).not.toHaveBeenCalledWith("created_at", expect.anything());
+  const row = (id: number): FeedRow => ({
+    id,
+    actor_user_id: "actor-1",
+    action: "guardian.updated",
+    entity_type: "guardian",
+    entity_id: `id-${id}`,
+    created_at: "2026-09-09T10:00:00Z",
+    label: "Ayşe Koç",
+    changed: ["phone"],
   });
 
-  it("⛔ ilk sayfada .lt() çağrılmaz; ikinci sayfada imleçle (.lt('id', cursor)) çağrılır", async () => {
-    const { ltSpy } = setupAuditMocks({ rows: [] });
+  const lastArgs = () =>
+    rpcMock.mock.calls[rpcMock.mock.calls.length - 1] as [
+      string,
+      Record<string, unknown>,
+    ];
 
-    // İlk sayfa: cursor yok
+  it("⛔ denetim kaydı tablodan değil, metadata döndürmeyen fonksiyondan okunur", async () => {
+    setupFeed({ rows: [] });
+
     await loadOrganizationAuditEvents("org-1", 50);
-    expect(ltSpy).not.toHaveBeenCalled();
 
-    // İkinci sayfa: cursor var (örn. id: 105)
+    expect(lastArgs()[0]).toBe("organization_audit_feed");
+    expect(fromMock).not.toHaveBeenCalledWith("audit_events");
+  });
+
+  it("⛔ ilk sayfada imleç yoktur; ikinci sayfada imleç kayıt numarasıdır", async () => {
+    setupFeed({ rows: [] });
+
+    await loadOrganizationAuditEvents("org-1", 50);
+    expect(lastArgs()[1].p_before_id).toBeNull();
+
     await loadOrganizationAuditEvents("org-1", 50, 105);
-    expect(ltSpy).toHaveBeenCalledWith("id", 105);
+    expect(lastArgs()[1].p_before_id).toBe(105);
   });
 
   it("sunucudan limit + 1 satır istenir", async () => {
-    const { limitSpy } = setupAuditMocks({ rows: [] });
+    setupFeed({ rows: [] });
 
     await loadOrganizationAuditEvents("org-1");
-    expect(limitSpy).toHaveBeenCalledWith(DEFAULT_AUDIT_LIMIT + 1);
+    expect(lastArgs()[1].p_limit).toBe(DEFAULT_AUDIT_LIMIT + 1);
 
     await loadOrganizationAuditEvents("org-1", 10);
-    expect(limitSpy).toHaveBeenCalledWith(11);
+    expect(lastArgs()[1].p_limit).toBe(11);
   });
 
   it("limit + 1 satır geldiğinde: dönen satır sayısı limit, nextCursor son satırın id'sidir", async () => {
-    // 5 satır isteyelim (limit = 5), sunucu 6 satır (limit + 1) dönsün: id'ler 60, 59, 58, 57, 56, 55
-    const mockRows = [60, 59, 58, 57, 56, 55].map(id => ({
-      id,
-      actor_user_id: "actor-1",
-      action: "membership.created",
-      entity_type: "organization_membership",
-      entity_id: `id-${id}`,
-      created_at: "2026-09-09T10:00:00Z",
-    }));
-
-    setupAuditMocks({ rows: mockRows });
+    setupFeed({ rows: [60, 59, 58, 57, 56, 55].map(row) });
 
     const result = await loadOrganizationAuditEvents("org-1", 5);
 
     expect(result.rows).toHaveLength(5);
     expect(result.rows[0].id).toBe(60);
     expect(result.rows[4].id).toBe(56);
-    expect(result.nextCursor).toBe(56); // 5. satırın (dönen son satırın) id'si
+    expect(result.nextCursor).toBe(56);
   });
 
   it("⛔ limit kadar ya da daha az satır geldiğinde nextCursor null'dır ('burası gerçek son')", async () => {
-    // 5 satır isteyelim, tam 5 satır gelsin
-    const fiveRows = [50, 49, 48, 47, 46].map(id => ({
-      id,
-      actor_user_id: "actor-1",
-      action: "membership.created",
-      entity_type: "organization_membership",
-      entity_id: `id-${id}`,
-      created_at: "2026-09-09T10:00:00Z",
-    }));
+    setupFeed({ rows: [50, 49, 48, 47, 46].map(row) });
+    const exact = await loadOrganizationAuditEvents("org-1", 5);
+    expect(exact.rows).toHaveLength(5);
+    expect(exact.nextCursor).toBeNull();
 
-    setupAuditMocks({ rows: fiveRows });
-    const resultExact = await loadOrganizationAuditEvents("org-1", 5);
-
-    expect(resultExact.rows).toHaveLength(5);
-    expect(resultExact.nextCursor).toBeNull();
-
-    // 5 satır isteyelim, 3 satır gelsin
-    setupAuditMocks({ rows: fiveRows.slice(0, 3) });
-    const resultLess = await loadOrganizationAuditEvents("org-1", 5);
-
-    expect(resultLess.rows).toHaveLength(3);
-    expect(resultLess.nextCursor).toBeNull();
-
-    // 0 satır gelsin
-    setupAuditMocks({ rows: [] });
-    const resultEmpty = await loadOrganizationAuditEvents("org-1", 5);
-
-    expect(resultEmpty.rows).toHaveLength(0);
-    expect(resultEmpty.nextCursor).toBeNull();
+    setupFeed({ rows: [] });
+    const empty = await loadOrganizationAuditEvents("org-1", 5);
+    expect(empty.rows).toHaveLength(0);
+    expect(empty.nextCursor).toBeNull();
   });
 
-  // ⛔ Bu süzme bir güvenlik önlemi DEĞİL, bir indeks meselesi. Kapsam zaten
-  // RLS'ten geliyor; ama RLS koşulu bir fonksiyon çağrısı olduğu için
-  // planlayıcı onu indeks koşuluna çeviremiyor. Canlıda ölçüldü: süzme
-  // olmadan `(organization_id, id desc)` indeksi HİÇ kullanılmıyor, sorgu
-  // birincil anahtarı geriye tarayıp RLS fonksiyonunu her satırda çalıştırıyor.
-  it("⛔ sorgu organization_id'ye göre AÇIKÇA süzer (indeks bunsuz kullanılamıyor)", async () => {
-    const { eqSpy } = setupAuditMocks({ rows: [] });
+  // ⛔ Güvenlik önlemi DEĞİL, dizin meselesi: kapsam RLS'ten gelir ama RLS
+  // koşulu bir fonksiyon çağrısı olduğu için planlayıcı onu dizin koşuluna
+  // çeviremiyor. Fonksiyon kurum kimliğini zorunlu parametre olarak alır.
+  it("⛔ kurum kimliği AÇIKÇA gönderilir (dizin bunsuz kullanılamıyor)", async () => {
+    setupFeed({ rows: [] });
 
     await loadOrganizationAuditEvents("org-42", 50);
 
-    expect(eqSpy).toHaveBeenCalledWith("organization_id", "org-42");
+    expect(lastArgs()[1].p_organization_id).toBe("org-42");
+  });
+
+  it("süzgeç sunucuya aynen gider; boş süzgeç null'dır", async () => {
+    setupFeed({ rows: [] });
+
+    await loadOrganizationAuditEvents("org-1", 50, null);
+    expect(lastArgs()[1]).toMatchObject({
+      p_actor_user_id: null,
+      p_action_kind: null,
+      p_entity_type: null,
+      p_from: null,
+      p_to: null,
+    });
+
+    await loadOrganizationAuditEvents("org-1", 50, null, {
+      actorUserId: "actor-1",
+      actionKind: "updated",
+      entityType: "guardian",
+      from: "2026-09-01",
+      to: "2026-09-29",
+    });
+    expect(lastArgs()[1]).toMatchObject({
+      p_actor_user_id: "actor-1",
+      p_action_kind: "updated",
+      p_entity_type: "guardian",
+      p_from: "2026-09-01",
+      p_to: "2026-09-29",
+    });
+  });
+
+  it("kaydın adı ve değişen alan adları satıra geçer", async () => {
+    setupFeed({ rows: [row(7), { ...row(6), label: null, changed: null }] });
+
+    const result = await loadOrganizationAuditEvents("org-1", 50);
+
+    expect(result.rows[0]).toMatchObject({
+      label: "Ayşe Koç",
+      changed: ["phone"],
+      actor: { kind: "member", name: "Ali Veli" },
+    });
+    expect(result.rows[1].label).toBeNull();
+    expect(result.rows[1].changed).toEqual([]);
   });
 
   it("veritabanı hatası durumunda hata fırlatır", async () => {
-    setupAuditMocks({ error: new Error("DB network fail") });
+    setupFeed({ error: new Error("DB network fail") });
 
     await expect(loadOrganizationAuditEvents("org-1", 50)).rejects.toThrow(
       "Denetim kaydı yüklenemedi."
     );
+  });
+});
+
+describe("describeAuditField ve yeni kayıt türleri (2026-09-29)", () => {
+  it("değişen alan adları Türkçe; bilinmeyen ham kalır", () => {
+    expect(describeAuditField("phone")).toBe("Telefon");
+    expect(describeAuditField("paid_at")).toBe("Ödeme");
+    expect(describeAuditField("bilinmeyen_alan")).toBe("bilinmeyen_alan");
+  });
+
+  it("taksit, ödeme planı, ödev, duyuru ve vekil artık ham kodla görünmez", () => {
+    expect(describeAuditAction("installment.created")).toBe("Taksit eklendi");
+    expect(describeAuditAction("payment_plan.archived")).toBe(
+      "Ödeme Planı arşivlendi"
+    );
+    expect(describeAuditAction("homework.updated")).toBe("Ödev güncellendi");
+    expect(describeAuditAction("feed_post.created")).toBe("Duyuru paylaşıldı");
+    expect(describeAuditAction("substitute_assignment.created")).toBe(
+      "Vekil Öğretmen eklendi"
+    );
+    expect(describeAuditEntity("installment")).toBe("Taksit");
   });
 });
