@@ -73,16 +73,6 @@ export type ScheduleItem = {
   dayOfWeek?: number;
 };
 
-export type Automation = {
-  id: string;
-  title: string;
-  description: string;
-  trigger: string;
-  impact: string;
-  active: boolean;
-  category: string;
-};
-
 export type PaymentRow = {
   id: string;
   studentId: string;

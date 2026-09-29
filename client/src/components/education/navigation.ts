@@ -10,7 +10,6 @@ import {
   NotebookPen,
   School,
   Settings,
-  Sparkles,
   Users,
   WalletCards,
 } from "lucide-react";
@@ -69,11 +68,6 @@ export const allNav: {
   {
     label: "Kayıt ve Ödemeler",
     icon: WalletCards,
-    group: "Kurum yönetimi",
-  },
-  {
-    label: "Otomasyonlar",
-    icon: Sparkles,
     group: "Kurum yönetimi",
   },
   {

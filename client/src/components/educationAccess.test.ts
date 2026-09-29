@@ -6,10 +6,14 @@ import {
 
 describe("education role access", () => {
   it("gives the administrator access to the full Faz 1 MVP navigation", () => {
-    expect(availableEducationSections("admin")).toContain("Otomasyonlar");
+    // Otomasyon sekmesi kaldırıldı (v1.5-10, karar 2026-09-16).
+    expect(availableEducationSections("admin")).not.toContain(
+      "Otomasyonlar" as never
+    );
     expect(availableEducationSections("admin")).toContain("Kayıt ve Ödemeler");
     // v1.2-12'de "Denetim Kaydı" eklendi: 13 -> 14.
-    expect(availableEducationSections("admin")).toHaveLength(14);
+    // 2026-09-29: "Otomasyonlar" kaldırıldı (v1.5-10, karar 2026-09-16): 14 -> 13.
+    expect(availableEducationSections("admin")).toHaveLength(13);
   });
 
   it("gives the day-plan workspace to admin and teacher only", () => {
@@ -25,7 +29,6 @@ describe("education role access", () => {
     expect(canAccessEducationSection("teacher", "Kayıt ve Ödemeler")).toBe(
       false
     );
-    expect(canAccessEducationSection("teacher", "Otomasyonlar")).toBe(false);
   });
 
   it("limits student and parent views to their own operational context", () => {
