@@ -130,6 +130,9 @@ describe("feedService", () => {
         archivedAt: null,
         audience: "all",
         pinned: false,
+        // Tür ve gün (2026-09-30): eski satır tür taşımıyorsa "Genel", gün boş.
+        kind: "general",
+        eventDate: null,
       });
 
       // 2. 🔴 R1 ASIL İDDİA: Kurum geneli duyurunun (class_id: null) yazar adı BAŞARIYLA ÇÖZÜLÜR!

@@ -126,3 +126,12 @@ export function orbitLocalDate(moment?: string | Date | null): string {
 export function getOrbitToday(referenceDate: Date = new Date()): string {
   return orbitLocalDate(referenceDate);
 }
+
+/** "YYYY-MM-DD" + gün; saat dilimine dokunmadan (UTC takvim aritmetiği). */
+export function addDaysIso(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const moved = new Date(Date.UTC(y, m - 1, d + days));
+  const mm = String(moved.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(moved.getUTCDate()).padStart(2, "0");
+  return `${moved.getUTCFullYear()}-${mm}-${dd}`;
+}

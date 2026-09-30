@@ -28,6 +28,7 @@ import {
 import { Badge } from "../shared";
 import type { DayPlanAppointmentMode, DayPlanEvent } from "../types";
 import type { DayPlanDisplayEvent } from "./dayPlanHelpers";
+import { FEED_KIND_LABELS } from "@/education/feedService";
 
 const modeIcon: Record<DayPlanAppointmentMode, typeof Video> = {
   "Google Meet": Video,
@@ -151,6 +152,11 @@ export function DayPlanAgenda({
                   {isDisplay && item.isExam ? (
                     // Sınav takvimde salt okunur; Sınavlar sekmesinde düzenlenir.
                     <Badge tone="amber">Sınav</Badge>
+                  ) : isDisplay && item.noticeKind ? (
+                    // Tarihli duyuru salt okunur; İletişim'de düzenlenir.
+                    <Badge tone="green">
+                      Duyuru · {FEED_KIND_LABELS[item.noticeKind]}
+                    </Badge>
                   ) : isLesson ? (
                     // 🔴 Ders satırları takvimde salt okunur — üzerinde düzenleme/kaldırma çizilmez (§5 & §9)
                     <Badge tone="blue">Ders Programı</Badge>

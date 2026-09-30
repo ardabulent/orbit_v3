@@ -266,6 +266,8 @@ const FIELD_LABELS: Record<string, string> = {
   submissions_recorded_at: "Teslim işaretlemesi",
   audience: "Hedef kitle",
   pinned: "Sabitleme",
+  kind: "Duyuru türü",
+  event_date: "Duyuru günü",
   plan_id: "Ödeme planı",
   total_amount: "Toplam tutar",
   amount: "Tutar",

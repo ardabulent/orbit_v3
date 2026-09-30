@@ -67,9 +67,12 @@ import {
 } from "./guardianService";
 import {
   DEFAULT_FEED_LIMIT,
+  loadCalendarNotices,
   loadFeedPosts,
+  type CalendarNotice,
   type FeedPostListResult,
 } from "./feedService";
+import { addDaysIso, getOrbitToday } from "./trDate";
 import {
   DEFAULT_DAY_PLAN_LIMIT,
   loadTasks,
@@ -929,6 +932,34 @@ export type UseFeedPostsOptions = {
 /**
  * Aktif kurumun günlük akış duyurularını getiren React Query hook'u (#288).
  */
+/**
+ * Gün Planı takvimi için tarihli duyurular (2026-09-30): bugünden 60 gün
+ * geri, 180 gün ileri. Anahtar duyuru akışıyla aynı ailede
+ * (`["education","feed",{organizationId,…}]`): duyuru formu akışı
+ * yenilediğinde takvim de yenilenir.
+ */
+export function useCalendarNotices(options?: { enabled?: boolean }) {
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId;
+  const today = getOrbitToday();
+  const from = addDaysIso(today, -60);
+  const to = addDaysIso(today, 180);
+
+  return useQuery<CalendarNotice[], Error>({
+    queryKey: [
+      "education",
+      "feed",
+      {
+        organizationId: organizationId ?? "",
+        calendarFrom: from,
+        calendarTo: to,
+      },
+    ] as const,
+    queryFn: () => loadCalendarNotices(organizationId!, from, to),
+    enabled: (options?.enabled ?? true) && Boolean(organizationId),
+  });
+}
+
 export function useFeedPosts(options?: UseFeedPostsOptions) {
   const { identity } = useAuth();
   const organizationId =

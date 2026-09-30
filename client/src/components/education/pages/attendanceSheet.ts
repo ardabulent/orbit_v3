@@ -86,14 +86,10 @@ export function describeCounts(counts: StatusCounts): string {
   return parts.join(" · ") || "Öğrenci yok";
 }
 
-/** "YYYY-MM-DD" + gün; saat dilimine dokunmadan (UTC takvim aritmetiği). */
-export function addDaysIso(date: string, days: number): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const moved = new Date(Date.UTC(y, m - 1, d + days));
-  const mm = String(moved.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(moved.getUTCDate()).padStart(2, "0");
-  return `${moved.getUTCFullYear()}-${mm}-${dd}`;
-}
+// `addDaysIso` genel tarih yardımcısıdır; 2026-09-30'da trDate'e taşındı
+// (servis katmanı da kullanıyor). Buradaki içe aktarmalar bozulmasın diye
+// yeniden dışa aktarılır.
+export { addDaysIso } from "@/education/trDate";
 
 /** ISO 8601 hafta günü (Pazartesi=1 … Pazar=7) — takvim gününden. */
 export function isoWeekDayOf(date: string): number {

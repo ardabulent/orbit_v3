@@ -18,7 +18,22 @@ import {
   DEFAULT_FEED_LIMIT,
   type FeedPost,
 } from "@/education/feedService";
-import { FEED_AUDIENCE_LABELS } from "@/education/feedService";
+import {
+  FEED_AUDIENCE_LABELS,
+  FEED_KIND_LABELS,
+  type FeedKind,
+} from "@/education/feedService";
+import { formatTrDate } from "@/education/trDate";
+
+/** Duyuru türü rozet rengi (2026-09-30). */
+const FEED_KIND_TONES: Record<
+  Exclude<FeedKind, "general">,
+  "violet" | "green" | "amber"
+> = {
+  exam: "violet",
+  event: "green",
+  meeting: "amber",
+};
 import { Badge, EmptyState, ErrorState, TableSkeleton } from "../shared";
 import type { Role } from "../types";
 import { FeedPostFormDialog } from "./FeedPostFormDialog";
@@ -204,6 +219,14 @@ export function DailyFeedSection({
                       </Badge>
                     )}
                     {post.pinned ? <Badge tone="rose">Önemli</Badge> : null}
+                    {post.kind !== "general" ? (
+                      <Badge tone={FEED_KIND_TONES[post.kind]}>
+                        {FEED_KIND_LABELS[post.kind]}
+                        {post.eventDate
+                          ? ` · ${formatTrDate(post.eventDate)}`
+                          : ""}
+                      </Badge>
+                    ) : null}
                     {post.audience !== "all" ? (
                       <Badge tone="blue">
                         {FEED_AUDIENCE_LABELS[post.audience]}
