@@ -52,3 +52,26 @@ export function splitExams(rows: ExamListItem[], today: string) {
     past: rows.filter(r => r.examDate < today),
   };
 }
+
+export type ExamResultStatus =
+  | { kind: "planned" }
+  | { kind: "missing"; entered: number; expected: number | null }
+  | { kind: "complete"; entered: number; expected: number };
+
+/**
+ * Listede her sınavın sonuç durumu (2026-09-30). Liste önceden yalnız sınavın
+ * adını ve tarihini gösteriyordu; sonuç girişinin sınavın içinde olduğu
+ * anlaşılmıyordu. Beklenen sayı sınıf sınavında sınıfın öğrenci sayısıdır;
+ * kurum geneli sınavda bilinmez (`null`) ve uydurulmaz (K-03).
+ */
+export function examResultStatus(
+  exam: ExamListItem,
+  today: string,
+  expected: number | null
+): ExamResultStatus {
+  if (exam.examDate > today) return { kind: "planned" };
+  const entered = exam.resultCount ?? 0;
+  if (expected !== null && expected > 0 && entered >= expected)
+    return { kind: "complete", entered, expected };
+  return { kind: "missing", entered, expected };
+}

@@ -58,12 +58,20 @@ export async function changeOwnPassword(input: {
     );
   }
 
-  // Denetim izi (20261017000000). Üretimde GoTrue olayları veritabanına
-  // yazılmadığı için izi uygulama bırakır. Şifre zaten değişti; iz
-  // yazılamazsa değişiklik geri alınmaz ama sessizce de geçilmez — kişisel
-  // veri içermeyen bir uyarı düşülür.
-  const { error: logError } = await supabase.rpc("log_own_password_change");
-  if (logError) {
+  await recordOwnPasswordChange();
+}
+
+/**
+ * Kişinin kendi yaptığı her şifre değişiminden sonra denetim izi
+ * (20261017000000): Ayarlar'daki "Şifremi değiştir", ilk girişteki zorunlu
+ * değişim ve sıfırlama bağlantısıyla belirlenen şifre. Üretimde GoTrue
+ * olayları veritabanına yazılmadığı için izi uygulama bırakır. Şifre zaten
+ * değişti; iz yazılamazsa değişiklik geri alınmaz ama sessizce de geçilmez —
+ * kişisel veri içermeyen bir uyarı düşülür. Oturum açıkken çağrılmalıdır.
+ */
+export async function recordOwnPasswordChange(): Promise<void> {
+  const { error } = await supabase.rpc("log_own_password_change");
+  if (error) {
     console.warn("[ORBIT] Şifre değişimi denetim kaydına yazılamadı.");
   }
 }
