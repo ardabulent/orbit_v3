@@ -17,7 +17,9 @@ import {
   updateFeedPost,
   type FeedPost,
   FEED_AUDIENCE_LABELS,
+  FEED_KIND_LABELS,
   type FeedAudience,
+  type FeedKind,
 } from "@/education/feedService";
 import type { Role } from "../types";
 
@@ -58,6 +60,12 @@ export function FeedPostFormDialog({
     () => post?.audience ?? "all"
   );
   const [pinned, setPinned] = useState<boolean>(() => post?.pinned ?? false);
+  // Tür ve gün (karar 2026-09-30): sınav duyurusu da burada yapılır; günü
+  // olan duyuru Gün Planı takviminde görünür. Gün yalnız Genel dışında sorulur.
+  const [kind, setKind] = useState<FeedKind>(() => post?.kind ?? "general");
+  const [eventDate, setEventDate] = useState<string>(
+    () => post?.eventDate ?? ""
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,8 +86,16 @@ export function FeedPostFormDialog({
       return;
     }
 
+    if (kind !== "general" && !eventDate) {
+      setError(
+        `${FEED_KIND_LABELS[kind]} duyurusunun gününü seçin; takvimde o gün görünecek.`
+      );
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    const dayOrNull = kind === "general" ? null : eventDate;
 
     try {
       if (isEditing && post?.id) {
@@ -89,6 +105,8 @@ export function FeedPostFormDialog({
           body: body.trim() || null,
           audience,
           pinned,
+          kind,
+          eventDate: dayOrNull,
         });
         toast.success("Duyuru güncellendi", {
           description: `"${trimmedTitle}" başlıklı duyuru başarıyla güncellendi.`,
@@ -101,6 +119,8 @@ export function FeedPostFormDialog({
           body: body.trim() || null,
           audience,
           pinned,
+          kind,
+          eventDate: dayOrNull,
         });
         toast.success("Duyuru paylaşıldı", {
           description: `"${trimmedTitle}" başlıklı duyuru başarıyla yayınlandı.`,
@@ -180,6 +200,49 @@ export function FeedPostFormDialog({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Tür ve gün */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="feed-kind" className="text-[12px] font-semibold">
+                Duyuru türü
+              </Label>
+              <select
+                id="feed-kind"
+                value={kind}
+                onChange={e => setKind(e.target.value as FeedKind)}
+                disabled={loading || isTeacherWithoutClasses}
+                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12px] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                {(Object.keys(FEED_KIND_LABELS) as FeedKind[]).map(value => (
+                  <option key={value} value={value}>
+                    {FEED_KIND_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {kind !== "general" ? (
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="feed-event-date"
+                  className="text-[12px] font-semibold"
+                >
+                  {FEED_KIND_LABELS[kind]} günü
+                </Label>
+                <input
+                  id="feed-event-date"
+                  type="date"
+                  value={eventDate}
+                  onChange={e => setEventDate(e.target.value)}
+                  disabled={loading || isTeacherWithoutClasses}
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[12px] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+                <p className="text-[10px] text-slate-500">
+                  Bu gün Gün Planı takviminde görünür.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           {/* Hedef kitle ve önemli */}

@@ -13,6 +13,22 @@ export const FEED_AUDIENCE_LABELS: Record<FeedAudience, string> = {
   students: "Yalnız öğrenciler",
 };
 
+/**
+ * Duyuru türü (`20261018000000`, karar 2026-09-30): sınav duyurusu da
+ * İletişim'de yapılır. Genel dışındaki türler bir gün taşıyabilir; o gün
+ * Gün Planı takviminde görünür.
+ */
+export type FeedKind = "general" | "exam" | "event" | "meeting";
+
+export const FEED_KIND_LABELS: Record<FeedKind, string> = {
+  general: "Genel",
+  exam: "Sınav",
+  event: "Etkinlik",
+  meeting: "Toplantı",
+};
+
+const FEED_KINDS = new Set<string>(["general", "exam", "event", "meeting"]);
+
 export type FeedPost = {
   id: string;
   organizationId: string;
@@ -28,6 +44,9 @@ export type FeedPost = {
   audience: FeedAudience;
   /** Önemli: listenin üstünde, öğrenci/veli Genel Bakış'ında. */
   pinned: boolean;
+  kind: FeedKind;
+  /** Duyurunun anlattığı gün ("YYYY-MM-DD"); yayın tarihi değil. */
+  eventDate: string | null;
 };
 
 export type FeedPostListResult = {
@@ -48,6 +67,8 @@ export type CreateFeedPostInput = {
   body?: string | null;
   audience?: FeedAudience;
   pinned?: boolean;
+  kind?: FeedKind;
+  eventDate?: string | null;
 };
 
 export type UpdateFeedPostInput = {
@@ -56,6 +77,8 @@ export type UpdateFeedPostInput = {
   body?: string | null;
   audience?: FeedAudience;
   pinned?: boolean;
+  kind?: FeedKind;
+  eventDate?: string | null;
 };
 
 export const DEFAULT_FEED_LIMIT = 50;
@@ -72,6 +95,8 @@ type RawFeedPostRow = {
   archived_at: string | null;
   audience?: string | null;
   pinned?: boolean | null;
+  kind?: string | null;
+  event_date?: string | null;
   classes?:
     { id: string; name: string } | { id: string; name: string }[] | null;
 };
@@ -143,6 +168,9 @@ function mapFeedPostRow(
         ? row.audience
         : "all",
     pinned: row.pinned === true,
+    kind:
+      row.kind && FEED_KINDS.has(row.kind) ? (row.kind as FeedKind) : "general",
+    eventDate: row.event_date ?? null,
   };
 }
 
@@ -242,6 +270,8 @@ export async function loadFeedPosts(
       archived_at,
       audience,
       pinned,
+      kind,
+      event_date,
       classes ( id, name )
     `
     )
@@ -298,6 +328,10 @@ export async function createFeedPost(
     body: input.body?.trim() || null,
     ...(input.audience ? { audience: input.audience } : {}),
     ...(input.pinned !== undefined ? { pinned: input.pinned } : {}),
+    ...(input.kind ? { kind: input.kind } : {}),
+    ...(input.eventDate !== undefined
+      ? { event_date: input.eventDate || null }
+      : {}),
   };
 
   const { data, error } = await supabase
@@ -316,6 +350,8 @@ export async function createFeedPost(
       archived_at,
       audience,
       pinned,
+      kind,
+      event_date,
       classes ( id, name )
     `
     )
@@ -352,9 +388,14 @@ export async function updateFeedPost(
     body?: string | null;
     audience?: FeedAudience;
     pinned?: boolean;
+    kind?: FeedKind;
+    event_date?: string | null;
   } = {};
   if (input.audience !== undefined) payload.audience = input.audience;
   if (input.pinned !== undefined) payload.pinned = input.pinned;
+  if (input.kind !== undefined) payload.kind = input.kind;
+  if (input.eventDate !== undefined)
+    payload.event_date = input.eventDate || null;
 
   if (input.classId !== undefined) {
     payload.class_id = input.classId || null;
@@ -387,6 +428,8 @@ export async function updateFeedPost(
       archived_at,
       audience,
       pinned,
+      kind,
+      event_date,
       classes ( id, name )
     `
     );
@@ -470,4 +513,60 @@ export async function restoreFeedPost(
       "Duyuru arşivden çıkarılamadı veya bu işlem için yetkiniz bulunmuyor."
     );
   }
+}
+
+/** Takvimde gösterilecek tarihli bir duyuru. */
+export type CalendarNotice = {
+  id: string;
+  title: string;
+  kind: FeedKind;
+  eventDate: string;
+  className: string | null;
+};
+
+/**
+ * Gün Planı takvimi için tarihli duyurular (2026-09-30): arşivsiz ve günü
+ * dolu olanlar, verilen aralıkta. Görünürlük hedef kitle politikasından
+ * gelir — takvim de yalnız kişinin görebildiği duyuruları gösterir.
+ */
+export async function loadCalendarNotices(
+  organizationId: string,
+  from: string,
+  to: string
+): Promise<CalendarNotice[]> {
+  const { data, error } = await supabase
+    .from("daily_feed_posts")
+    .select("id, title, kind, event_date, classes ( id, name )")
+    .eq("organization_id", organizationId)
+    .is("archived_at", null)
+    .not("event_date", "is", null)
+    .gte("event_date", from)
+    .lte("event_date", to)
+    .order("event_date", { ascending: true })
+    .limit(200);
+
+  if (error) {
+    throw new Error(translateFeedError(error));
+  }
+
+  return (
+    (data ?? []) as {
+      id: string;
+      title: string;
+      kind: string | null;
+      event_date: string | null;
+      classes?: RawFeedPostRow["classes"];
+    }[]
+  )
+    .filter(row => row.event_date)
+    .map(row => ({
+      id: row.id,
+      title: row.title.trim(),
+      kind:
+        row.kind && FEED_KINDS.has(row.kind)
+          ? (row.kind as FeedKind)
+          : "general",
+      eventDate: row.event_date as string,
+      className: extractClassName(row.classes),
+    }));
 }

@@ -19,6 +19,7 @@ import type {
   DayPlanTask,
   ScheduleItem,
 } from "../types";
+import type { CalendarNotice, FeedKind } from "@/education/feedService";
 
 export type DayPlanDisplayEvent = {
   id: string;
@@ -30,6 +31,8 @@ export type DayPlanDisplayEvent = {
   isLesson: boolean;
   /** Sınav günü (salt okunur; Sınavlar sekmesinden gelir). */
   isExam?: boolean;
+  /** Tarihli duyuru (salt okunur; İletişim'den gelir, 2026-09-30). */
+  noticeKind?: FeedKind;
   rawEvent?: CalendarEventItem;
   rawLesson?: ScheduleItem;
   mode?: DayPlanAppointmentMode;
@@ -94,7 +97,8 @@ export function buildMonthDisplayEvents(
   month: Date,
   personalEvents: CalendarEventItem[],
   schedule: ScheduleItem[],
-  exams: CalendarExam[] = []
+  exams: CalendarExam[] = [],
+  notices: CalendarNotice[] = []
 ): DayPlanDisplayEvent[] {
   const days = getMonthGridDays(month);
   const result: DayPlanDisplayEvent[] = [];
@@ -112,6 +116,21 @@ export function buildMonthDisplayEvents(
       subtitle: exam.className,
       isLesson: false,
       isExam: true,
+    });
+  }
+
+  // Tarihli duyurular (karar 2026-09-30): sınav, etkinlik, toplantı günü.
+  // Saatsiz, salt okunur; İletişim'de düzenlenir.
+  for (const notice of notices) {
+    if (!visibleDates.has(notice.eventDate)) continue;
+    result.push({
+      id: `notice-${notice.id}`,
+      date: notice.eventDate,
+      startTime: "",
+      title: notice.title,
+      subtitle: notice.className,
+      isLesson: false,
+      noticeKind: notice.kind,
     });
   }
 

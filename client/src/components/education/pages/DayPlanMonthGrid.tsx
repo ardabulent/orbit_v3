@@ -84,15 +84,19 @@ export function DayPlanMonthGrid({
                   const demoType = "type" in event ? event.type : undefined;
 
                   const isExam = "isExam" in event && event.isExam;
+                  const isNotice =
+                    "noticeKind" in event && Boolean(event.noticeKind);
                   const toneClass = isExam
                     ? "bg-amber-50 text-amber-700"
-                    : isLesson
-                      ? "bg-blue-50 text-blue-700"
-                      : isPersonal
-                        ? "bg-violet-50 text-violet-700"
-                        : demoType && eventTone[demoType]
-                          ? eventTone[demoType]
-                          : "bg-slate-100 text-slate-700";
+                    : isNotice
+                      ? "bg-emerald-50 text-emerald-700"
+                      : isLesson
+                        ? "bg-blue-50 text-blue-700"
+                        : isPersonal
+                          ? "bg-violet-50 text-violet-700"
+                          : demoType && eventTone[demoType]
+                            ? eventTone[demoType]
+                            : "bg-slate-100 text-slate-700";
 
                   return (
                     <span

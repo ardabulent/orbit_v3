@@ -147,6 +147,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
         {
           id: "post-other",
@@ -162,6 +164,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
       ];
 
@@ -211,6 +215,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
         {
           id: "post-2",
@@ -226,6 +232,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
       ];
 
@@ -302,6 +310,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
         {
           id: "p-cls",
@@ -317,6 +327,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
       ];
 
@@ -358,6 +370,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
       ];
 
@@ -399,6 +413,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
         {
           id: "p-with-body",
@@ -414,6 +430,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
       ];
 
@@ -500,6 +518,8 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
           archivedAt: null,
           audience: "all" as const,
           pinned: false,
+          kind: "general",
+          eventDate: null,
         },
       ];
 

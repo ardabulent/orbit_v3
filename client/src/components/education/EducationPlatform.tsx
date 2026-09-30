@@ -40,6 +40,7 @@ import {
   usePayments,
   useReportAttendanceWeeks,
   useReportExamAverages,
+  useCalendarNotices,
   useReportAttentionStudents,
   useReportClassComparison,
   useReportHomeworkWeeks,
@@ -623,6 +624,9 @@ export function EducationPlatform({
 
   // Gün Planı takvimi: yönetici bütün sınavları, öğretmen okuttuğu
   // sınıfların (activeClasses RLS ile daraltılmış) ve kurum geneli sınavları.
+  const calendarNoticesQuery = useCalendarNotices({
+    enabled: !isDemoMode && active === "Gün Planı",
+  });
   const calendarExams = useMemo(() => {
     const visibleClassIds = new Set(activeClasses.map(c => c.id));
     return (examListQuery.data?.rows ?? [])
@@ -867,6 +871,7 @@ export function EducationPlatform({
           membershipId={identity?.membership?.membershipId}
           schedule={activeSchedule}
           exams={calendarExams}
+          notices={calendarNoticesQuery.data ?? []}
         />
       );
     }

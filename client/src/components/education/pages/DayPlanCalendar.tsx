@@ -1,3 +1,4 @@
+import type { CalendarNotice } from "@/education/feedService";
 import { useMemo, useState } from "react";
 import {
   addDays,
@@ -27,6 +28,8 @@ export type DayPlanCalendarProps = {
   personalEvents?: CalendarEventItem[];
   schedule?: ScheduleItem[];
   exams?: CalendarExam[];
+  /** Tarihli duyurular (2026-09-30). */
+  notices?: CalendarNotice[];
   role?: string;
   organizationId?: string;
   membershipId?: string;
@@ -39,6 +42,7 @@ export function DayPlanCalendar({
   personalEvents,
   schedule,
   exams,
+  notices,
   role = "",
   organizationId = "",
   membershipId = "",
@@ -80,7 +84,8 @@ export function DayPlanCalendar({
       currentMonth,
       personalEvents ?? [],
       filteredSchedule,
-      exams ?? []
+      exams ?? [],
+      notices ?? []
     );
   }, [
     isDemo,
@@ -88,6 +93,7 @@ export function DayPlanCalendar({
     personalEvents,
     schedule,
     exams,
+    notices,
     role,
     membershipId,
     currentMonth,
