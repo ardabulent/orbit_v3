@@ -570,6 +570,7 @@ export function ExamDetailView({
                 canEdit={canManageExams && !isPersonal}
                 onSaved={onSaved}
                 onDirtyChange={onDirtyChange}
+                organizationId={organizationId}
               />
             ) : (
               <div className="overflow-x-auto">

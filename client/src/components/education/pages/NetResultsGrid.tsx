@@ -6,6 +6,7 @@ import {
   loadExamSections,
   loadSectionResults,
   netOf,
+  saveExamSections,
   saveSectionResults,
   type ExamAverage,
   type ExamSection,
@@ -13,7 +14,8 @@ import {
 } from "@/education/examNetService";
 import { translateExamError } from "@/education/examService";
 import type { ExamSheetStudent } from "@/education/examService";
-import { CardSkeleton, EmptyState, ErrorState } from "../shared";
+import { CardSkeleton, ErrorState } from "../shared";
+import { ExamSectionsQuickStart } from "./ExamSectionsQuickStart";
 
 type Cell = { correct: string; wrong: string };
 const key = (studentId: string, sectionId: string) =>
@@ -39,11 +41,14 @@ export function NetResultsGrid({
   canEdit,
   onSaved,
   onDirtyChange,
+  organizationId,
 }: {
   examId: string;
   netPenalty: number;
   students: ExamSheetStudent[];
   canEdit: boolean;
+  /** Boş denemeye şablondan ders eklemek için (2026-09-30). */
+  organizationId?: string;
   onSaved?: () => Promise<void> | void;
   onDirtyChange?: (isDirty: boolean) => void;
 }) {
@@ -192,9 +197,19 @@ export function NetResultsGrid({
   if (sections.length === 0)
     return (
       <div className="p-6">
-        <EmptyState
-          title="Bu denemenin dersi yok"
-          description="Sınavı düzenleyip ders ekleyin (ör. TYT şablonu)."
+        <ExamSectionsQuickStart
+          netPenalty={netPenalty}
+          canEdit={canEdit && Boolean(organizationId)}
+          onApply={async templateSections => {
+            await saveExamSections(
+              organizationId!,
+              examId,
+              templateSections,
+              []
+            );
+            setSections(null);
+            setReloadKey(k => k + 1);
+          }}
         />
       </div>
     );

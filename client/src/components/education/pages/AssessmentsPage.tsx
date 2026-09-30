@@ -127,6 +127,9 @@ export function AssessmentsPage(props: AssessmentsPageProps) {
             rows={shown}
             today={today}
             onOpen={exam => setSelected(toDetail(exam))}
+            classStudentCounts={
+              new Map((classes ?? []).map(c => [c.id, c.studentCount]))
+            }
           />
         </div>
       )}

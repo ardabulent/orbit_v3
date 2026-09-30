@@ -2,7 +2,11 @@ import { ChevronRight } from "lucide-react";
 import type { ExamListItem } from "@/education/examNetService";
 import { formatTrDate } from "@/education/trDate";
 import { Badge, EmptyState } from "../shared";
-import { splitExams } from "./examSections";
+import {
+  examResultStatus,
+  splitExams,
+  type ExamResultStatus,
+} from "./examSections";
 
 /** Türkçe ondalık: 28,5 — 28.5 değil. */
 function formatNumber(value: number): string {
@@ -17,10 +21,13 @@ export function ExamList({
   rows,
   today,
   onOpen,
+  classStudentCounts = new Map(),
 }: {
   rows: ExamListItem[];
   today: string;
   onOpen: (exam: ExamListItem) => void;
+  /** Sınıf kimliği → öğrenci sayısı; "2/4" ilerlemesinin paydası. */
+  classStudentCounts?: Map<string, number>;
 }) {
   if (rows.length === 0)
     return (
@@ -38,12 +45,16 @@ export function ExamList({
         empty="Planlanmış sınav yok."
         rows={upcoming}
         onOpen={onOpen}
+        today={today}
+        classStudentCounts={classStudentCounts}
       />
       <ExamGroup
         title="Geçmiş"
         empty="Geçmiş sınav yok."
         rows={past}
         onOpen={onOpen}
+        today={today}
+        classStudentCounts={classStudentCounts}
       />
     </div>
   );
@@ -54,11 +65,15 @@ function ExamGroup({
   empty,
   rows,
   onOpen,
+  today,
+  classStudentCounts,
 }: {
   title: string;
   empty: string;
   rows: ExamListItem[];
   onOpen: (exam: ExamListItem) => void;
+  today: string;
+  classStudentCounts: Map<string, number>;
 }) {
   return (
     <section>
@@ -101,9 +116,15 @@ function ExamGroup({
                       Net · {exam.netPenalty === 3 ? "LGS" : "YKS"}
                     </Badge>
                   ) : null}
-                  {exam.resultCount ? (
-                    <Badge tone="slate">{exam.resultCount} sonuç</Badge>
-                  ) : null}
+                  <ResultStatusBadge
+                    status={examResultStatus(
+                      exam,
+                      today,
+                      exam.classId
+                        ? (classStudentCounts.get(exam.classId) ?? null)
+                        : null
+                    )}
+                  />
                   {exam.average !== null ? (
                     <Badge tone="blue">
                       Ort. {formatNumber(exam.average)}
@@ -118,5 +139,28 @@ function ExamGroup({
         </ul>
       )}
     </section>
+  );
+}
+
+function ResultStatusBadge({ status }: { status: ExamResultStatus }) {
+  if (status.kind === "planned")
+    return <Badge tone="slate">Planlandı · sonuç sınav günü girilir</Badge>;
+  if (status.kind === "complete")
+    return (
+      <Badge tone="green">
+        Sonuçlar tamam · {status.entered}/{status.expected}
+      </Badge>
+    );
+  // Beklenen sayı bilinmiyor ama sonuç girilmiş (ör. kurum geneli sınav):
+  // eksik olup olmadığı bilinmediği için uyarı rengi değil, nötr sayı.
+  if (status.expected === null && status.entered > 0)
+    return <Badge tone="slate">{status.entered} sonuç girildi</Badge>;
+  return (
+    <Badge tone="amber">
+      Sonuç gir
+      {status.expected !== null
+        ? ` · ${status.entered}/${status.expected}`
+        : ""}
+    </Badge>
   );
 }

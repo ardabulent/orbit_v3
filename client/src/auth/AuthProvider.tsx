@@ -17,6 +17,7 @@ import { resolveSessionEvent } from "./sessionEvents";
 import { isDemoMode } from "./runtime";
 import { revokeParkedSession } from "./accountLinkService";
 import type { AuthIdentity, AuthProviderProps, LoginInput } from "./types";
+import { recordOwnPasswordChange } from "./passwordChange";
 
 function createDemoIdentity(role: EducationRole): AuthIdentity {
   return {
@@ -397,6 +398,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         );
       }
 
+      await recordOwnPasswordChange();
+
       const { data, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError || !data.session) {
@@ -465,6 +468,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           "Şifre güncellenemedi. Bağlantının süresi dolmuş olabilir; sıfırlama işlemini yeniden başlatın."
         );
       }
+
+      // İz oturum kapanmadan önce yazılır: RPC oturum ister.
+      await recordOwnPasswordChange();
 
       // Yeni şifreyle giriş yapılmasını bilinçli olarak zorunlu kılıyoruz.
       // Kullanıcıyı doğrudan panele almak daha hızlı olurdu, ancak o zaman
