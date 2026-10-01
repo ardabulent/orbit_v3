@@ -41,6 +41,10 @@ import {
   type HomeworkListResult,
 } from "./homeworkService";
 import { loadSubjects, type SubjectListResult } from "./subjectService";
+import {
+  loadScheduleTemplates,
+  type ScheduleTemplate,
+} from "./scheduleTemplateService";
 import { loadExams, type ExamListResult } from "./examNetService";
 import {
   loadStudentHomeworkContext,
@@ -146,6 +150,8 @@ export const educationKeys = {
     ["education", "classEnrollments", { organizationId, classId }] as const,
   schedule: (organizationId: string) =>
     ["education", "schedule", { organizationId }] as const,
+  scheduleTemplates: (organizationId: string) =>
+    ["education", "scheduleTemplates", { organizationId }] as const,
   studentAttendance: (
     organizationId: string,
     studentId: string,
@@ -632,6 +638,19 @@ export function usePlansInstallments(options: {
     ] as const,
     queryFn: () => loadInstallmentsForPlans(organizationId as string, ids),
     enabled: isEnabled,
+  });
+}
+
+/** Kurumun ders programı şablonları (yalnız yönetici; RLS süzer). */
+export function useScheduleTemplates(options: {
+  organizationId: string;
+  enabled?: boolean;
+}) {
+  const { organizationId } = options;
+  return useQuery<ScheduleTemplate[], Error>({
+    queryKey: educationKeys.scheduleTemplates(organizationId),
+    queryFn: () => loadScheduleTemplates(organizationId),
+    enabled: (options.enabled ?? true) && Boolean(organizationId),
   });
 }
 

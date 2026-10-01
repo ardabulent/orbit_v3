@@ -204,7 +204,7 @@ describe("v1.4-11 Arayüz ve Sözleşme Testleri (#287 / K-23)", () => {
       expect(html).not.toContain("<span>Kapat</span>");
     });
 
-    it("SchedulePage: öğretmen rolünde 'Ders programı ekle', 'Düzenle', 'Kaldır' çizilmez", () => {
+    it("SchedulePage: öğretmen rolünde 'Ders ekle', 'Düzenle', 'Kaldır' çizilmez", () => {
       // SchedulePage uses getTodayWeekDay()
       const scheduleItems: ScheduleItem[] = [
         {
@@ -237,7 +237,7 @@ describe("v1.4-11 Arayüz ve Sözleşme Testleri (#287 / K-23)", () => {
         { role: "teacher" }
       );
 
-      expect(html).not.toContain("Ders programı ekle");
+      expect(html).not.toContain("Ders ekle");
       expect(html).not.toContain("Düzenle");
       expect(html).not.toContain("Kaldır");
     });
