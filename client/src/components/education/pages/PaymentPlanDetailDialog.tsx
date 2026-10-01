@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -15,8 +14,6 @@ import {
 import {
   archivePaymentPlan,
   restorePaymentPlan,
-  archiveInstallment,
-  restoreInstallment,
   markInstallmentPaid,
   unmarkInstallmentPaid,
   formatCurrency,
@@ -26,7 +23,6 @@ import {
 import { formatTrDate, orbitLocalDate } from "@/education/trDate";
 import { Badge, TableSkeleton, ErrorState, EmptyState } from "../shared";
 import type { Role } from "../types";
-import { InstallmentFormDialog } from "./InstallmentFormDialog";
 
 export type PaymentPlanDetailDialogProps = {
   open: boolean;
@@ -61,10 +57,6 @@ export function PaymentPlanDetailDialog({
   const queryClient = useQueryClient();
   const isAdmin = role === "admin";
 
-  const [installmentDialogOpen, setInstallmentDialogOpen] = useState(false);
-  const [installmentForEdit, setInstallmentForEdit] =
-    useState<Installment | null>(null);
-
   const installmentsQuery = usePlanInstallments({
     organizationId,
     planId: plan?.id,
@@ -80,21 +72,6 @@ export function PaymentPlanDetailDialog({
   // Plan toplamı ile taksitlerin toplamı tutmadığında ekran bunu söyler (v1.4-06 #277)
   const hasDiscrepancy = Boolean(plan && planTotal !== installmentsTotal);
   const discrepancyAmount = Math.abs(planTotal - installmentsTotal);
-
-  const nextSequenceNo =
-    installments.length > 0
-      ? Math.max(...installments.map(i => i.sequenceNo)) + 1
-      : 1;
-
-  const handleOpenAddInstallment = () => {
-    setInstallmentForEdit(null);
-    setInstallmentDialogOpen(true);
-  };
-
-  const handleOpenEditInstallment = (inst: Installment) => {
-    setInstallmentForEdit(inst);
-    setInstallmentDialogOpen(true);
-  };
 
   const handleArchivePlan = async () => {
     if (!plan || !organizationId || !isAdmin) return;
@@ -147,65 +124,6 @@ export function PaymentPlanDetailDialog({
 
       onOpenChange(false);
       onPlanArchived?.();
-    } catch (err) {
-      toast.error(translatePaymentError(err));
-    }
-  };
-
-  const handleArchiveInstallment = async (inst: Installment) => {
-    if (!plan || !organizationId || !isAdmin) return;
-
-    try {
-      await archiveInstallment(organizationId, inst.id);
-      toast.success("Taksit arşivlendi", {
-        description: `${inst.sequenceNo}. taksit arşive kaldırıldı.`,
-        action: {
-          label: "Geri al",
-          onClick: () => {
-            void restoreInstallment(organizationId, inst.id)
-              .then(async () => {
-                toast.success("Taksit geri yüklendi", {
-                  description: `${inst.sequenceNo}. taksit aktif duruma getirildi.`,
-                });
-                await Promise.all([
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.planInstallments(
-                      organizationId,
-                      plan.id
-                    ),
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.payments(organizationId),
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.paymentOverview(organizationId),
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.students(organizationId),
-                  }),
-                ]);
-              })
-              .catch(err => {
-                toast.error(translatePaymentError(err));
-              });
-          },
-        },
-      });
-
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.planInstallments(organizationId, plan.id),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.payments(organizationId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.paymentOverview(organizationId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.students(organizationId),
-        }),
-      ]);
     } catch (err) {
       toast.error(translatePaymentError(err));
     }
@@ -382,16 +300,9 @@ export function PaymentPlanDetailDialog({
             </div>
           )}
 
-          {/* Admin eylemleri: Taksit Ekle, Planı Düzenle, Planı Arşivle */}
+          {/* Admin eylemleri: plan ve taksitler tek ekranda düzenlenir (2026-09-30) */}
           {isAdmin && (
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 pt-1">
-              <button
-                type="button"
-                onClick={handleOpenAddInstallment}
-                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700"
-              >
-                + Taksit Ekle
-              </button>
               <div className="flex items-center gap-2">
                 {onEditPlan && plan?.studentId && (
                   <button
@@ -406,7 +317,7 @@ export function PaymentPlanDetailDialog({
                     }}
                     className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                   >
-                    Planı Düzenle
+                    Planı ve taksitleri düzenle
                   </button>
                 )}
                 <button
@@ -500,24 +411,6 @@ export function PaymentPlanDetailDialog({
                                     Ödendi İşaretle
                                   </button>
                                 )}
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleOpenEditInstallment(inst)
-                                  }
-                                  className="text-[11px] font-semibold text-blue-600 hover:text-blue-700"
-                                >
-                                  Düzenle
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    void handleArchiveInstallment(inst)
-                                  }
-                                  className="text-[11px] font-semibold text-rose-600 hover:text-rose-700"
-                                >
-                                  Arşivle
-                                </button>
                               </div>
                             </td>
                           )}
@@ -531,17 +424,6 @@ export function PaymentPlanDetailDialog({
           </div>
         </DialogContent>
       </Dialog>
-
-      {plan && (
-        <InstallmentFormDialog
-          open={installmentDialogOpen}
-          onOpenChange={setInstallmentDialogOpen}
-          organizationId={organizationId}
-          planId={plan.id}
-          installment={installmentForEdit}
-          suggestedSequenceNo={nextSequenceNo}
-        />
-      )}
     </>
   );
 }

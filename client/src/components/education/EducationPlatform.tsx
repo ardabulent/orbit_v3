@@ -86,7 +86,7 @@ import { GuardianFormDialog } from "./pages/GuardianFormDialog";
 import { ClassFormDialog } from "./pages/ClassFormDialog";
 import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
 import { ClassTeachersDialog } from "./pages/ClassTeachersDialog";
-import { PaymentPlanFormDialog } from "./pages/PaymentPlanFormDialog";
+import { PaymentPlanEditorDialog } from "./pages/PaymentPlanEditorDialog";
 import { PaymentPlanDetailDialog } from "./pages/PaymentPlanDetailDialog";
 import {
   AlertDialog,
@@ -1577,7 +1577,7 @@ export function EducationPlatform({
               classData={classForTeachers}
             />
           )}
-          <PaymentPlanFormDialog
+          <PaymentPlanEditorDialog
             open={paymentPlanFormOpen}
             onOpenChange={setPaymentPlanFormOpen}
             organizationId={organizationId}

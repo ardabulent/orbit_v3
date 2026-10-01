@@ -509,74 +509,37 @@ export function translatePaymentError(error: unknown): string {
 }
 
 /**
- * Yeni bir ödeme planı oluşturur.
- * `id` salt okunurdur, yüke KESİNLİKLE konmaz.
+ * Planı ve ödenmemiş taksitlerinin tamamını TEK işlemde kaydeder
+ * (`save_payment_plan`, 2026-09-30 — tek ekran). Yeni planda `planId` boş;
+ * var olan planda ödenmiş taksitlere dokunulmaz, ödenmemişler yeni listeyle
+ * değiştirilir. Taksit toplamı (ödenmişler dahil) paket tutarına eşit
+ * değilse sunucu reddeder ve hiçbir şey yazılmaz.
  */
-export async function createPaymentPlan(
-  input: CreatePaymentPlanInput
-): Promise<{ id: string }> {
-  const payload: {
-    organization_id: string;
-    student_id: string;
-    name: string;
-    total_amount: number;
-  } = {
-    organization_id: input.organizationId,
-    student_id: input.studentId,
-    name: input.name.trim(),
-    total_amount: Number(input.totalAmount),
-  };
-
-  const { data, error } = await supabase
-    .from("payment_plans")
-    .insert(payload)
-    .select("id")
-    .single();
+export async function savePaymentPlan(input: {
+  organizationId: string;
+  planId: string | null;
+  studentId: string | null;
+  name: string;
+  totalAmount: number;
+  installments: { dueDate: string; amount: number }[];
+}): Promise<string> {
+  const { data, error } = await supabase.rpc("save_payment_plan", {
+    p_organization_id: input.organizationId,
+    p_plan_id: input.planId,
+    p_student_id: input.studentId,
+    p_name: input.name.trim(),
+    p_total_amount: Number(input.totalAmount),
+    p_installments: input.installments.map(row => ({
+      due_date: row.dueDate,
+      amount: Number(row.amount),
+    })),
+  });
 
   if (error) {
     throw new Error(translatePaymentError(error));
   }
 
-  return data;
-}
-
-/**
- * Mevcut bir ödeme planını günceller.
- * `id`, `organization_id` ve `student_id` yüke konmaz.
- * Sıfır satır etkileyen yazma hata fırlatır (K-14).
- */
-export async function updatePaymentPlan(
-  organizationId: string,
-  planId: string,
-  input: UpdatePaymentPlanInput
-): Promise<void> {
-  const payload: {
-    name?: string;
-    total_amount?: number;
-  } = {};
-
-  if (input.name !== undefined) {
-    payload.name = input.name.trim();
-  }
-
-  if (input.totalAmount !== undefined) {
-    payload.total_amount = Number(input.totalAmount);
-  }
-
-  const { data, error } = await supabase
-    .from("payment_plans")
-    .update(payload)
-    .eq("organization_id", organizationId)
-    .eq("id", planId)
-    .select("id");
-
-  if (error) {
-    throw new Error(translatePaymentError(error));
-  }
-
-  if (!data || data.length === 0) {
-    throw new Error("Ödeme planı bulunamadı veya güncellenemedi.");
-  }
+  return data as string;
 }
 
 /**
@@ -720,129 +683,6 @@ export async function loadInstallmentsForPlans(
     else result.set(item.planId, [item]);
   }
   return result;
-}
-
-/**
- * Yeni bir taksit oluşturur.
- * `id` salt okunurdur, yüke konmaz.
- */
-export async function createInstallment(
-  input: CreateInstallmentInput
-): Promise<{ id: string }> {
-  const payload: {
-    organization_id: string;
-    plan_id: string;
-    sequence_no: number;
-    due_date: string;
-    amount: number;
-  } = {
-    organization_id: input.organizationId,
-    plan_id: input.planId,
-    sequence_no: Number(input.sequenceNo),
-    due_date: input.dueDate,
-    amount: Number(input.amount),
-  };
-
-  const { data, error } = await supabase
-    .from("installments")
-    .insert(payload)
-    .select("id")
-    .single();
-
-  if (error) {
-    throw new Error(translatePaymentError(error));
-  }
-
-  return data;
-}
-
-/**
- * Mevcut bir taksiti günceller (tutar ve vade tarihi).
- * `sequence_no` update sütunlarında yoktur, değiştirilemez.
- * `id` ve `organization_id` yüke konmaz.
- * Sıfır satır etkileyen yazma hata fırlatır (K-14).
- */
-export async function updateInstallment(
-  organizationId: string,
-  installmentId: string,
-  input: UpdateInstallmentInput
-): Promise<void> {
-  const payload: {
-    amount?: number;
-    due_date?: string;
-  } = {};
-
-  if (input.amount !== undefined) {
-    payload.amount = Number(input.amount);
-  }
-
-  if (input.dueDate !== undefined) {
-    payload.due_date = input.dueDate;
-  }
-
-  const { data, error } = await supabase
-    .from("installments")
-    .update(payload)
-    .eq("organization_id", organizationId)
-    .eq("id", installmentId)
-    .select("id");
-
-  if (error) {
-    throw new Error(translatePaymentError(error));
-  }
-
-  if (!data || data.length === 0) {
-    throw new Error("Taksit bulunamadı veya güncellenemedi.");
-  }
-}
-
-/**
- * Bir taksiti arşivler (`archived_at` ile, satır silmez).
- * Sıra numarası arşivle serbest kalır (kısmi tekillik indeksi).
- * Sıfır satır etkileyen yazma hata fırlatır (K-14).
- */
-export async function archiveInstallment(
-  organizationId: string,
-  installmentId: string
-): Promise<void> {
-  const { data, error } = await supabase
-    .from("installments")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("organization_id", organizationId)
-    .eq("id", installmentId)
-    .select("id");
-
-  if (error) {
-    throw new Error(translatePaymentError(error));
-  }
-
-  if (!data || data.length === 0) {
-    throw new Error("Taksit bulunamadı veya arşivlenemedi.");
-  }
-}
-
-/**
- * Arşivlenmiş bir taksiti geri yükler (`archived_at: null`).
- * Sıfır satır etkileyen yazma hata fırlatır (K-14).
- */
-export async function restoreInstallment(
-  organizationId: string,
-  installmentId: string
-): Promise<void> {
-  const { data, error } = await supabase
-    .from("installments")
-    .update({ archived_at: null })
-    .eq("organization_id", organizationId)
-    .eq("id", installmentId)
-    .select("id");
-
-  if (error) {
-    throw new Error(translatePaymentError(error));
-  }
-
-  if (!data || data.length === 0) {
-    throw new Error("Taksit bulunamadı veya geri yüklenemedi.");
-  }
 }
 
 /**
