@@ -11,6 +11,7 @@ import {
   TableSkeleton,
 } from "../shared";
 import type { Role, ScheduleItem } from "../types";
+import { ClearClassScheduleDialog } from "./ClearClassScheduleDialog";
 import { ScheduleArchiveDialog } from "./ScheduleArchiveDialog";
 import { ScheduleDayList } from "./ScheduleDayList";
 import { ScheduleEntryFormDialog } from "./ScheduleEntryFormDialog";
@@ -22,6 +23,7 @@ import {
   type ScheduleCover,
   type ScheduleFilter,
 } from "./scheduleGrid";
+import { ScheduleTemplatesTab } from "./ScheduleTemplatesTab";
 import { SubstitutesTab } from "./SubstitutesTab";
 import { ScheduleWeekGrid } from "./ScheduleWeekGrid";
 
@@ -30,6 +32,9 @@ import { ScheduleWeekGrid } from "./ScheduleWeekGrid";
  * gün gün liste. Üstte sınıf süzgeci (programda birden çok sınıf varsa) ve
  * yöneticide öğretmen süzgeci; "Öğretmensiz" seçeneği atama bekleyen dersleri
  * bulmanın yoludur.
+ *
+ * Şablonlar (2026-10-01): yönetici haftayı bir kez çizer ve sınıflara
+ * atar; seçili sınıfın programı tek düğmeyle temizlenebilir.
  *
  * Yazma eylemleri yalnız yöneticide ve canlı modda verilir; bu bir kullanıcı
  * deneyimi kararıdır, yetki sınırı RLS'tedir.
@@ -61,9 +66,14 @@ export function SchedulePage({
 }) {
   const today = getTodayWeekDay();
   const canWrite = role === "admin" && !isDemoMode;
-  const [tab, setTab] = useState<"program" | "substitutes">("program");
+  const [tab, setTab] = useState<"program" | "templates" | "substitutes">(
+    "program"
+  );
   const [substituteAddOpen, setSubstituteAddOpen] = useState(false);
+  const [templateAddOpen, setTemplateAddOpen] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
   const onSubstitutes = canWrite && tab === "substitutes";
+  const onTemplates = canWrite && tab === "templates";
 
   const [filter, setFilter] = useState<ScheduleFilter>({
     classId: ALL,
@@ -96,6 +106,14 @@ export function SchedulePage({
   ].sort((a, b) => a[1].localeCompare(b[1], "tr"));
   const teachers = role === "admin" ? teacherOptions(roleFiltered) : [];
   const unassigned = roleFiltered.filter(item => !item.membershipId).length;
+  // Yönetici tek sınıf olsa da süzgeci görür: programı temizleme düğmesi
+  // seçili sınıfa bağlıdır.
+  const showClassFilter =
+    classOptions.length > 1 || (canWrite && classOptions.length === 1);
+  const selectedClassName =
+    filter.classId === ALL
+      ? null
+      : (classOptions.find(([key]) => key === filter.classId)?.[1] ?? null);
 
   const openAdd = (day: WeekDay = today, time?: string) => {
     setEditingEntry(null);
@@ -114,29 +132,37 @@ export function SchedulePage({
         title={
           onSubstitutes
             ? "Vekiller"
-            : role === "student"
-              ? "Ders programım"
-              : role === "parent"
-                ? "Öğrenci ders programı"
-                : "Ders programı"
+            : onTemplates
+              ? "Program şablonları"
+              : role === "student"
+                ? "Ders programım"
+                : role === "parent"
+                  ? "Öğrenci ders programı"
+                  : "Ders programı"
         }
         description={
           onSubstitutes
             ? "İzinli öğretmenin yerine bakacak vekili tarih aralığıyla atayın."
-            : "Haftanın derslerini, öğretmenlerini ve saatlerini tek tabloda izleyin."
+            : onTemplates
+              ? "Haftalık programı bir kez çizin, birden çok sınıfa atayın."
+              : "Haftanın derslerini, öğretmenlerini ve saatlerini tek tabloda izleyin."
         }
         action={
           canWrite
             ? onSubstitutes
               ? "Yeni vekil"
-              : "Ders programı ekle"
+              : onTemplates
+                ? "Yeni şablon"
+                : "Ders ekle"
             : undefined
         }
         onAction={
           canWrite
             ? onSubstitutes
               ? () => setSubstituteAddOpen(true)
-              : () => openAdd()
+              : onTemplates
+                ? () => setTemplateAddOpen(true)
+                : () => openAdd()
             : undefined
         }
       />
@@ -144,6 +170,12 @@ export function SchedulePage({
         <div className="mt-4 flex border-b border-slate-200">
           <SubTab active={tab === "program"} onClick={() => setTab("program")}>
             Program
+          </SubTab>
+          <SubTab
+            active={tab === "templates"}
+            onClick={() => setTab("templates")}
+          >
+            Şablonlar
           </SubTab>
           <SubTab
             active={tab === "substitutes"}
@@ -160,6 +192,13 @@ export function SchedulePage({
           addOpen={substituteAddOpen}
           onAddOpenChange={setSubstituteAddOpen}
         />
+      ) : onTemplates ? (
+        <ScheduleTemplatesTab
+          organizationId={organizationId}
+          classes={classes}
+          addOpen={templateAddOpen}
+          onAddOpenChange={setTemplateAddOpen}
+        />
       ) : (
         <>
           {truncated ? (
@@ -170,11 +209,9 @@ export function SchedulePage({
           ) : null}
 
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-            {classOptions.length > 1 ||
-            teachers.length > 1 ||
-            unassigned > 0 ? (
+            {showClassFilter || teachers.length > 1 || unassigned > 0 ? (
               <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
-                {classOptions.length > 1 ? (
+                {showClassFilter ? (
                   <FilterSelect
                     label="Sınıf"
                     value={filter.classId}
@@ -192,6 +229,15 @@ export function SchedulePage({
                     onChange={teacher => setFilter(f => ({ ...f, teacher }))}
                     options={teachers}
                   />
+                ) : null}
+                {canWrite && selectedClassName ? (
+                  <button
+                    type="button"
+                    onClick={() => setClearOpen(true)}
+                    className="h-8 rounded-lg border border-rose-200 px-3 text-[11px] font-bold text-rose-600 hover:bg-rose-50"
+                  >
+                    Bu sınıfın programını temizle
+                  </button>
                 ) : null}
                 {role === "admin" && unassigned > 0 ? (
                   <button
@@ -272,6 +318,16 @@ export function SchedulePage({
           defaultStartsAt={addAt.time}
           defaultClassId={filter.classId === ALL ? undefined : filter.classId}
           onDone={() => setEditingEntry(null)}
+        />
+      ) : null}
+
+      {clearOpen && selectedClassName && organizationId ? (
+        <ClearClassScheduleDialog
+          organizationId={organizationId}
+          classId={filter.classId}
+          className={selectedClassName}
+          lessonCount={visible.length}
+          onClose={() => setClearOpen(false)}
         />
       ) : null}
 
