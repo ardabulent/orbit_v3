@@ -17,6 +17,14 @@ export default defineConfig({
       "@assets": path.resolve(templateRoot, "attached_assets"),
     },
   },
+  // Vite 8 JSX'i Oxc ile çevirir ve tsconfig'deki `"jsx": "preserve"`
+  // ayarına uyar — testlerdeki .tsx dosyaları çevrilmeden kalıyordu (Vite 7
+  // bu ayarı yok sayıyordu). Uygulama derlemesinde React eklentisi çevirir;
+  // testlerde eklenti yok. Testler `globalThis.React` koyduğu için klasik
+  // çalışma zamanı (React.createElement) kullanılır.
+  oxc: {
+    jsx: { runtime: "classic" },
+  },
   test: {
     environment: "node",
     include: [
