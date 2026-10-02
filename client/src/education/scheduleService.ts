@@ -28,7 +28,27 @@ import { isoToWeekDay } from "./weekDays";
  * - `tone`: Servis tone üretmez; görsel bir Tailwind stili olup arayüzde nötr varsayılan uygulanır.
  */
 
-export const DEFAULT_SCHEDULE_LIMIT = 200;
+/**
+ * Programın toplam tavanı (2026-10-03). Eskiden 200'dü ve sorgu "gün, saat"
+ * sırasıyla tek seferde çekiliyordu: kurumda 200'den fazla ders olunca
+ * BÜTÜN sınıfların haftanın son günleri ekrandan kayboluyordu; süzgeçler
+ * yalnız inen satırları süzdüğü için o derslere hiçbir yoldan ulaşılamıyordu.
+ * Şablon ataması (#417) bu sınırı kolayca aşar: 10 sınıf × 30 ders = 300.
+ * 5000 ≈ 50 sınıf × 100 ders; satırlar küçük, sayfa sayfa iner.
+ *
+ * Adı bilinçli olarak `DEFAULT_…_LIMIT` değil: o adlar TEK sorguluk tavandır
+ * ve `postgrestLimits.test.ts` onları sunucu tavanının altında tutar. Bu bir
+ * toplamdır; tek istek `SCHEDULE_PAGE_SIZE`'ı aşmaz.
+ */
+export const SCHEDULE_TOTAL_CAP = 5000;
+
+/**
+ * Sayfa boyu sunucu tavanının (`POSTGREST_MAX_ROWS`) ALTINDA olmak zorunda:
+ * eşit olsaydı ve üretimdeki tavan bir gün düşürülseydi her sayfa eksik
+ * gelir, döngü onu "son sayfa" sanıp durur, program sessizce kesilirdi.
+ * Kapı: `postgrestLimits.test.ts`.
+ */
+const SCHEDULE_PAGE_SIZE = 500;
 
 export type ScheduleListResult = {
   rows: ScheduleItem[];
@@ -216,12 +236,49 @@ export function mapScheduleRow(
 
 export async function loadSchedule(
   organizationId: string,
-  limit = DEFAULT_SCHEDULE_LIMIT
+  limit = SCHEDULE_TOTAL_CAP
 ): Promise<ScheduleListResult> {
   if (!organizationId) {
     return { rows: [], truncated: false };
   }
 
+  // Sayfa sayfa: sunucu tek yanıtta en çok `max_rows` satır döner. Sıralamada
+  // `id` eşitlik bozucu; o olmadan aynı gün ve saatteki satırlar sayfalar
+  // arasında yer değiştirip bir satır iki kez, bir başkası hiç gelmeyebilirdi.
+  const rawRows: RawScheduleRow[] = [];
+  while (rawRows.length < limit) {
+    const from = rawRows.length;
+    const to = Math.min(from + SCHEDULE_PAGE_SIZE, limit) - 1;
+    const page = await loadSchedulePage(organizationId, from, to);
+    rawRows.push(...page);
+    if (page.length < to - from + 1) break;
+  }
+
+  const classIds = Array.from(
+    new Set(rawRows.map(r => r.class_id).filter(Boolean))
+  );
+
+  const staffNames = await loadStaffNames(classIds);
+  const rows = rawRows
+    .map(r => mapScheduleRow(r, staffNames))
+    .filter((item): item is ScheduleItem => item !== null);
+
+  return {
+    rows,
+    // ⚠️ Ölçüt HAM satır sayısıdır, eşlenmiş satır sayısı değil. `mapScheduleRow`
+    // geçersiz gün numarasında satır düşürebiliyor; `rows.length` üzerinden
+    // hesaplasaydık, sorgu tam limite dayanmışken bir satır elendiği anda
+    // kesilme bandı SESSİZCE çizilmezdi — sözleşmenin yasakladığı şeyin ta
+    // kendisi (`DECISION_LOG` — "kesildiği söylenmeden hiçbir liste kesilmez").
+    truncated: rawRows.length === limit,
+  };
+}
+
+async function loadSchedulePage(
+  organizationId: string,
+  from: number,
+  to: number
+): Promise<RawScheduleRow[]> {
   const { data, error } = await supabase
     .from("schedule_entries")
     .select(
@@ -243,31 +300,14 @@ export async function loadSchedule(
     .is("archived_at", null)
     .order("day_of_week", { ascending: true })
     .order("starts_at", { ascending: true })
-    .limit(limit);
+    .order("id", { ascending: true })
+    .range(from, to);
 
   if (error) {
     throw new Error("Ders programı yüklenemedi.");
   }
 
-  const rawRows = (data ?? []) as RawScheduleRow[];
-  const classIds = Array.from(
-    new Set(rawRows.map(r => r.class_id).filter(Boolean))
-  );
-
-  const staffNames = await loadStaffNames(classIds);
-  const rows = rawRows
-    .map(r => mapScheduleRow(r, staffNames))
-    .filter((item): item is ScheduleItem => item !== null);
-
-  return {
-    rows,
-    // ⚠️ Ölçüt HAM satır sayısıdır, eşlenmiş satır sayısı değil. `mapScheduleRow`
-    // geçersiz gün numarasında satır düşürebiliyor; `rows.length` üzerinden
-    // hesaplasaydık, sorgu tam limite dayanmışken bir satır elendiği anda
-    // kesilme bandı SESSİZCE çizilmezdi — sözleşmenin yasakladığı şeyin ta
-    // kendisi (`DECISION_LOG` — "kesildiği söylenmeden hiçbir liste kesilmez").
-    truncated: rawRows.length === limit,
-  };
+  return (data ?? []) as RawScheduleRow[];
 }
 
 export type CreateScheduleEntryInput = {

@@ -3,7 +3,7 @@ import {
   archiveScheduleEntry,
   calculateDuration,
   createScheduleEntry,
-  DEFAULT_SCHEDULE_LIMIT,
+  SCHEDULE_TOTAL_CAP,
   extractClassName,
   extractSubjectName,
   formatTime,
@@ -34,6 +34,7 @@ function createScheduleQueryChain(
     isArgs?: [string, unknown];
     orderCalls?: [string, { ascending?: boolean }][];
     limitArg?: number;
+    rangeCalls?: [number, number][];
     eqCalls?: [string, unknown][];
   }
 ) {
@@ -57,9 +58,17 @@ function createScheduleQueryChain(
     }
     return chain;
   });
-  chain.limit = vi.fn((limit: number) => {
-    if (spy) spy.limitArg = limit;
-    return Promise.resolve(result);
+  // Sayfalı okuma (2026-10-03): `range(from, to)` verinin o dilimini döner;
+  // `limitArg` istenen toplam satırın üst ucunu tutar (to + 1).
+  chain.range = vi.fn((from: number, to: number) => {
+    if (spy) {
+      spy.rangeCalls = spy.rangeCalls || [];
+      spy.rangeCalls.push([from, to]);
+      spy.limitArg = to + 1;
+    }
+    if (result.error) return Promise.resolve(result);
+    const rows = (result.data as unknown[] | null) ?? [];
+    return Promise.resolve({ data: rows.slice(from, to + 1), error: null });
   });
   return chain;
 }
@@ -388,6 +397,8 @@ describe("scheduleService", () => {
       expect(spy.orderCalls).toEqual([
         ["day_of_week", { ascending: true }],
         ["starts_at", { ascending: true }],
+        // Sayfalar arasında satır kaymasın diye eşitlik bozucu.
+        ["id", { ascending: true }],
       ]);
       expect(spy.limitArg).toBe(50);
 
@@ -458,8 +469,40 @@ describe("scheduleService", () => {
       expect(result.truncated).toBe(true);
     });
 
-    it("varsayılan üst sınır 200'dür", async () => {
-      const spy: { limitArg?: number } = {};
+    it("200'den fazla ders sayfa sayfa iner; haftanın son günleri kaybolmaz", async () => {
+      // Eskiden tek sorgu 200 satırda kesiliyordu ve sıralama gün/saat
+      // olduğu için bütün sınıfların Cuma-Cumartesi dersleri kayboluyordu.
+      const mockRows = Array.from({ length: 2500 }, (_, i) => ({
+        id: `entry-${String(i).padStart(5, "0")}`,
+        day_of_week: i < 2400 ? 1 : 6,
+        starts_at: "09:00:00",
+        ends_at: null,
+        title: `Ders ${i}`,
+        class_id: `cls-${i % 50}`,
+        classes: { name: `Sınıf ${i % 50}` },
+      }));
+      const spy: { rangeCalls?: [number, number][] } = {};
+      fromMock.mockReturnValue(
+        createScheduleQueryChain({ data: mockRows, error: null }, spy)
+      );
+
+      const result = await loadSchedule("org-1");
+
+      expect(spy.rangeCalls).toEqual([
+        [0, 499],
+        [500, 999],
+        [1000, 1499],
+        [1500, 1999],
+        [2000, 2499],
+        [2500, 2999],
+      ]);
+      expect(result.rows).toHaveLength(2500);
+      expect(result.rows.filter(r => r.day === "Cumartesi")).toHaveLength(100);
+      expect(result.truncated).toBe(false);
+    });
+
+    it("varsayılan üst sınır 5000'dir", async () => {
+      const spy: { rangeCalls?: [number, number][] } = {};
       fromMock.mockReturnValue(
         createScheduleQueryChain(
           {
@@ -472,8 +515,9 @@ describe("scheduleService", () => {
 
       await loadSchedule("org-1");
 
-      expect(spy.limitArg).toBe(DEFAULT_SCHEDULE_LIMIT);
-      expect(DEFAULT_SCHEDULE_LIMIT).toBe(200);
+      // Boş programda yalnız ilk sayfa istenir; toplam tavan 5000.
+      expect(spy.rangeCalls).toEqual([[0, 499]]);
+      expect(SCHEDULE_TOTAL_CAP).toBe(5000);
     });
 
     it("kurum kimliği boşsa sorgu atmadan boş sonuç döner (fail-closed / K-04)", async () => {
