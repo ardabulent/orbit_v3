@@ -105,7 +105,7 @@ import {
   restoreClass,
   DEFAULT_CLASS_LIMIT,
 } from "@/education/classService";
-import { DEFAULT_SCHEDULE_LIMIT } from "@/education/scheduleService";
+import { SCHEDULE_TOTAL_CAP } from "@/education/scheduleService";
 import { DEFAULT_PAYMENT_LIMIT } from "@/education/paymentService";
 import { allNav } from "./navigation";
 import { roleMeta } from "./roleMeta";
@@ -1017,7 +1017,7 @@ export function EducationPlatform({
           error={!isDemoMode ? scheduleQuery.error : null}
           onRetry={!isDemoMode ? () => void scheduleQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(scheduleQuery.data?.truncated)}
-          limit={DEFAULT_SCHEDULE_LIMIT}
+          limit={SCHEDULE_TOTAL_CAP}
           organizationId={organizationId}
           classes={activeClasses}
           covers={scheduleCovers}

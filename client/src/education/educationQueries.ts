@@ -13,7 +13,7 @@ import {
 } from "./classService";
 import type { ClassEnrollmentItem } from "@/components/education/types";
 import {
-  DEFAULT_SCHEDULE_LIMIT,
+  SCHEDULE_TOTAL_CAP,
   loadSchedule,
   type ScheduleListResult,
 } from "./scheduleService";
@@ -473,7 +473,7 @@ export function useSchedule(options?: UseScheduleOptions) {
   const { identity } = useAuth();
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
-  const limit = options?.limit ?? DEFAULT_SCHEDULE_LIMIT;
+  const limit = options?.limit ?? SCHEDULE_TOTAL_CAP;
   const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
 
   return useQuery<ScheduleListResult, Error>({

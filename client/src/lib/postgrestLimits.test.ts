@@ -88,6 +88,28 @@ describe("PostgREST satır tavanı (v1.5-09 · §4.12)", () => {
     expect(asanlar).toEqual([]);
   });
 
+  it("🔴 sayfalı okumaların sayfa boyu PostgREST tavanının altında", () => {
+    // 2026-10-03: ders programı sayfa sayfa okunuyor. Sayfa boyu tavana eşit
+    // ya da üstünde olsaydı, tavan düşürüldüğünde her sayfa eksik gelir ve
+    // döngü onu "son sayfa" sanıp sessizce dururdu.
+    const asanlar: string[] = [];
+    let bulunan = 0;
+    for (const yol of kaynakDosyalar(istemciKoku)) {
+      const icerik = readFileSync(yol, "utf8");
+      for (const eslesme of icerik.matchAll(
+        /const ([A-Z_]*PAGE_SIZE)\s*=\s*(\d+)\s*;/g
+      )) {
+        bulunan += 1;
+        if (Number(eslesme[2]) >= POSTGREST_MAX_ROWS) {
+          asanlar.push(`${eslesme[1]} = ${eslesme[2]}`);
+        }
+      }
+    }
+    // Ayrıştırma bozulursa boş liste sessizce yeşil geçmesin.
+    expect(bulunan).toBeGreaterThanOrEqual(1);
+    expect(asanlar).toEqual([]);
+  });
+
   it("tavan tek bir yerde tanımlı (K-06)", () => {
     // Sayı `homeworkService.ts` içinde yaşıyordu ve orada kalsaydı ikinci bir
     // kopyanın sessizce eklenmesini hiçbir şey engellemezdi.
