@@ -136,7 +136,7 @@ temizle() {
 }
 
 temizle
-echo "0/6 temiz başlangıç"
+echo "0/7 temiz başlangıç"
 
 # --- 1) Kurum, şube ve yönetici hazırlanıyor --------------------------------
 
@@ -161,7 +161,7 @@ admin_user_id=$(json "id" < /tmp/zincir_admin)
 rest POST "organization_memberships" \
   "{\"organization_id\":\"${org_id}\",\"branch_id\":\"${branch_id}\",\"user_id\":\"${admin_user_id}\",\"role\":\"admin\",\"status\":\"active\",\"person_code\":1000}" >/dev/null
 
-echo "1/6 kurum, şube ve yönetici hazır (org ${org_id})"
+echo "1/7 kurum, şube ve yönetici hazır (org ${org_id})"
 
 # --- 2) Yönetici giriş yapıp gerçek bir JWT alıyor --------------------------
 #
@@ -179,7 +179,7 @@ signin_kod=$(curl -s -o /tmp/zincir_signin -w '%{http_code}' \
 access_token=$(json "access_token" < /tmp/zincir_signin)
 [ -n "$access_token" ] || fail "giriş başarılı ama access_token dönmedi"
 
-echo "2/6 yönetici giriş yaptı ve JWT aldı"
+echo "2/7 yönetici giriş yaptı ve JWT aldı"
 
 # --- 3) Zincir: HTTP → JWT → Edge Function → RPC → SQL ----------------------
 
@@ -207,7 +207,7 @@ temporary_password=$(json "data.temporary_password" < /tmp/zincir_uye)
 [ -n "$login_number" ] || fail "üye oluştu ama giriş numarası dönmedi"
 [ -n "$temporary_password" ] || fail "üye oluştu ama geçici şifre dönmedi"
 
-echo "3/6 zincir çalıştı (HTTP 201, giriş no ${login_number})"
+echo "3/7 zincir çalıştı (HTTP 201, giriş no ${login_number})"
 
 # --- 4) Kilit ÜYELİKLE AYNI İŞLEMDE yazıldı mı? -----------------------------
 #
@@ -223,7 +223,7 @@ kilit=$(rest GET "profiles?id=eq.${yeni_uye_id}&select=must_change_password" | j
 Kâğıda yazılan geçici şifre süresiz ve değiştirilmesi zorunlu olmayan bir
 kimlik bilgisine dönüşmüş demektir."
 
-echo "4/6 kilit üyelikle aynı işlemde yazılmış (must_change_password=true)"
+echo "4/7 kilit üyelikle aynı işlemde yazılmış (must_change_password=true)"
 
 # --- 5) Aynı anahtarla ikinci istek işi TEKRAR YAPMIYOR ---------------------
 #
@@ -252,7 +252,7 @@ ogretmen_sayisi=$(rest GET "organization_memberships?organization_id=eq.${org_id
 
 [ "$ogretmen_sayisi" = "1" ] || fail "tekrar sonrası ${ogretmen_sayisi} öğretmen var, 1 olmalıydı"
 
-echo "5/6 tekrarlanan istek işi tekrar yapmadı (replay, şifre dönmedi, tek üye)"
+echo "5/7 tekrarlanan istek işi tekrar yapmadı (replay, şifre dönmedi, tek üye)"
 
 # --- 6) Yeni üye gerçekten giriş yapabiliyor mu? ----------------------------
 #
@@ -267,7 +267,39 @@ uye_signin=$(curl -s -o /tmp/zincir_uye_giris -w '%{http_code}' \
 
 [ "$uye_signin" = "200" ] || { cat /tmp/zincir_uye_giris; fail "yeni üye giriş yapamadı (HTTP ${uye_signin})"; }
 
-echo "6/6 yeni üye giriş numarası ve geçici şifresiyle giriş yaptı"
+echo "6/7 yeni üye giriş numarası ve geçici şifresiyle giriş yaptı"
+
+# --- 7) Kilitli yönetici hiçbir Edge işini yaptıramaz ------------------------
+#
+# v1.5-20'nin kanıtı (2026-10-03). 2026-09-19'da ölçülmüştü: kilitli yönetici
+# jetonuyla `create-member` HTTP 201 döndü. Kilit artık bütün fonksiyonların
+# geçtiği istek kapısında; jeton hâlâ geçerliyken bile iş yapılmaz.
+
+rest PATCH "profiles?id=eq.${admin_user_id}" '{"must_change_password":true}' >/dev/null
+
+kilitli_kod=$(curl -s -o /tmp/zincir_kilitli -w '%{http_code}' \
+  -X POST "${API_URL}/functions/v1/create-member" \
+  -H "Authorization: Bearer ${access_token}" \
+  -H "Content-Type: application/json" \
+  -d "{\"fullName\":\"Kilitli Deneme\",\"role\":\"teacher\",\"branchId\":\"${branch_id}\"}")
+
+[ "$kilitli_kod" = "403" ] || { cat /tmp/zincir_kilitli; fail "kilitli yönetici üye açabildi (HTTP ${kilitli_kod})"; }
+[ "$(json "error" < /tmp/zincir_kilitli)" = "password_change_required" ] || { cat /tmp/zincir_kilitli; fail "kilitli yönetici yanlış hata aldı"; }
+
+ogretmen_uyelik=$(rest GET "organization_memberships?organization_id=eq.${org_id}&role=eq.teacher&select=id" | json "id")
+rol_kod=$(curl -s -o /tmp/zincir_kilitli_rol -w '%{http_code}' \
+  -X POST "${API_URL}/functions/v1/change-member-role" \
+  -H "Authorization: Bearer ${access_token}" \
+  -H "Content-Type: application/json" \
+  -d "{\"membershipId\":\"${ogretmen_uyelik}\",\"role\":\"parent\"}")
+
+[ "$rol_kod" = "403" ] || { cat /tmp/zincir_kilitli_rol; fail "kilitli yönetici rol değiştirebildi (HTTP ${rol_kod})"; }
+
+ogretmen_sayisi=$(rest GET "organization_memberships?organization_id=eq.${org_id}&role=eq.teacher&select=user_id" \
+  | node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync(0,'utf8')||'[]').length))")
+[ "$ogretmen_sayisi" = "1" ] || fail "kilitli denemeler sonrası ${ogretmen_sayisi} öğretmen var, 1 olmalıydı"
+
+echo "7/7 kilitli yönetici reddedildi (create-member ve change-member-role 403, hiçbir şey değişmedi)"
 echo
 echo "Auth → Edge Function → SQL zinciri uçtan uca çalışıyor."
 

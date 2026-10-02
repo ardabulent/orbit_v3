@@ -25,6 +25,8 @@ export type GuardDecision =
   | { kind: "replay"; outcome: Record<string, unknown> | null }
   | { kind: "in_progress" }
   | { kind: "rate_limited"; limit: number }
+  /** Çağıranın şifresi kilitli (2026-10-03, v1.5-20): önce şifre değişir. */
+  | { kind: "password_locked" }
   | { kind: "unavailable" };
 
 /** Anahtarın kabul edilebilir en uzun hâli. */
@@ -85,6 +87,10 @@ export async function beginFunctionCall(
 
   if (karar.allowed === true && typeof karar.call_id === "number") {
     return { kind: "proceed", callId: karar.call_id };
+  }
+
+  if (karar.reason === "password_locked") {
+    return { kind: "password_locked" };
   }
 
   if (karar.reason === "replay") {
