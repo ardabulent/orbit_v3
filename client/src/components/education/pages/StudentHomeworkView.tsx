@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { useStudentHomeworkContext } from "@/education/educationQueries";
 import { getOrbitToday } from "@/education/trDate";
-import { ChildPicker } from "../dashboards/ChildPicker";
+import { useGuardianChild } from "../guardianChild/guardianChildState";
 import { Badge, CardSkeleton, EmptyState, ErrorState } from "../shared";
 import type { Homework, Role, Student } from "../types";
 import { groupStudentHomework, studentHomeworkStatus } from "./homeworkGroups";
@@ -10,7 +9,8 @@ import { HomeworkGroup, HomeworkRow } from "./HomeworkRow";
 /**
  * Öğrenci ve velinin Ödevler görünümü (karar 2026-09-29): öğrencinin
  * sınıflarının ödevleri, her birinde kendi durumu. Teslimi yalnız öğretmen
- * işaretler; işaretleme bitmeden "getirilmedi" denmez.
+ * işaretler; işaretleme bitmeden "getirilmedi" denmez. Velide çocuk üst
+ * çubuktan seçilir (2026-10-02).
  */
 export function StudentHomeworkView({
   role,
@@ -22,9 +22,13 @@ export function StudentHomeworkView({
   /** Öğrencinin kendisi ya da velinin çocukları (RLS ile daraltılmış). */
   students: Student[];
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const guardian = useGuardianChild();
   const student =
-    students.find(s => s.id === selectedId) ?? students[0] ?? null;
+    (role === "parent"
+      ? students.find(s => s.id === guardian.child?.id)
+      : undefined) ??
+    students[0] ??
+    null;
 
   if (!student)
     return (
@@ -37,20 +41,11 @@ export function StudentHomeworkView({
     );
 
   return (
-    <>
-      {role === "parent" && students.length > 1 ? (
-        <ChildPicker
-          childrenList={students}
-          selectedId={student.id}
-          onSelect={setSelectedId}
-        />
-      ) : null}
-      <StudentHomeworkBody
-        key={student.id}
-        studentId={student.id}
-        homework={homework}
-      />
-    </>
+    <StudentHomeworkBody
+      key={student.id}
+      studentId={student.id}
+      homework={homework}
+    />
   );
 }
 

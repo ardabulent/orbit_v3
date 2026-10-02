@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { CalendarClock } from "lucide-react";
 import { useStudentExams, useStudents } from "@/education/educationQueries";
 import type { StudentExam } from "@/education/studentExamService";
 import { formatTrDate, getOrbitToday } from "@/education/trDate";
-import { ChildPicker } from "../dashboards/ChildPicker";
+import { useGuardianChild } from "../guardianChild/guardianChildState";
 import {
   Badge,
   CardSkeleton,
@@ -22,14 +21,19 @@ function formatNumber(value: number): string {
  * Öğrenci ve velinin Sınavlar sekmesi (karar 2026-09-28): yaklaşan
  * sınavlar ve sonuçlar — kendi puanı/neti, sınıf ortalaması, netli sınavda
  * ders ders doğru/yanlış/net. Başka öğrencinin puanı hiçbir yerde yok;
- * ortalama üç sonuçtan azsa gösterilmez.
+ * ortalama üç sonuçtan azsa gösterilmez. Velide çocuk üst çubuktan seçilir
+ * (2026-10-02).
  */
 export function StudentExamsView({ role }: { role: Role }) {
   const studentsQuery = useStudents();
   const children = studentsQuery.data?.rows ?? [];
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const guardian = useGuardianChild();
   const student =
-    children.find(c => c.id === selectedId) ?? children[0] ?? null;
+    (role === "parent"
+      ? children.find(c => c.id === guardian.child?.id)
+      : undefined) ??
+    children[0] ??
+    null;
 
   return (
     <>
@@ -58,16 +62,7 @@ export function StudentExamsView({ role }: { role: Role }) {
           />
         </div>
       ) : (
-        <>
-          {role === "parent" && children.length > 1 ? (
-            <ChildPicker
-              childrenList={children}
-              selectedId={student.id}
-              onSelect={setSelectedId}
-            />
-          ) : null}
-          <StudentExamsBody key={student.id} studentId={student.id} />
-        </>
+        <StudentExamsBody key={student.id} studentId={student.id} />
       )}
     </>
   );

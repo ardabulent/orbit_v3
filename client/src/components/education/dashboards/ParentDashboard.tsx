@@ -1,11 +1,7 @@
-import { useState } from "react";
 import { CalendarDays, CreditCard, NotebookPen, Trophy } from "lucide-react";
 import { useAuth } from "@/auth/useAuth";
 import { isDemoMode } from "@/auth/runtime";
-import {
-  useStudentOverdueInstallments,
-  useStudents,
-} from "@/education/educationQueries";
+import { useStudentOverdueInstallments } from "@/education/educationQueries";
 import { EmptyState, ErrorState } from "../shared";
 import type { Section, Student } from "../types";
 import {
@@ -15,7 +11,7 @@ import {
   type AttentionItem,
   type QuickAction,
 } from "./overviewParts";
-import { ChildPicker } from "./ChildPicker";
+import { useGuardianChild } from "../guardianChild/guardianChildState";
 import { StudentOverviewSections } from "./StudentOverviewSections";
 
 /**
@@ -27,9 +23,9 @@ import { StudentOverviewSections } from "./StudentOverviewSections";
  *
  * Veli, çocuğu için öğrencinin gördüğü gövdenin aynısını görür
  * (`StudentOverviewSections`) ve tek bir satır fazlası: vadesi geçmiş taksit.
- * Birden fazla çocuk varsa üstte adlarıyla bir seçici çıkar, ekran seçili
- * çocuğu gösterir (karar 2026-09-27). Çocuk listesi öğrenci listesinden gelir
- * — RLS o listeyi veliye yalnız bağlı olduğu öğrenciler olarak döndürür.
+ * Birden fazla çocuk varsa ekran üst çubukta seçili çocuğu gösterir (karar
+ * 2026-09-27; seçici 2026-10-02'de buradan üst çubuğa taşındı ve bütün veli
+ * sekmeleri için ortak oldu — `guardianChild/`).
  */
 
 const PARENT_ACTIONS: QuickAction[] = [
@@ -70,22 +66,15 @@ function ParentOverviewBody({
 }: {
   onNavigate: (section: Section) => void;
 }) {
-  const studentsQuery = useStudents();
-  const children = studentsQuery.data?.rows ?? [];
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Seçim listede yoksa (ilk açılış, kurum değişimi) ilk çocuğa düşülür.
-  const child =
-    children.find(candidate => candidate.id === selectedId) ??
-    children[0] ??
-    null;
+  const { children, child, isLoading, isError, retry } = useGuardianChild();
 
-  if (studentsQuery.isPending) return <StatsSkeleton />;
-  if (studentsQuery.isError) {
+  if (isLoading && !child) return <StatsSkeleton />;
+  if (isError && !child) {
     return (
       <ErrorState
         className="mt-5"
         message="Öğrenci bilgileri alınamadı."
-        onRetry={() => void studentsQuery.refetch()}
+        onRetry={retry}
       />
     );
   }
@@ -101,21 +90,12 @@ function ParentOverviewBody({
   }
 
   return (
-    <>
-      {children.length > 1 ? (
-        <ChildPicker
-          childrenList={children}
-          selectedId={child.id}
-          onSelect={setSelectedId}
-        />
-      ) : null}
-      <ChildOverview
-        key={child.id}
-        child={child}
-        showName={children.length > 1}
-        onNavigate={onNavigate}
-      />
-    </>
+    <ChildOverview
+      key={child.id}
+      child={child}
+      showName={children.length > 1}
+      onNavigate={onNavigate}
+    />
   );
 }
 
