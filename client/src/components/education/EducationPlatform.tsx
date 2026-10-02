@@ -122,6 +122,11 @@ import { ReportsPage } from "./pages/ReportsPage";
 import { SchedulePage } from "./pages/SchedulePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { StudentsPage } from "./pages/StudentsPage";
+import { ChildSwitcher } from "./guardianChild/ChildSwitcher";
+import {
+  GuardianChildContext,
+  useGuardianChildState,
+} from "./guardianChild/guardianChildState";
 import { StudentDetail } from "./StudentDetail";
 import type {
   AttendanceState,
@@ -202,6 +207,12 @@ export function EducationPlatform({
 
   const { identity } = useAuth();
   const organizationId = identity?.membership?.organizationId ?? "";
+  // Velinin seçili çocuğu: üst çubukta seçilir, bütün veli sekmeleri okur
+  // (karar 2026-09-27, uygulama 2026-10-02).
+  const guardianChild = useGuardianChildState({
+    enabled: role === "parent" && !isDemoMode,
+    userId: identity?.userId ?? "",
+  });
   const queryClient = useQueryClient();
   const [studentFormOpen, setStudentFormOpen] = useState(false);
   /** "Yeni öğrenci" tek akışı; `StudentFormDialog` yalnız düzenleme için. */
@@ -648,8 +659,16 @@ export function EducationPlatform({
     if (isDemoMode) {
       return schedule;
     }
-    return scheduleQuery.data?.rows ?? [];
-  }, [scheduleQuery.data?.rows]);
+    const rows = scheduleQuery.data?.rows ?? [];
+    // Veli: yalnız seçili çocuğun sınıfları; iki çocuğun dersi karışmaz.
+    if (guardianChild.active) {
+      const classIds = guardianChild.classIds;
+      return classIds
+        ? rows.filter(item => item.classId && classIds.has(item.classId))
+        : [];
+    }
+    return rows;
+  }, [scheduleQuery.data?.rows, guardianChild.active, guardianChild.classIds]);
 
   const todayLessonsForClasses = useTodayLessons({
     enabled:
@@ -708,8 +727,14 @@ export function EducationPlatform({
     if (isDemoMode) {
       return paymentRows;
     }
-    return paymentsQuery.data?.rows ?? [];
-  }, [paymentsQuery.data?.rows]);
+    const rows = paymentsQuery.data?.rows ?? [];
+    // Veli: yalnız seçili çocuğun planları.
+    if (guardianChild.active) {
+      const childId = guardianChild.child?.id;
+      return childId ? rows.filter(row => row.studentId === childId) : [];
+    }
+    return rows;
+  }, [paymentsQuery.data?.rows, guardianChild.active, guardianChild.child]);
 
   const activePaymentOverviewStats = useMemo(() => {
     if (isDemoMode) {
@@ -986,7 +1011,9 @@ export function EducationPlatform({
         <SchedulePage
           role={role}
           schedule={activeSchedule}
-          isLoading={!isDemoMode && scheduleQuery.isLoading}
+          isLoading={
+            !isDemoMode && (scheduleQuery.isLoading || guardianChild.isLoading)
+          }
           error={!isDemoMode ? scheduleQuery.error : null}
           onRetry={!isDemoMode ? () => void scheduleQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(scheduleQuery.data?.truncated)}
@@ -1221,421 +1248,446 @@ export function EducationPlatform({
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f8fc] text-slate-900">
-      <div className="flex min-h-screen">
-        <aside
-          className={`fixed inset-y-0 left-0 z-40 flex w-[258px] flex-col border-r border-slate-200 bg-white px-3 py-4 transition-all lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${mobileNav ? "translate-x-0" : "-translate-x-full"} ${navCollapsed ? "lg:w-[74px] lg:px-2" : "lg:w-[258px]"}`}
-        >
-          <div className="mb-7 flex items-center justify-between px-2">
-            <div className="flex items-center gap-2.5">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,.12)]">
-                <OrbitMark inverted className="h-full w-full object-contain" />
-              </span>
-              <div className={navCollapsed ? "lg:hidden" : ""}>
-                <p className="font-orbit text-[18px] font-extrabold tracking-[-.055em] text-slate-900">
-                  ORBIT
-                </p>
-                <p className="-mt-0.5 text-[9px] font-bold uppercase tracking-[.13em] text-slate-400">
-                  Education
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setMobileNav(false)}
-              aria-label="Menüyü kapat"
-              className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 lg:hidden"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div
-            className={`mb-5 rounded-xl border border-blue-100 bg-blue-50/65 px-3 py-3 ${navCollapsed ? "lg:hidden" : ""}`}
+    <GuardianChildContext.Provider value={guardianChild}>
+      <div className="min-h-screen bg-[#f6f8fc] text-slate-900">
+        <div className="flex min-h-screen">
+          <aside
+            className={`fixed inset-y-0 left-0 z-40 flex w-[258px] flex-col border-r border-slate-200 bg-white px-3 py-4 transition-all lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${mobileNav ? "translate-x-0" : "-translate-x-full"} ${navCollapsed ? "lg:w-[74px] lg:px-2" : "lg:w-[258px]"}`}
           >
-            <div className="flex items-center gap-2">
-              <span
-                className={`grid h-8 w-8 place-items-center rounded-lg ${meta.color}`}
+            <div className="mb-7 flex items-center justify-between px-2">
+              <div className="flex items-center gap-2.5">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,.12)]">
+                  <OrbitMark
+                    inverted
+                    className="h-full w-full object-contain"
+                  />
+                </span>
+                <div className={navCollapsed ? "lg:hidden" : ""}>
+                  <p className="font-orbit text-[18px] font-extrabold tracking-[-.055em] text-slate-900">
+                    ORBIT
+                  </p>
+                  <p className="-mt-0.5 text-[9px] font-bold uppercase tracking-[.13em] text-slate-400">
+                    Education
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileNav(false)}
+                aria-label="Menüyü kapat"
+                className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 lg:hidden"
               >
-                <meta.icon className="h-4 w-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-[11px] font-extrabold text-slate-800">
-                  {currentDisplayName}
-                </p>
-                <p className="mt-0.5 text-[10px] font-medium text-slate-500">
-                  {meta.label}
-                </p>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div
+              className={`mb-5 rounded-xl border border-blue-100 bg-blue-50/65 px-3 py-3 ${navCollapsed ? "lg:hidden" : ""}`}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`grid h-8 w-8 place-items-center rounded-lg ${meta.color}`}
+                >
+                  <meta.icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-extrabold text-slate-800">
+                    {currentDisplayName}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-medium text-slate-500">
+                    {meta.label}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          {/*
+            {/*
             `flex-1 overflow-y-auto` olmadan menü, ekran yüksekliğini aşınca
             kesiliyordu ve kaydırılamıyordu: `lg:h-screen` yüksekliği sabitliyor
             ama taşan içeriğe ne yapılacağını söylemiyor. Küçük dizüstü
             ekranlarda alttaki maddelere hiç ulaşılamıyordu.
           */}
-          <nav className="-mr-1 flex-1 space-y-1 overflow-y-auto pr-1">
-            {(["Ana çalışma alanı", "Kurum yönetimi"] as const).map(group => {
-              const groupItems = navItems.filter(item => item.group === group);
-              if (groupItems.length === 0) return null;
+            <nav className="-mr-1 flex-1 space-y-1 overflow-y-auto pr-1">
+              {(["Ana çalışma alanı", "Kurum yönetimi"] as const).map(group => {
+                const groupItems = navItems.filter(
+                  item => item.group === group
+                );
+                if (groupItems.length === 0) return null;
 
-              const groupTitle =
-                group === "Kurum yönetimi" ? secondaryGroupTitle[role] : group;
+                const groupTitle =
+                  group === "Kurum yönetimi"
+                    ? secondaryGroupTitle[role]
+                    : group;
 
-              return (
-                <div
-                  key={group}
-                  className={
-                    group === "Kurum yönetimi" ? "mt-6 space-y-1" : "space-y-1"
-                  }
-                >
-                  <p
-                    className={`mb-2 px-3 text-[9px] font-extrabold uppercase tracking-[.14em] text-slate-400 ${navCollapsed ? "lg:hidden" : ""}`}
+                return (
+                  <div
+                    key={group}
+                    className={
+                      group === "Kurum yönetimi"
+                        ? "mt-6 space-y-1"
+                        : "space-y-1"
+                    }
                   >
-                    {groupTitle}
-                  </p>
-                  {groupItems.map(item => {
-                    const Icon = item.icon;
-                    const selected = active === item.label;
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => navigate(item.label)}
-                        // Şerit hâlindeyken etiket gizlendiği için erişilebilir
-                        // ad ve fare üzerinde ipucu `title` ile korunuyor.
-                        title={navCollapsed ? item.label : undefined}
-                        className={`flex h-9 w-full items-center gap-3 rounded-lg text-left text-[12px] font-semibold transition ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"} ${selected ? "bg-slate-900 text-white shadow-[0_7px_14px_rgba(15,23,42,.10)]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
-                      >
-                        <Icon
-                          className={`h-4 w-4 shrink-0 ${selected ? "text-white" : "text-slate-400"}`}
-                        />
-                        <span
-                          className={`flex-1 ${navCollapsed ? "lg:hidden" : ""}`}
+                    <p
+                      className={`mb-2 px-3 text-[9px] font-extrabold uppercase tracking-[.14em] text-slate-400 ${navCollapsed ? "lg:hidden" : ""}`}
+                    >
+                      {groupTitle}
+                    </p>
+                    {groupItems.map(item => {
+                      const Icon = item.icon;
+                      const selected = active === item.label;
+                      return (
+                        <button
+                          key={item.label}
+                          onClick={() => navigate(item.label)}
+                          // Şerit hâlindeyken etiket gizlendiği için erişilebilir
+                          // ad ve fare üzerinde ipucu `title` ile korunuyor.
+                          title={navCollapsed ? item.label : undefined}
+                          className={`flex h-9 w-full items-center gap-3 rounded-lg text-left text-[12px] font-semibold transition ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"} ${selected ? "bg-slate-900 text-white shadow-[0_7px_14px_rgba(15,23,42,.10)]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
                         >
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </nav>
-          <div className="mt-auto space-y-1 border-t border-slate-100 pt-4">
-            {/*
+                          <Icon
+                            className={`h-4 w-4 shrink-0 ${selected ? "text-white" : "text-slate-400"}`}
+                          />
+                          <span
+                            className={`flex-1 ${navCollapsed ? "lg:hidden" : ""}`}
+                          >
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </nav>
+            <div className="mt-auto space-y-1 border-t border-slate-100 pt-4">
+              {/*
               Platform paneline giden tek görünür yol. Bağlantı yokken operatör
               panele ancak adresi elle yazarak ulaşabiliyordu; kurucu ekip
               üyeleri hem kurum üyesi hem operatör olduğu için girişte doğrudan
               dershane paneline düşüyor ve panelin var olduğunu göremiyordu.
               Yalnızca gerçekten operatör olana gösterilir.
             */}
-            {canAccessPlatform ? (
-              <Link
-                href="/platform"
-                title={navCollapsed ? "Platform yönetimi" : undefined}
+              {canAccessPlatform ? (
+                <Link
+                  href="/platform"
+                  title={navCollapsed ? "Platform yönetimi" : undefined}
+                  className={`flex h-9 w-full items-center gap-3 rounded-lg text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100 ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"}`}
+                >
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className={navCollapsed ? "lg:hidden" : ""}>
+                    Platform yönetimi
+                  </span>
+                </Link>
+              ) : null}
+              <button
+                onClick={onLogout}
+                title={navCollapsed ? "Çıkış Yap" : undefined}
                 className={`flex h-9 w-full items-center gap-3 rounded-lg text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100 ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"}`}
               >
-                <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" />
+                <LogOut className="h-4 w-4 shrink-0 text-slate-400" />
                 <span className={navCollapsed ? "lg:hidden" : ""}>
-                  Platform yönetimi
+                  Çıkış Yap
                 </span>
-              </Link>
-            ) : null}
-            <button
-              onClick={onLogout}
-              title={navCollapsed ? "Çıkış Yap" : undefined}
-              className={`flex h-9 w-full items-center gap-3 rounded-lg text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100 ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"}`}
-            >
-              <LogOut className="h-4 w-4 shrink-0 text-slate-400" />
-              <span className={navCollapsed ? "lg:hidden" : ""}>Çıkış Yap</span>
-            </button>
-          </div>
-        </aside>
-        {mobileNav ? (
-          <button
-            aria-label="Menüyü kapat"
-            onClick={() => setMobileNav(false)}
-            className="fixed inset-0 z-30 bg-slate-950/20 lg:hidden"
-          />
-        ) : null}
-        <main className="min-w-0 flex-1">
-          <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-[#f6f8fc]/90 px-4 backdrop-blur sm:px-6 lg:px-8">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setMobileNav(true)}
-                aria-label="Menüyü aç"
-                className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 lg:hidden"
-              >
-                <Menu className="h-4 w-4" />
               </button>
-              {/*
+            </div>
+          </aside>
+          {mobileNav ? (
+            <button
+              aria-label="Menüyü kapat"
+              onClick={() => setMobileNav(false)}
+              className="fixed inset-0 z-30 bg-slate-950/20 lg:hidden"
+            />
+          ) : null}
+          <main className="min-w-0 flex-1">
+            <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-[#f6f8fc]/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setMobileNav(true)}
+                  aria-label="Menüyü aç"
+                  className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 lg:hidden"
+                >
+                  <Menu className="h-4 w-4" />
+                </button>
+                {/*
                 Masaüstünde menü daraltma. Mobildeki düğmeden ayrı: orada menü
                 çekmece olarak açılıp kapanıyor, burada simge şeridine iniyor.
                 Tek düğmeyle iki davranışı yönetmek, ekran genişliğini JS'te
                 okumayı gerektirirdi.
               */}
-              <button
-                onClick={() => setNavCollapsed(value => !value)}
-                aria-label={navCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
-                aria-pressed={navCollapsed}
-                title={navCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
-                className="hidden h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 lg:grid"
-              >
-                <PanelLeft className="h-4 w-4" />
-              </button>
-              <div>
-                <p className="text-[11px] font-semibold text-slate-500">
-                  {meta.description}
-                </p>
-                {/* Akademik dönem burada yazılıydı ve hiçbir yerden gelmiyordu:
+                <button
+                  onClick={() => setNavCollapsed(value => !value)}
+                  aria-label={
+                    navCollapsed ? "Menüyü genişlet" : "Menüyü daralt"
+                  }
+                  aria-pressed={navCollapsed}
+                  title={navCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
+                  className="hidden h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 lg:grid"
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </button>
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-500">
+                    {meta.description}
+                  </p>
+                  {/* Akademik dönem burada yazılıydı ve hiçbir yerden gelmiyordu:
                     ne `organizations` tablosunda ne kimlikte böyle bir alan var.
                     Her kuruma aynı dönemi söylüyordu. Kurum adı da artık
                     korumalı; çözülemediğinde başlık boş kalır, yarım kalmış bir
                     ayıraç bırakmaz. */}
-                <p className="text-[10px] text-slate-400">
-                  {[branchName, organizationName].filter(Boolean).join(" · ")}
-                </p>
+                  <p className="text-[10px] text-slate-400">
+                    {[branchName, organizationName].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2.5">
-              {/* Zil kaldırıldı (v1.5-22): noktası her zaman yanıyordu ve her
+              <div className="flex items-center gap-2.5">
+                {/* Zil kaldırıldı (v1.5-22): noktası her zaman yanıyordu ve her
                   kullanıcıya aynı sabit cümleyi gösteriyordu ("2 otomasyon, 1
                   yoklama ve 3 iletişim bildirimi var"). Bildirim altyapısı yok;
                   olmayan bir şeyi sayı olarak göstermek K-03. Altyapı kurulunca
                   geri gelir. */}
-              <AccountSwitchMenu />
-              {canSwitchRole ? (
-                <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:flex">
-                  {(Object.keys(roleMeta) as Role[]).map(itemRole => (
-                    <button
-                      key={itemRole}
-                      onClick={() => changeRole(itemRole)}
-                      className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${role === itemRole ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}
-                    >
-                      {roleMeta[itemRole].short}
-                    </button>
-                  ))}
+                <div className="hidden sm:block">
+                  <ChildSwitcher />
                 </div>
-              ) : null}
-              {canSwitchRole ? (
-                <button
-                  onClick={() => {
-                    const next =
-                      role === "parent"
-                        ? "admin"
-                        : (Object.keys(roleMeta) as Role[])[
-                            (Object.keys(roleMeta) as Role[]).indexOf(role) + 1
-                          ];
-                    changeRole(next);
-                  }}
-                  aria-label="Demo rolünü değiştir"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white sm:hidden"
-                >
-                  {currentDisplayName
-                    ? currentDisplayName
-                        .split(" ")
-                        .filter(Boolean)
-                        .map(word => word[0])
-                        .join("")
-                    : "O"}
-                </button>
-              ) : (
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white">
-                  {currentDisplayName
-                    ? currentDisplayName
-                        .split(" ")
-                        .filter(Boolean)
-                        .map(word => word[0])
-                        .join("")
-                    : "O"}
-                </span>
-              )}
+                <AccountSwitchMenu />
+                {canSwitchRole ? (
+                  <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:flex">
+                    {(Object.keys(roleMeta) as Role[]).map(itemRole => (
+                      <button
+                        key={itemRole}
+                        onClick={() => changeRole(itemRole)}
+                        className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${role === itemRole ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                      >
+                        {roleMeta[itemRole].short}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {canSwitchRole ? (
+                  <button
+                    onClick={() => {
+                      const next =
+                        role === "parent"
+                          ? "admin"
+                          : (Object.keys(roleMeta) as Role[])[
+                              (Object.keys(roleMeta) as Role[]).indexOf(role) +
+                                1
+                            ];
+                      changeRole(next);
+                    }}
+                    aria-label="Demo rolünü değiştir"
+                    className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white sm:hidden"
+                  >
+                    {currentDisplayName
+                      ? currentDisplayName
+                          .split(" ")
+                          .filter(Boolean)
+                          .map(word => word[0])
+                          .join("")
+                      : "O"}
+                  </button>
+                ) : (
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white">
+                    {currentDisplayName
+                      ? currentDisplayName
+                          .split(" ")
+                          .filter(Boolean)
+                          .map(word => word[0])
+                          .join("")
+                      : "O"}
+                  </span>
+                )}
+              </div>
+            </header>
+            <div className="sm:hidden">
+              <ChildSwitcher variant="compact" />
             </div>
-          </header>
-          <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-            {renderPage()}
-          </div>
-        </main>
-      </div>
-      {selectedClass ? (
-        <ClassDetail
-          cls={selectedClass}
-          role={role}
-          summary={summaryFor(classSummaries, selectedClass.id)}
-          lessons={activeSchedule.filter(l => l.classId === selectedClass.id)}
-          onClose={() => setSelectedClassId(null)}
-          onOpenStudent={studentId => {
-            const student = activeStudents.find(s => s.id === studentId);
-            if (!student) return;
-            setSelectedClassId(null);
-            setSelectedStudentSnapshot(student);
-          }}
-          onManageEnrollments={
-            !isDemoMode
-              ? cls => {
-                  setClassForEnrollment(cls);
-                  setClassEnrollmentOpen(true);
-                }
-              : undefined
-          }
-          onManageTeachers={
-            !isDemoMode && role === "admin"
-              ? cls => {
-                  setClassForTeachers(cls);
-                  setClassTeachersOpen(true);
-                }
-              : undefined
-          }
-          onEdit={
-            !isDemoMode
-              ? cls => {
-                  setClassForEdit(cls);
-                  setClassFormOpen(true);
-                }
-              : undefined
-          }
-          onArchive={
-            !isDemoMode
-              ? cls => {
-                  setSelectedClassId(null);
-                  void handleArchiveClass(cls);
-                }
-              : undefined
-          }
-        />
-      ) : null}
-      {selectedStudent ? (
-        <StudentDetail
-          student={selectedStudent}
-          onClose={() => setSelectedStudentSnapshot(null)}
-          role={role}
-          studentGuardians={
-            !isDemoMode ? (studentGuardiansQuery.data ?? []) : undefined
-          }
-          availableGuardians={
-            !isDemoMode
-              ? (guardiansQuery.data?.rows ?? []).filter(
-                  g =>
-                    !(studentGuardiansQuery.data ?? []).some(
-                      link => link.guardianId === g.id
-                    )
-                )
-              : []
-          }
-          onLinkGuardian={
-            role === "admin" && !isDemoMode
-              ? handleLinkGuardianToStudent
-              : undefined
-          }
-          onUnlinkGuardian={
-            role === "admin" && !isDemoMode
-              ? handleUnlinkGuardianFromStudent
-              : undefined
-          }
-        />
-      ) : null}
-      {!isDemoMode && (
-        <>
-          <NewStudentDialog
-            open={newStudentOpen}
-            onOpenChange={setNewStudentOpen}
-            organizationId={organizationId}
+            <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+              {renderPage()}
+            </div>
+          </main>
+        </div>
+        {selectedClass ? (
+          <ClassDetail
+            cls={selectedClass}
+            role={role}
+            summary={summaryFor(classSummaries, selectedClass.id)}
+            lessons={activeSchedule.filter(l => l.classId === selectedClass.id)}
+            onClose={() => setSelectedClassId(null)}
+            onOpenStudent={studentId => {
+              const student = activeStudents.find(s => s.id === studentId);
+              if (!student) return;
+              setSelectedClassId(null);
+              setSelectedStudentSnapshot(student);
+            }}
+            onManageEnrollments={
+              !isDemoMode
+                ? cls => {
+                    setClassForEnrollment(cls);
+                    setClassEnrollmentOpen(true);
+                  }
+                : undefined
+            }
+            onManageTeachers={
+              !isDemoMode && role === "admin"
+                ? cls => {
+                    setClassForTeachers(cls);
+                    setClassTeachersOpen(true);
+                  }
+                : undefined
+            }
+            onEdit={
+              !isDemoMode
+                ? cls => {
+                    setClassForEdit(cls);
+                    setClassFormOpen(true);
+                  }
+                : undefined
+            }
+            onArchive={
+              !isDemoMode
+                ? cls => {
+                    setSelectedClassId(null);
+                    void handleArchiveClass(cls);
+                  }
+                : undefined
+            }
           />
-          <StudentFormDialog
-            open={studentFormOpen}
-            onOpenChange={setStudentFormOpen}
-            organizationId={organizationId}
-            student={studentForEdit}
-            onDone={() => setStudentForEdit(null)}
+        ) : null}
+        {selectedStudent ? (
+          <StudentDetail
+            student={selectedStudent}
+            onClose={() => setSelectedStudentSnapshot(null)}
+            role={role}
+            studentGuardians={
+              !isDemoMode ? (studentGuardiansQuery.data ?? []) : undefined
+            }
+            availableGuardians={
+              !isDemoMode
+                ? (guardiansQuery.data?.rows ?? []).filter(
+                    g =>
+                      !(studentGuardiansQuery.data ?? []).some(
+                        link => link.guardianId === g.id
+                      )
+                  )
+                : []
+            }
+            onLinkGuardian={
+              role === "admin" && !isDemoMode
+                ? handleLinkGuardianToStudent
+                : undefined
+            }
+            onUnlinkGuardian={
+              role === "admin" && !isDemoMode
+                ? handleUnlinkGuardianFromStudent
+                : undefined
+            }
           />
-          <GuardianFormDialog
-            open={guardianFormOpen}
-            onOpenChange={setGuardianFormOpen}
-            organizationId={organizationId}
-            guardian={guardianForEdit}
-            onDone={() => setGuardianForEdit(null)}
-          />
-          <ClassFormDialog
-            open={classFormOpen}
-            onOpenChange={setClassFormOpen}
-            organizationId={organizationId}
-            classData={classForEdit}
-            onDone={() => setClassForEdit(null)}
-          />
-          {classForEnrollment && (
-            <ClassEnrollmentDialog
-              open={classEnrollmentOpen}
-              onOpenChange={setClassEnrollmentOpen}
+        ) : null}
+        {!isDemoMode && (
+          <>
+            <NewStudentDialog
+              open={newStudentOpen}
+              onOpenChange={setNewStudentOpen}
               organizationId={organizationId}
-              classData={classForEnrollment}
             />
-          )}
-          {classForTeachers && (
-            <ClassTeachersDialog
-              open={classTeachersOpen}
-              onOpenChange={setClassTeachersOpen}
+            <StudentFormDialog
+              open={studentFormOpen}
+              onOpenChange={setStudentFormOpen}
               organizationId={organizationId}
-              classData={classForTeachers}
+              student={studentForEdit}
+              onDone={() => setStudentForEdit(null)}
             />
-          )}
-          <PaymentPlanEditorDialog
-            open={paymentPlanFormOpen}
-            onOpenChange={setPaymentPlanFormOpen}
-            organizationId={organizationId}
-            students={activeStudents.map(s => ({ id: s.id, name: s.name }))}
-            plan={paymentPlanForEdit}
-            onDone={() => setPaymentPlanForEdit(null)}
-          />
-          {selectedPaymentPlan && (
-            <PaymentPlanDetailDialog
-              open={paymentPlanDetailOpen}
-              onOpenChange={setPaymentPlanDetailOpen}
+            <GuardianFormDialog
+              open={guardianFormOpen}
+              onOpenChange={setGuardianFormOpen}
               organizationId={organizationId}
-              role={role}
-              plan={selectedPaymentPlan}
-              onEditPlan={plan => {
-                setPaymentPlanForEdit(plan);
-                setPaymentPlanFormOpen(true);
-              }}
-              onPlanArchived={() => setSelectedPaymentPlan(null)}
+              guardian={guardianForEdit}
+              onDone={() => setGuardianForEdit(null)}
             />
-          )}
-        </>
-      )}
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Kaydedilmemiş Değişiklikler</AlertDialogTitle>
-            <AlertDialogDescription>
-              Kaydedilmemiş değişiklikleriniz var. Sayfadan ayrılırsanız bu
-              değişiklikler kaybolacak. Devam etmek istediğinize emin misiniz?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setConfirmDialogOpen(false);
-                setPendingNavAction(null);
-              }}
-            >
-              Vazgeç
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setIsAttendanceDirty(false);
-                setIsExamDirty(false);
-                setConfirmDialogOpen(false);
-                if (pendingNavAction) {
-                  const action = pendingNavAction;
+            <ClassFormDialog
+              open={classFormOpen}
+              onOpenChange={setClassFormOpen}
+              organizationId={organizationId}
+              classData={classForEdit}
+              onDone={() => setClassForEdit(null)}
+            />
+            {classForEnrollment && (
+              <ClassEnrollmentDialog
+                open={classEnrollmentOpen}
+                onOpenChange={setClassEnrollmentOpen}
+                organizationId={organizationId}
+                classData={classForEnrollment}
+              />
+            )}
+            {classForTeachers && (
+              <ClassTeachersDialog
+                open={classTeachersOpen}
+                onOpenChange={setClassTeachersOpen}
+                organizationId={organizationId}
+                classData={classForTeachers}
+              />
+            )}
+            <PaymentPlanEditorDialog
+              open={paymentPlanFormOpen}
+              onOpenChange={setPaymentPlanFormOpen}
+              organizationId={organizationId}
+              students={activeStudents.map(s => ({ id: s.id, name: s.name }))}
+              plan={paymentPlanForEdit}
+              onDone={() => setPaymentPlanForEdit(null)}
+            />
+            {selectedPaymentPlan && (
+              <PaymentPlanDetailDialog
+                open={paymentPlanDetailOpen}
+                onOpenChange={setPaymentPlanDetailOpen}
+                organizationId={organizationId}
+                role={role}
+                plan={selectedPaymentPlan}
+                onEditPlan={plan => {
+                  setPaymentPlanForEdit(plan);
+                  setPaymentPlanFormOpen(true);
+                }}
+                onPlanArchived={() => setSelectedPaymentPlan(null)}
+              />
+            )}
+          </>
+        )}
+        <AlertDialog
+          open={confirmDialogOpen}
+          onOpenChange={setConfirmDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Kaydedilmemiş Değişiklikler</AlertDialogTitle>
+              <AlertDialogDescription>
+                Kaydedilmemiş değişiklikleriniz var. Sayfadan ayrılırsanız bu
+                değişiklikler kaybolacak. Devam etmek istediğinize emin misiniz?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setConfirmDialogOpen(false);
                   setPendingNavAction(null);
-                  action();
-                }
-              }}
-            >
-              Devam Et
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+                }}
+              >
+                Vazgeç
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setIsAttendanceDirty(false);
+                  setIsExamDirty(false);
+                  setConfirmDialogOpen(false);
+                  if (pendingNavAction) {
+                    const action = pendingNavAction;
+                    setPendingNavAction(null);
+                    action();
+                  }
+                }}
+              >
+                Devam Et
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </GuardianChildContext.Provider>
   );
 }
