@@ -96,6 +96,14 @@ Deno.serve(async request => {
     return jsonResponse({ error: "request_in_progress" }, 409, origin);
   }
 
+  if (guard.kind === "password_locked") {
+    // Kilitli çağıran (geçici ya da süresi dolmuş şifre) hiçbir işi
+
+    // yaptıramaz; önce şifresini değiştirmeli (v1.5-20, K-25).
+
+    return jsonResponse({ error: "password_change_required" }, 403, origin);
+  }
+
   if (guard.kind === "in_progress") {
     return jsonResponse({ error: "request_in_progress" }, 409, origin);
   }

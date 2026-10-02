@@ -283,6 +283,8 @@ const MEMBER_ERROR_MESSAGES: Record<string, string> = {
   password_update_failed: "Yeni şifre kaydedilemedi. Lütfen tekrar deneyin.",
   service_unavailable:
     "Servis şu anda yanıt vermiyor. Birkaç dakika sonra tekrar deneyin.",
+  password_change_required:
+    "Bu işlemi yapmadan önce şifrenizi değiştirmeniz gerekiyor. Çıkış yapıp yeni şifre belirleyin.",
   origin_not_allowed: "Bu adres sunucu tarafında izinli değil.",
   member_create_failed:
     "Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.",
@@ -466,6 +468,13 @@ export function translateMembershipActionError(
     errorName?.includes("request_in_progress")
   ) {
     return "İşlem şu anda devam ediyor. Lütfen birkaç saniye sonra tekrar deneyin.";
+  }
+
+  if (
+    errorName === "password_change_required" ||
+    errorName?.includes("password_change_required")
+  ) {
+    return "Bu işlemi yapmadan önce şifrenizi değiştirmeniz gerekiyor. Çıkış yapıp yeni şifre belirleyin.";
   }
 
   if (errorName === "rate_limited" || errorName?.includes("rate_limited")) {

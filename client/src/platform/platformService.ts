@@ -82,6 +82,8 @@ const CREATE_ERROR_MESSAGES: Record<string, string> = {
     "Kurum oluşturulamadı. Kısa ad (slug) başka bir kurumda kullanılıyor olabilir.",
   service_unavailable:
     "Servis şu anda yanıt vermiyor. Birkaç dakika sonra tekrar deneyin.",
+  password_change_required:
+    "Bu işlemi yapmadan önce şifrenizi değiştirmeniz gerekiyor. Çıkış yapıp yeni şifre belirleyin.",
   origin_not_allowed:
     "Bu adres sunucu tarafında izinli değil. Geliştirme ekibine bildirin.",
   admin_not_found:

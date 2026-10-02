@@ -248,12 +248,16 @@ select is(
   'recording a guardian leaves a trace'
 );
 
+-- Sonradan düzeltme (2026-10-03, v1.5-21): iz eskiden telefonun KENDİSİNİ
+-- taşıyordu ("değişim görünmez kalırdı" gerekçesiyle). Telefon düz metin
+-- olarak log'a gitmez (AGENTS.md); değişimin görünürlüğü artık
+-- "changed": ["phone"] ile sağlanıyor (`caller_lock_and_masked_phone.test.sql`).
 select is(
-  (select metadata ->> 'phone' from public.audit_events
+  (select (metadata ? 'phone')::text from public.audit_events
    where entity_id = '9b000000-0000-0000-0000-00000000b001'
      and action = 'guardian.created'),
-  '0532 111 11 11',
-  'the trace carries the phone — changing it silently would otherwise be invisible'
+  'false',
+  'the trace names the guardian but never carries the phone number'
 );
 
 select is(
