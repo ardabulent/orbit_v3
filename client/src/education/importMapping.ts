@@ -14,6 +14,9 @@ import type { ImportRow } from "./studentImport";
 /** Dosyadan okunmuş ham tablo: her hücre metin. */
 export type ImportTable = string[][];
 
+/** Excel'in bir sayfası (CSV'de tek sayfa, adı dosya adı). */
+export type ImportSheet = { name: string; table: ImportTable };
+
 export type ImportField =
   | "full_name"
   | "last_name"
@@ -99,7 +102,11 @@ const SYNONYMS: Record<ImportField, string[]> = {
     "veli adı soyadı",
     "veli adı",
     "veli",
+    "velisi",
     "veli ismi",
+    "veli ad",
+    "velinin adı",
+    "velinin adı soyadı",
   ],
   guardian_phone: [
     "veli telefon",
@@ -214,6 +221,44 @@ export function buildImportRows(
     lineNumbers.push(headerRow + offset + 2);
   });
   return { rows, lineNumbers };
+}
+
+export type BuiltSheets = {
+  rows: ImportRow[];
+  /** `rows[i]`'nin dosyadaki yeri: "6. satır" ya da "12A · 6. satır". */
+  rowLabels: string[];
+};
+
+/**
+ * Bir ya da birden çok sayfadan aktarım satırları (2026-10-02). Kurumlarda
+ * yaygın düzen: her sınıf ayrı bir sayfa. `sheetAsClass` açıksa sınıf
+ * sütunu boş kalan satırın sınıfı SAYFA ADIDIR (sonra sınıf eşlemesinden
+ * geçer). Sayfaların sütun düzeninin aynı olduğu varsayılır; başlık satırı
+ * ilk sayfada kullanıcının seçtiği, diğerlerinde kendiliğinden bulunandır.
+ */
+export function buildFromSheets(
+  sheets: ImportSheet[],
+  headerRow: number,
+  mapping: ImportMapping,
+  sheetAsClass: boolean
+): BuiltSheets {
+  const rows: ImportRow[] = [];
+  const rowLabels: string[] = [];
+  const many = sheets.length > 1;
+  sheets.forEach((sheet, index) => {
+    const header = index === 0 ? headerRow : detectHeaderRow(sheet.table);
+    const built = buildImportRows(sheet.table, header, mapping);
+    built.rows.forEach((row, i) => {
+      rows.push(
+        sheetAsClass && !row.class_name
+          ? { ...row, class_name: sheet.name.trim() }
+          : row
+      );
+      const line = `${built.lineNumbers[i]}. satır`;
+      rowLabels.push(many ? `${sheet.name} · ${line}` : line);
+    });
+  });
+  return { rows, rowLabels };
 }
 
 /** Eşleme kaydedilebilir mi; değilse kullanıcıya söylenecek sebep. */

@@ -27,6 +27,19 @@ describe("sütun eşleme (2026-10-01)", () => {
     });
   });
 
+  it("okul listelerinin büyük harfli başlıkları tanınır", () => {
+    expect(
+      guessMapping(["S.No", "Okul No", "ADI SOYADI", "VELİSİ", "VELİ TEL"])
+    ).toEqual({
+      full_name: 2,
+      last_name: null,
+      student_number: 1,
+      class_name: null,
+      guardian_name: 3,
+      guardian_phone: 4,
+    });
+  });
+
   it("noktalama ve büyük harf fark etmez", () => {
     expect(guessMapping(["ÖĞRENCİ NO:", "AD SOYAD", "Veli Adı"])).toEqual({
       ...EMPTY_MAPPING,

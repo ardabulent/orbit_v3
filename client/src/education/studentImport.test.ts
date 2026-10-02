@@ -111,7 +111,7 @@ describe("ImportPreview", () => {
       createElement(ImportPreview, {
         fileName: "liste.csv",
         rows,
-        lineNumbers: [4],
+        rowLabels: ["4. satır"],
         result: {
           saved: false,
           rowCount: 1,
@@ -143,7 +143,7 @@ describe("ImportPreview", () => {
       createElement(ImportPreview, {
         fileName: "liste.csv",
         rows,
-        lineNumbers: [2],
+        rowLabels: ["2. satır"],
         result: { saved: false, rowCount: 1, errors: [] },
         saving: false,
         onSave: () => {},

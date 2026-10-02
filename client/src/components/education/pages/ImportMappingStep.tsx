@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   columnLetter,
   HEADER_SCAN_ROWS,
@@ -26,6 +27,10 @@ export function ImportMappingStep({
   onMappingChange,
   onContinue,
   onCancel,
+  blockReason = null,
+  studentCount,
+  sheetCount = 1,
+  children,
 }: {
   fileName: string;
   table: ImportTable;
@@ -36,6 +41,13 @@ export function ImportMappingStep({
   onMappingChange: (mapping: ImportMapping) => void;
   onContinue: () => void;
   onCancel: () => void;
+  /** Eşleme dışında devam etmeyi engelleyen sebep (ör. seçilmemiş sınıf). */
+  blockReason?: string | null;
+  /** Seçili bütün sayfalardaki öğrenci satırı; verilmezse bu tablodan sayılır. */
+  studentCount?: number;
+  sheetCount?: number;
+  /** Sütun tablosunun altında, düğmelerden önce gösterilir. */
+  children?: ReactNode;
 }) {
   const header = table[headerRow] ?? [];
   const sample = table[headerRow + 1] ?? [];
@@ -44,8 +56,8 @@ export function ImportMappingStep({
     index,
     label: `${columnLetter(index)} · ${header[index]?.trim() || "(başlıksız)"}`,
   }));
-  const dataRows = table.length - headerRow - 1;
-  const problem = mappingProblem(mapping);
+  const dataRows = studentCount ?? table.length - headerRow - 1;
+  const problem = mappingProblem(mapping) ?? blockReason;
 
   const setField = (field: ImportField, value: string) =>
     onMappingChange({
@@ -57,7 +69,8 @@ export function ImportMappingStep({
     <div className="mt-5 space-y-4">
       <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3">
         <p className="text-[12px] font-extrabold text-slate-800">
-          {fileName} · {dataRows} satır
+          {fileName} · {dataRows} öğrenci
+          {sheetCount > 1 ? ` · ${sheetCount} sayfa` : ""}
         </p>
         <p className="mt-0.5 text-[11px] text-slate-600">
           Dosyanızdaki sütunları ORBIT'in alanlarıyla eşleyin. Tanıdığımız
@@ -133,6 +146,8 @@ export function ImportMappingStep({
           </tbody>
         </table>
       </div>
+
+      {children}
 
       {problem ? (
         <p role="alert" className="text-[11px] font-bold text-rose-600">
