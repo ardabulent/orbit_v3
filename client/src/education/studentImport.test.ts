@@ -10,7 +10,6 @@ import { ImportPreview } from "@/components/education/pages/ImportPreview";
 import {
   importStudents,
   importTemplateCsv,
-  parseStudentCsv,
   splitCsv,
   type ImportRow,
 } from "./studentImport";
@@ -40,45 +39,18 @@ describe("CSV okuma (2026-09-29)", () => {
     ]);
   });
 
-  it("başlıklar farklı sırada ve farklı yazımla eşleşir", () => {
-    const parsed = parseStudentCsv(
-      "veli telefon;SINIF;ad soyad;Öğrenci No\n0555 111 22 33;12-A;Selin Koç;42"
-    );
-    expect(parsed).toEqual({
-      ok: true,
-      rows: [
-        {
-          full_name: "Selin Koç",
-          student_number: "42",
-          class_name: "12-A",
-          guardian_name: "",
-          guardian_phone: "0555 111 22 33",
-        },
-      ],
-    });
-  });
-
-  it("'Ad Soyad' başlığı yoksa sebebini söyler", () => {
-    const parsed = parseStudentCsv("İsim;Sınıf\nSelin;12-A");
-    expect(parsed.ok).toBe(false);
-    if (!parsed.ok) expect(parsed.message).toContain('"Ad Soyad"');
-  });
-
-  it("500'den fazla satır istemcide reddedilir", () => {
-    const body = Array.from({ length: 501 }, (_, i) => `Öğrenci ${i}`).join(
-      "\n"
-    );
-    const parsed = parseStudentCsv(`Ad Soyad\n${body}`);
-    expect(parsed.ok).toBe(false);
-    if (!parsed.ok) expect(parsed.message).toContain("en çok 500");
-  });
-
   it("şablon Türkçe Excel'de açılır: BOM ve noktalı virgül, başlıklar geri okunur", () => {
     const template = importTemplateCsv();
     expect(template.charCodeAt(0)).toBe(0xfeff);
-    const parsed = parseStudentCsv(template);
-    expect(parsed.ok).toBe(true);
-    if (parsed.ok) expect(parsed.rows[0].full_name).toBe("Örnek Öğrenci");
+    const table = splitCsv(template);
+    expect(table[0]).toEqual([
+      "Ad Soyad",
+      "Öğrenci No",
+      "Sınıf",
+      "Veli Ad Soyad",
+      "Veli Telefon",
+    ]);
+    expect(table[1][0]).toBe("Örnek Öğrenci");
   });
 });
 
@@ -139,6 +111,7 @@ describe("ImportPreview", () => {
       createElement(ImportPreview, {
         fileName: "liste.csv",
         rows,
+        lineNumbers: [4],
         result: {
           saved: false,
           rowCount: 1,
@@ -152,11 +125,14 @@ describe("ImportPreview", () => {
         },
         saving: false,
         onSave: () => {},
+        onBack: () => {},
         onCancel: () => {},
       })
     );
     expect(html).toContain("1 hata — hiçbir şey kaydedilmedi");
-    expect(html).toContain("2. satır");
+    // Başlık 3. satırdaysa ilk öğrenci dosyanın 4. satırıdır.
+    expect(html).toContain("4. satır");
+    expect(html).toContain("Eşlemeyi değiştir");
     expect(html).toContain("Sınıf:");
     expect(html).not.toContain("öğrenciyi kaydet");
     expect(html).toContain("Düzeltip yeniden yükle");
@@ -167,9 +143,11 @@ describe("ImportPreview", () => {
       createElement(ImportPreview, {
         fileName: "liste.csv",
         rows,
+        lineNumbers: [2],
         result: { saved: false, rowCount: 1, errors: [] },
         saving: false,
         onSave: () => {},
+        onBack: () => {},
         onCancel: () => {},
       })
     );

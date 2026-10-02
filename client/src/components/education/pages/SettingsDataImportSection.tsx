@@ -1,41 +1,57 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Download, UploadCloud } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  FileSpreadsheet,
+  UploadCloud,
+} from "lucide-react";
 import { useAuth } from "@/auth/useAuth";
 import { isDemoMode } from "@/auth/runtime";
 import { educationKeys } from "@/education/educationQueries";
+import { readImportTable } from "@/education/importFile";
 import {
-  IMPORT_MAX_BYTES,
+  buildImportRows,
+  detectHeaderRow,
+  guessMapping,
+  type ImportMapping,
+  type ImportTable,
+} from "@/education/importMapping";
+import {
+  IMPORT_MAX_ROWS,
   importStudents,
   importTemplateCsv,
-  parseStudentCsv,
   type ImportResult,
   type ImportRow,
 } from "@/education/studentImport";
+import { ImportMappingStep } from "./ImportMappingStep";
 import { ImportPreview } from "./ImportPreview";
 
+type Source = { fileName: string; table: ImportTable };
+type Mapped = Source & { headerRow: number; mapping: ImportMapping };
+type Checked = Mapped & {
+  rows: ImportRow[];
+  lineNumbers: number[];
+  result: ImportResult;
+};
+
 type Step =
-  | { kind: "idle" }
-  | { kind: "checking" }
-  | { kind: "problem"; message: string }
-  | {
-      kind: "preview";
-      fileName: string;
-      rows: ImportRow[];
-      result: ImportResult;
-    }
-  | {
-      kind: "saving";
-      fileName: string;
-      rows: ImportRow[];
-      result: ImportResult;
-    }
+  | { kind: "idle"; problem?: string }
+  | { kind: "reading" }
+  | ({ kind: "mapping"; busy: boolean; problem?: string } & Mapped)
+  | ({ kind: "preview"; saving: boolean } & Checked)
   | { kind: "saved"; result: ImportResult };
 
+const EXCEL_TEMPLATE = "/sablonlar/orbit-ogrenci-sablonu.xlsx";
+
 /**
- * Ayarlar → Veri içe aktarma (karar 2026-09-29): öğrencileri bir CSV
- * dosyasıyla toplu ekleme. Önce ön izleme (veritabanı her satırı doğrular),
- * hatasızsa tek düğmeyle kayıt — ya hepsi ya hiçbiri. Hesap ve şifre açılmaz.
+ * Ayarlar → Veri içe aktarma. İlk sürüm 2026-09-29 (yalnız CSV, sabit
+ * başlıklar); 2026-10-01'de kullanıcı geri bildirimiyle ("nasıl çalışıyor,
+ * hangi format, şablon?") Excel (.xlsx) ve SÜTUN EŞLEME adımı eklendi.
+ *
+ * Akış: dosya → sütun eşleme (otomatik tahmin, düzeltilebilir) → ön izleme
+ * (veritabanı her satırı doğrular, hiçbir şey yazılmaz) → hatasızsa tek
+ * düğmeyle kayıt — ya hepsi ya hiçbiri. Hesap ve şifre açılmaz.
  */
 export function SettingsDataImportSection() {
   const { identity } = useAuth();
@@ -43,7 +59,7 @@ export function SettingsDataImportSection() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>({ kind: "idle" });
 
-  const downloadTemplate = () => {
+  const downloadCsvTemplate = () => {
     const blob = new Blob([importTemplateCsv()], {
       type: "text/csv;charset=utf-8",
     });
@@ -56,51 +72,86 @@ export function SettingsDataImportSection() {
   };
 
   const readFile = async (file: File) => {
+    setStep({ kind: "reading" });
+    const read = await readImportTable(file);
+    if (!read.ok) {
+      setStep({ kind: "idle", problem: read.message });
+      return;
+    }
+    const headerRow = detectHeaderRow(read.table);
+    setStep({
+      kind: "mapping",
+      busy: false,
+      fileName: file.name,
+      table: read.table,
+      headerRow,
+      mapping: guessMapping(read.table[headerRow] ?? []),
+    });
+  };
+
+  const check = async (from: Mapped) => {
     if (!organizationId) return;
-    if (file.size > IMPORT_MAX_BYTES) {
-      setStep({ kind: "problem", message: "Dosya 1 MB'tan büyük olamaz." });
+    // Yalnız eşleme alanları alınır: çağıran `step`'i verir ve onun `kind`
+    // alanı aşağıdaki yaymalarda "preview"in üzerine yazıyordu (2026-10-02,
+    // tarayıcıda yakalandı: ön izleme isteği gidiyor, ekran eşlemede kalıyordu).
+    const mapped: Mapped = {
+      fileName: from.fileName,
+      table: from.table,
+      headerRow: from.headerRow,
+      mapping: from.mapping,
+    };
+    const { rows, lineNumbers } = buildImportRows(
+      mapped.table,
+      mapped.headerRow,
+      mapped.mapping
+    );
+    const toMapping = (problem: string) =>
+      setStep({ kind: "mapping", busy: false, problem, ...mapped });
+    if (rows.length === 0) {
+      toMapping("Başlık satırından sonra öğrenci satırı yok.");
       return;
     }
-    setStep({ kind: "checking" });
-    const parsed = parseStudentCsv(await file.text());
-    if (!parsed.ok) {
-      setStep({ kind: "problem", message: parsed.message });
+    if (rows.length > IMPORT_MAX_ROWS) {
+      toMapping(
+        `Dosyada ${rows.length} öğrenci var; tek seferde en çok ${IMPORT_MAX_ROWS} aktarılabilir. Dosyayı bölün.`
+      );
       return;
     }
+    setStep({ kind: "mapping", busy: true, ...mapped });
     try {
-      const result = await importStudents(organizationId, parsed.rows, true);
+      const result = await importStudents(organizationId, rows, true);
       setStep({
         kind: "preview",
-        fileName: file.name,
-        rows: parsed.rows,
+        saving: false,
+        ...mapped,
+        rows,
+        lineNumbers,
         result,
       });
     } catch (error) {
-      setStep({
-        kind: "problem",
-        message:
-          error instanceof Error ? error.message : "Dosya denetlenemedi.",
-      });
+      toMapping(
+        error instanceof Error ? error.message : "Dosya denetlenemedi."
+      );
     }
   };
 
   const save = async () => {
     if (step.kind !== "preview" || !organizationId) return;
-    setStep({ ...step, kind: "saving" });
+    setStep({ ...step, saving: true });
     try {
       const result = await importStudents(organizationId, step.rows, false);
       if (!result.saved) {
         // Ön izlemeden sonra biri aynı numarayı eklemiş olabilir; yeni
         // hatalar gösterilir, hiçbir şey yazılmamıştır.
-        setStep({ ...step, kind: "preview", result });
+        setStep({ ...step, saving: false, result });
         return;
       }
-      await queryClient.invalidateQueries({ queryKey: educationKeys.all });
       setStep({ kind: "saved", result });
+      void queryClient.invalidateQueries({ queryKey: educationKeys.all });
     } catch (error) {
       setStep({
-        kind: "problem",
-        message:
+        kind: "idle",
+        problem:
           error instanceof Error ? error.message : "Aktarım tamamlanamadı.",
       });
     }
@@ -112,24 +163,57 @@ export function SettingsDataImportSection() {
         Öğrencileri toplu ekle
       </h2>
       <p className="mt-1 text-[11px] leading-5 text-slate-500">
-        Öğrenci listenizi Excel'de hazırlayıp{" "}
-        <strong>"CSV UTF-8 (virgülle ayrılmış)"</strong> olarak kaydedin ve
-        buraya yükleyin. Önce bir ön izleme görürsünüz; hiçbir şey onayınız
-        olmadan kaydedilmez. Hesap ve şifre açılmaz, yalnız kayıtlar oluşur.
+        Elinizdeki öğrenci listesini (Excel ya da CSV) yükleyin. Sütun adları
+        şablonla aynı olmak zorunda değil; yükledikten sonra hangi sütunun ne
+        olduğunu siz seçersiniz. Hiçbir şey onayınız olmadan kaydedilmez. Hesap
+        ve şifre açılmaz, yalnız öğrenci ve veli kayıtları oluşur.
       </p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <ol className="mt-4 grid gap-2 sm:grid-cols-3">
+        {[
+          [
+            "1 · Dosyayı seçin",
+            "Excel (.xlsx, en çok 300 KB) ya da CSV (en çok 1 MB). Tek seferde 500 öğrenci.",
+          ],
+          [
+            "2 · Sütunları eşleyin",
+            "Ad Soyad zorunlu; numara, sınıf, veli adı ve telefonu isteğe bağlı.",
+          ],
+          [
+            "3 · Ön izleyip kaydedin",
+            "Hatalı satırlar numarasıyla gösterilir; hata yoksa tek düğme.",
+          ],
+        ].map(([title, text]) => (
+          <li
+            key={title}
+            className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"
+          >
+            <p className="text-[12px] font-extrabold text-slate-800">{title}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">{text}</p>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <a
+          href={EXCEL_TEMPLATE}
+          download
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-slate-700 hover:bg-slate-50"
+        >
+          <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+          <span className="text-[12px] font-bold">Excel şablonu</span>
+        </a>
         <button
           type="button"
-          onClick={downloadTemplate}
+          onClick={downloadCsvTemplate}
           className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-slate-700 hover:bg-slate-50"
         >
           <Download className="h-3.5 w-3.5" />
-          <span className="text-[12px] font-bold">Şablonu indir</span>
+          <span className="text-[12px] font-bold">CSV şablonu</span>
         </button>
         <span className="text-[11px] text-slate-500">
-          Sütunlar: Ad Soyad (zorunlu) · Öğrenci No · Sınıf · Veli Ad Soyad ·
-          Veli Telefon — en çok 500 satır
+          Sınıf adı ORBIT'teki sınıfla aynı olmalı; sınıf yoksa önce Sınıflar
+          sekmesinden açın.
         </span>
       </div>
 
@@ -156,13 +240,55 @@ export function SettingsDataImportSection() {
             Başka bir dosya yükle
           </button>
         </div>
-      ) : step.kind === "preview" || step.kind === "saving" ? (
+      ) : step.kind === "mapping" ? (
+        <>
+          <ImportMappingStep
+            fileName={step.fileName}
+            table={step.table}
+            headerRow={step.headerRow}
+            mapping={step.mapping}
+            busy={step.busy}
+            onHeaderRowChange={headerRow =>
+              setStep({
+                ...step,
+                problem: undefined,
+                headerRow,
+                mapping: guessMapping(step.table[headerRow] ?? []),
+              })
+            }
+            onMappingChange={mapping =>
+              setStep({ ...step, problem: undefined, mapping })
+            }
+            onContinue={() => void check(step)}
+            onCancel={() => setStep({ kind: "idle" })}
+          />
+          {step.problem ? (
+            <p
+              role="alert"
+              className="mt-2 text-[11px] font-bold text-rose-600"
+            >
+              {step.problem}
+            </p>
+          ) : null}
+        </>
+      ) : step.kind === "preview" ? (
         <ImportPreview
           fileName={step.fileName}
           rows={step.rows}
+          lineNumbers={step.lineNumbers}
           result={step.result}
-          saving={step.kind === "saving"}
+          saving={step.saving}
           onSave={() => void save()}
+          onBack={() =>
+            setStep({
+              kind: "mapping",
+              busy: false,
+              fileName: step.fileName,
+              table: step.table,
+              headerRow: step.headerRow,
+              mapping: step.mapping,
+            })
+          }
           onCancel={() => setStep({ kind: "idle" })}
         />
       ) : (
@@ -171,17 +297,22 @@ export function SettingsDataImportSection() {
             <UploadCloud className="h-6 w-6" />
           </span>
           <span className="text-[13px] font-extrabold text-slate-700">
-            {step.kind === "checking" ? "Denetleniyor…" : "CSV dosyası seçin"}
+            {step.kind === "reading"
+              ? "Dosya okunuyor…"
+              : "Excel ya da CSV dosyası seçin"}
           </span>
-          {step.kind === "problem" ? (
+          <span className="text-[11px] text-slate-500">
+            .xlsx veya .csv · eski .xls için Excel'de “Farklı Kaydet → .xlsx”
+          </span>
+          {step.kind === "idle" && step.problem ? (
             <span role="alert" className="text-[11px] font-bold text-rose-600">
-              {step.message}
+              {step.problem}
             </span>
           ) : null}
           <input
             type="file"
-            accept=".csv,text/csv"
-            disabled={step.kind === "checking" || !organizationId}
+            accept=".xlsx,.csv,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            disabled={step.kind === "reading" || !organizationId}
             className="sr-only"
             onChange={e => {
               const file = e.target.files?.[0];

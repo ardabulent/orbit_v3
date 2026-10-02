@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 /**
  * Toplu öğrenci aktarımı (karar 2026-09-29).
  *
- * Bu modül yalnız dosyayı SATIRLARA çevirir; hiçbir iş kuralı (numara tekil
+ * Bu modül yalnız CSV'yi hücrelere böler ve satırları gönderir; hiçbir iş kuralı (numara tekil
  * mi, sınıf var mı, telefon geçerli mi) burada yazılmaz. Kurallar tek yerde,
  * `import_students` veritabanı fonksiyonunda durur ve ön izleme de onu
  * çağırır — ön izlemede geçen dosya kayıtta da geçer (K-06).
@@ -35,7 +35,10 @@ const BOM_AT_START = new RegExp("^" + String.fromCharCode(0xfeff));
 export const IMPORT_MAX_ROWS = 500;
 export const IMPORT_MAX_BYTES = 1024 * 1024;
 
-/** Şablonun başlıkları; sıra önemli değil, ad önemli. */
+/**
+ * Şablonun başlıkları. Dosyanın başlıkları bunlar olmak zorunda değil;
+ * eşleme adımı (`importMapping.ts`) her sütunu bir alana bağlar.
+ */
 export const IMPORT_HEADERS: { key: keyof ImportRow; label: string }[] = [
   { key: "full_name", label: "Ad Soyad" },
   { key: "student_number", label: "Öğrenci No" },
@@ -43,17 +46,6 @@ export const IMPORT_HEADERS: { key: keyof ImportRow; label: string }[] = [
   { key: "guardian_name", label: "Veli Ad Soyad" },
   { key: "guardian_phone", label: "Veli Telefon" },
 ];
-
-const headerKey = (value: string) =>
-  value
-    .replace(BOM_AT_START, "")
-    .trim()
-    .toLocaleLowerCase("tr")
-    .replace(/\s+/g, " ");
-
-const HEADER_LOOKUP = new Map(
-  IMPORT_HEADERS.map(h => [headerKey(h.label), h.key] as const)
-);
 
 /**
  * Tek bir CSV metnini hücrelere böler. Türkçe Excel ";" ile, diğerleri ","
@@ -101,50 +93,19 @@ export function splitCsv(text: string): string[][] {
     row.push(cell);
     rows.push(row);
   }
-  return rows.filter(r => r.some(c => c.trim() !== ""));
+  return dropTrailingEmptyRows(rows);
 }
 
-export type ParsedImport =
-  { ok: true; rows: ImportRow[] } | { ok: false; message: string };
-
-/** Dosya metnini satırlara çevirir; başlık eksikse ya da boşsa sebebini söyler. */
-export function parseStudentCsv(text: string): ParsedImport {
-  const table = splitCsv(text);
-  if (table.length === 0) return { ok: false, message: "Dosya boş." };
-
-  const header = table[0].map(h => HEADER_LOOKUP.get(headerKey(h)) ?? null);
-  if (!header.includes("full_name")) {
-    return {
-      ok: false,
-      message:
-        'İlk satırda "Ad Soyad" başlığı bulunamadı. Şablonu indirip onun başlıklarını kullanın.',
-    };
-  }
-
-  const rows = table.slice(1).map(cells => {
-    const row: ImportRow = {
-      full_name: "",
-      student_number: "",
-      class_name: "",
-      guardian_name: "",
-      guardian_phone: "",
-    };
-    header.forEach((key, index) => {
-      if (key) row[key] = (cells[index] ?? "").trim();
-    });
-    return row;
-  });
-
-  if (rows.length === 0) {
-    return { ok: false, message: "Başlıktan sonra öğrenci satırı yok." };
-  }
-  if (rows.length > IMPORT_MAX_ROWS) {
-    return {
-      ok: false,
-      message: `Dosyada ${rows.length} satır var; tek seferde en çok ${IMPORT_MAX_ROWS} öğrenci aktarılabilir. Dosyayı bölün.`,
-    };
-  }
-  return { ok: true, rows };
+/**
+ * Sondaki boş satırları atar, aradakileri TUTAR: tablonun sırası dosyanın
+ * satır numarasıdır ve hata iletisi "5. satır" dediğinde Excel'deki 5. satırı
+ * göstermelidir (2026-10-01, tarayıcıda yakalandı: aradaki boş satır atılınca
+ * numaralar bir kayıyordu).
+ */
+export function dropTrailingEmptyRows(rows: string[][]): string[][] {
+  let end = rows.length;
+  while (end > 0 && rows[end - 1].every(c => c.trim() === "")) end -= 1;
+  return rows.slice(0, end);
 }
 
 /** İndirilecek şablon: başlık ve kurgusal bir örnek satır, Türkçe Excel için. */
