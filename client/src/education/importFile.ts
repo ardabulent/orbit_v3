@@ -1,4 +1,4 @@
-import type { ImportTable } from "./importMapping";
+import type { ImportSheet } from "./importMapping";
 import {
   dropTrailingEmptyRows,
   IMPORT_MAX_BYTES,
@@ -16,6 +16,8 @@ import {
  *   bu işçiyi engeller ve dosya sessizce okunamaz. Dosyanın tamamı 300 KB'ın
  *   altındaysa hiçbir parça eşiği aşamaz, işçi hiç açılmaz. 500 öğrencilik bir
  *   liste 20–40 KB'tır; CSP'yi gevşetmek yerine sınır seçildi (2026-10-01).
+ * - **Bütün sayfalar okunur** (2026-10-02): kurumlarda her sınıf çoğu zaman
+ *   ayrı bir sayfadır. Boş sayfalar atılır.
  * - **.xls** (eski Excel) okunamaz; kullanıcıya .xlsx olarak kaydetmesi söylenir.
  * - **CSV** önce UTF-8 okunur; içinde bozuk karakter (U+FFFD) çıkarsa Türkçe
  *   Excel'in "CSV (virgülle ayrılmış)" seçeneğinin yazdığı Windows-1254
@@ -25,7 +27,7 @@ import {
  */
 
 export type ReadTableResult =
-  { ok: true; table: ImportTable } | { ok: false; message: string };
+  { ok: true; sheets: ImportSheet[] } | { ok: false; message: string };
 
 const REPLACEMENT_CHAR = String.fromCharCode(0xfffd);
 
@@ -68,7 +70,7 @@ export async function readImportTable(file: File): Promise<ReadTableResult> {
     };
   }
 
-  let table: ImportTable;
+  let sheets: ImportSheet[];
   if (extension === "xlsx") {
     if (file.size > XLSX_MAX_BYTES) {
       return {
@@ -78,11 +80,14 @@ export async function readImportTable(file: File): Promise<ReadTableResult> {
       };
     }
     try {
-      const { readSheet } = await import("read-excel-file/browser");
-      const sheet = await readSheet(file, 1, {
+      const { default: readXlsxFile } = await import("read-excel-file/browser");
+      const all = await readXlsxFile(file, {
         parseNumber: (raw: string) => raw,
       });
-      table = dropTrailingEmptyRows(sheet.map(row => row.map(cellToText)));
+      sheets = all.map(({ sheet, data }) => ({
+        name: sheet,
+        table: dropTrailingEmptyRows(data.map(row => row.map(cellToText))),
+      }));
     } catch {
       return {
         ok: false,
@@ -91,7 +96,9 @@ export async function readImportTable(file: File): Promise<ReadTableResult> {
       };
     }
   } else if (extension === "csv" || extension === "txt") {
-    table = splitCsv(decodeCsv(await file.arrayBuffer()));
+    sheets = [
+      { name: file.name, table: splitCsv(decodeCsv(await file.arrayBuffer())) },
+    ];
   } else {
     return {
       ok: false,
@@ -99,6 +106,7 @@ export async function readImportTable(file: File): Promise<ReadTableResult> {
     };
   }
 
-  if (table.length === 0) return { ok: false, message: "Dosya boş." };
-  return { ok: true, table };
+  const filled = sheets.filter(sheet => sheet.table.length > 0);
+  if (filled.length === 0) return { ok: false, message: "Dosya boş." };
+  return { ok: true, sheets: filled };
 }

@@ -164,3 +164,34 @@ export async function importStudents(
     guardiansReused: result.guardians_reused,
   };
 }
+
+/**
+ * Dosyadaki numaralardan kurumda zaten kayıtlı olanlar (2026-10-02).
+ * "Kayıtlı öğrencileri atla" seçeneği bunları göndermeden çıkarır; güncel
+ * listeyi yeniden yükleyen kurum yalnız yenileri eklemiş olur. Arşivdekiler
+ * de sayılır — `import_students`'ın numara kuralı da onları sayar. Dosya en
+ * çok 500 satır olduğu için tek sorgu yeter. Bu bir kolaylıktır; son söz
+ * yine veritabanındadır.
+ */
+export async function findExistingStudentNumbers(
+  organizationId: string,
+  numbers: string[]
+): Promise<Set<string>> {
+  const unique = [...new Set(numbers.map(n => n.trim()).filter(Boolean))];
+  if (unique.length === 0) return new Set();
+
+  const { data, error } = await supabase
+    .from("students")
+    .select("student_number")
+    .eq("organization_id", organizationId)
+    .in("student_number", unique);
+
+  if (error) {
+    throw new Error("Kayıtlı öğrenciler denetlenemedi; hiçbir şey yazılmadı.");
+  }
+  return new Set(
+    (data ?? [])
+      .map(row => (row as { student_number: string | null }).student_number)
+      .filter((n): n is string => Boolean(n))
+  );
+}

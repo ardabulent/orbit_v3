@@ -19,7 +19,8 @@ const PREVIEW_ROWS = 10;
 export function ImportPreview({
   fileName,
   rows,
-  lineNumbers,
+  rowLabels,
+  skipped = 0,
   result,
   saving,
   onSave,
@@ -28,8 +29,10 @@ export function ImportPreview({
 }: {
   fileName: string;
   rows: ImportRow[];
-  /** `rows[i]` dosyanın kaçıncı satırı. */
-  lineNumbers: number[];
+  /** `rows[i]`'nin dosyadaki yeri: "6. satır" ya da "12A · 6. satır". */
+  rowLabels: string[];
+  /** Numarası zaten kayıtlı olduğu için gönderilmeyen öğrenci sayısı. */
+  skipped?: number;
   result: ImportResult;
   saving: boolean;
   onSave: () => void;
@@ -39,7 +42,7 @@ export function ImportPreview({
 }) {
   const hasErrors = result.errors.length > 0;
   // Sunucu satırı 1'den sayar (gönderilen listenin sırası).
-  const lineOf = (row: number) => lineNumbers[row - 1] ?? row;
+  const labelOf = (row: number) => rowLabels[row - 1] ?? `${row}. satır`;
 
   return (
     <div className="mt-5 space-y-4">
@@ -58,11 +61,17 @@ export function ImportPreview({
             ? `${result.errors.length} hata — hiçbir şey kaydedilmedi`
             : "hata yok, kaydedilmeye hazır"}
         </p>
+        {skipped > 0 ? (
+          <p className="mt-1 text-[11px] text-slate-600">
+            Numarası zaten kayıtlı {skipped} öğrenci atlandı; onlara
+            dokunulmayacak.
+          </p>
+        ) : null}
         {hasErrors ? (
           <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-[11px] text-rose-800">
             {result.errors.map((error, index) => (
               <li key={`${error.row}-${error.field}-${index}`}>
-                <strong>{lineOf(error.row)}. satır</strong> ·{" "}
+                <strong>{labelOf(error.row)}</strong> ·{" "}
                 {FIELD_LABELS[error.field] ?? error.field}: {error.message}
               </li>
             ))}
@@ -88,7 +97,7 @@ export function ImportPreview({
               const bad = result.errors.some(e => e.row === rowNo);
               return (
                 <tr key={rowNo} className={bad ? "bg-rose-50/60" : ""}>
-                  <td className="px-3 py-2 text-slate-400">{lineOf(rowNo)}</td>
+                  <td className="px-3 py-2 text-slate-400">{labelOf(rowNo)}</td>
                   <td className="px-3 py-2 font-bold text-slate-800">
                     {row.full_name || "—"}
                   </td>

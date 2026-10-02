@@ -8,16 +8,19 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/auth/useAuth";
 import { isDemoMode } from "@/auth/runtime";
-import { educationKeys } from "@/education/educationQueries";
+import { educationKeys, useClasses } from "@/education/educationQueries";
+import {
+  chooseSheet,
+  prepareImport,
+  selectedSheets,
+  startDraft,
+  type ImportDraft,
+} from "@/education/importDraft";
 import { readImportTable } from "@/education/importFile";
+import { guessMapping } from "@/education/importMapping";
+import { turkishNameKey } from "@/education/importNormalize";
 import {
-  buildImportRows,
-  detectHeaderRow,
-  guessMapping,
-  type ImportMapping,
-  type ImportTable,
-} from "@/education/importMapping";
-import {
+  findExistingStudentNumbers,
   IMPORT_MAX_ROWS,
   importStudents,
   importTemplateCsv,
@@ -25,38 +28,45 @@ import {
   type ImportRow,
 } from "@/education/studentImport";
 import { ImportMappingStep } from "./ImportMappingStep";
+import { ImportOptionsPanel } from "./ImportOptionsPanel";
 import { ImportPreview } from "./ImportPreview";
 
-type Source = { fileName: string; table: ImportTable };
-type Mapped = Source & { headerRow: number; mapping: ImportMapping };
-type Checked = Mapped & {
+type Checked = {
+  draft: ImportDraft;
   rows: ImportRow[];
-  lineNumbers: number[];
+  rowLabels: string[];
+  skipped: number;
   result: ImportResult;
 };
 
 type Step =
   | { kind: "idle"; problem?: string }
   | { kind: "reading" }
-  | ({ kind: "mapping"; busy: boolean; problem?: string } & Mapped)
+  | { kind: "mapping"; draft: ImportDraft; busy: boolean; problem?: string }
   | ({ kind: "preview"; saving: boolean } & Checked)
-  | { kind: "saved"; result: ImportResult };
+  | { kind: "saved"; result: ImportResult; skipped: number };
 
 const EXCEL_TEMPLATE = "/sablonlar/orbit-ogrenci-sablonu.xlsx";
 
 /**
  * Ayarlar → Veri içe aktarma. İlk sürüm 2026-09-29 (yalnız CSV, sabit
- * başlıklar); 2026-10-01'de kullanıcı geri bildirimiyle ("nasıl çalışıyor,
- * hangi format, şablon?") Excel (.xlsx) ve SÜTUN EŞLEME adımı eklendi.
+ * başlıklar); 2026-10-01'de Excel (.xlsx) ve SÜTUN EŞLEME; 2026-10-02'de
+ * "dosyayı olduğu gibi yükle": bütün sayfalar, sınıf adı eşleme, büyük harf
+ * düzeltme, kayıtlıları atlama. Kullanıcının derdi kurumun listesini
+ * ORBIT'in biçimine elle yeniden yazmaktı; artık hiçbir hücre elle
+ * düzeltilmek zorunda değil.
  *
- * Akış: dosya → sütun eşleme (otomatik tahmin, düzeltilebilir) → ön izleme
- * (veritabanı her satırı doğrular, hiçbir şey yazılmaz) → hatasızsa tek
- * düğmeyle kayıt — ya hepsi ya hiçbiri. Hesap ve şifre açılmaz.
+ * Akış: dosya → eşleme ve seçenekler (hepsi tahminle dolu, düzeltilebilir) →
+ * ön izleme (veritabanı her satırı doğrular, hiçbir şey yazılmaz) → hatasızsa
+ * tek düğmeyle kayıt — ya hepsi ya hiçbiri. Hesap ve şifre açılmaz.
+ * Seçimler `ImportDraft`'ta, satırlar ondan hesaplanır (`importDraft.ts`).
  */
 export function SettingsDataImportSection() {
   const { identity } = useAuth();
   const organizationId = identity?.membership?.organizationId ?? null;
   const queryClient = useQueryClient();
+  const classesQuery = useClasses({ enabled: Boolean(organizationId) });
+  const classNames = (classesQuery.data?.rows ?? []).map(c => c.name);
   const [step, setStep] = useState<Step>({ kind: "idle" });
 
   const downloadCsvTemplate = () => {
@@ -78,54 +88,59 @@ export function SettingsDataImportSection() {
       setStep({ kind: "idle", problem: read.message });
       return;
     }
-    const headerRow = detectHeaderRow(read.table);
     setStep({
       kind: "mapping",
       busy: false,
-      fileName: file.name,
-      table: read.table,
-      headerRow,
-      mapping: guessMapping(read.table[headerRow] ?? []),
+      draft: startDraft(file.name, read.sheets),
     });
   };
 
-  const check = async (from: Mapped) => {
+  const editDraft = (draft: ImportDraft) =>
+    setStep({ kind: "mapping", busy: false, draft });
+
+  const check = async (draft: ImportDraft) => {
     if (!organizationId) return;
-    // Yalnız eşleme alanları alınır: çağıran `step`'i verir ve onun `kind`
-    // alanı aşağıdaki yaymalarda "preview"in üzerine yazıyordu (2026-10-02,
-    // tarayıcıda yakalandı: ön izleme isteği gidiyor, ekran eşlemede kalıyordu).
-    const mapped: Mapped = {
-      fileName: from.fileName,
-      table: from.table,
-      headerRow: from.headerRow,
-      mapping: from.mapping,
-    };
-    const { rows, lineNumbers } = buildImportRows(
-      mapped.table,
-      mapped.headerRow,
-      mapped.mapping
-    );
+    const prepared = prepareImport(draft, classNames);
     const toMapping = (problem: string) =>
-      setStep({ kind: "mapping", busy: false, problem, ...mapped });
-    if (rows.length === 0) {
-      toMapping("Başlık satırından sonra öğrenci satırı yok.");
-      return;
-    }
-    if (rows.length > IMPORT_MAX_ROWS) {
-      toMapping(
-        `Dosyada ${rows.length} öğrenci var; tek seferde en çok ${IMPORT_MAX_ROWS} aktarılabilir. Dosyayı bölün.`
-      );
-      return;
-    }
-    setStep({ kind: "mapping", busy: true, ...mapped });
+      setStep({ kind: "mapping", busy: false, problem, draft });
+
+    setStep({ kind: "mapping", busy: true, draft });
     try {
+      let rows = prepared.rows;
+      let rowLabels = prepared.rowLabels;
+      let skipped = 0;
+      if (draft.skipExisting && draft.mapping.student_number !== null) {
+        const existing = await findExistingStudentNumbers(
+          organizationId,
+          rows.map(row => row.student_number)
+        );
+        const keep = rows.map(row => !existing.has(row.student_number.trim()));
+        skipped = keep.filter(k => !k).length;
+        rows = rows.filter((_, i) => keep[i]);
+        rowLabels = rowLabels.filter((_, i) => keep[i]);
+      }
+      if (rows.length === 0) {
+        toMapping(
+          skipped > 0
+            ? `Dosyadaki ${skipped} öğrencinin hepsi zaten kayıtlı; eklenecek yeni öğrenci yok.`
+            : "Başlık satırından sonra öğrenci satırı yok."
+        );
+        return;
+      }
+      if (rows.length > IMPORT_MAX_ROWS) {
+        toMapping(
+          `Dosyada ${rows.length} öğrenci var; tek seferde en çok ${IMPORT_MAX_ROWS} aktarılabilir. Sayfaları tek tek seçin ya da dosyayı bölün.`
+        );
+        return;
+      }
       const result = await importStudents(organizationId, rows, true);
       setStep({
         kind: "preview",
         saving: false,
-        ...mapped,
+        draft,
         rows,
-        lineNumbers,
+        rowLabels,
+        skipped,
         result,
       });
     } catch (error) {
@@ -146,7 +161,7 @@ export function SettingsDataImportSection() {
         setStep({ ...step, saving: false, result });
         return;
       }
-      setStep({ kind: "saved", result });
+      setStep({ kind: "saved", result, skipped: step.skipped });
       void queryClient.invalidateQueries({ queryKey: educationKeys.all });
     } catch (error) {
       setStep({
@@ -176,8 +191,8 @@ export function SettingsDataImportSection() {
             "Excel (.xlsx, en çok 300 KB) ya da CSV (en çok 1 MB). Tek seferde 500 öğrenci.",
           ],
           [
-            "2 · Sütunları eşleyin",
-            "Ad Soyad zorunlu; numara, sınıf, veli adı ve telefonu isteğe bağlı.",
+            "2 · Eşleyin",
+            "Sütunları ve sınıf adlarını bir kez eşleyin; hücreleri tek tek düzeltmeniz gerekmez.",
           ],
           [
             "3 · Ön izleyip kaydedin",
@@ -212,8 +227,8 @@ export function SettingsDataImportSection() {
           <span className="text-[12px] font-bold">CSV şablonu</span>
         </button>
         <span className="text-[11px] text-slate-500">
-          Sınıf adı ORBIT'teki sınıfla aynı olmalı; sınıf yoksa önce Sınıflar
-          sekmesinden açın.
+          Kendi listenizi olduğu gibi yükleyebilirsiniz; şablon yalnız sıfırdan
+          liste hazırlayacaklar için.
         </span>
       </div>
 
@@ -231,6 +246,9 @@ export function SettingsDataImportSection() {
             {step.result.enrollments ?? 0} sınıf kaydı ·{" "}
             {step.result.guardiansCreated ?? 0} yeni veli ·{" "}
             {step.result.guardiansReused ?? 0} mevcut veliye bağlandı
+            {step.skipped > 0
+              ? ` · ${step.skipped} kayıtlı öğrenci atlandı`
+              : ""}
           </p>
           <button
             type="button"
@@ -241,54 +259,23 @@ export function SettingsDataImportSection() {
           </button>
         </div>
       ) : step.kind === "mapping" ? (
-        <>
-          <ImportMappingStep
-            fileName={step.fileName}
-            table={step.table}
-            headerRow={step.headerRow}
-            mapping={step.mapping}
-            busy={step.busy}
-            onHeaderRowChange={headerRow =>
-              setStep({
-                ...step,
-                problem: undefined,
-                headerRow,
-                mapping: guessMapping(step.table[headerRow] ?? []),
-              })
-            }
-            onMappingChange={mapping =>
-              setStep({ ...step, problem: undefined, mapping })
-            }
-            onContinue={() => void check(step)}
-            onCancel={() => setStep({ kind: "idle" })}
-          />
-          {step.problem ? (
-            <p
-              role="alert"
-              className="mt-2 text-[11px] font-bold text-rose-600"
-            >
-              {step.problem}
-            </p>
-          ) : null}
-        </>
+        <MappingStep
+          step={step}
+          classNames={classNames}
+          onDraft={editDraft}
+          onContinue={draft => void check(draft)}
+          onCancel={() => setStep({ kind: "idle" })}
+        />
       ) : step.kind === "preview" ? (
         <ImportPreview
-          fileName={step.fileName}
+          fileName={step.draft.fileName}
           rows={step.rows}
-          lineNumbers={step.lineNumbers}
+          rowLabels={step.rowLabels}
+          skipped={step.skipped}
           result={step.result}
           saving={step.saving}
           onSave={() => void save()}
-          onBack={() =>
-            setStep({
-              kind: "mapping",
-              busy: false,
-              fileName: step.fileName,
-              table: step.table,
-              headerRow: step.headerRow,
-              mapping: step.mapping,
-            })
-          }
+          onBack={() => editDraft(step.draft)}
           onCancel={() => setStep({ kind: "idle" })}
         />
       ) : (
@@ -322,6 +309,88 @@ export function SettingsDataImportSection() {
           />
         </label>
       )}
+    </>
+  );
+}
+
+/** Eşleme ekranı: taslak her değişiklikte yeniden hesaplanır. */
+function MappingStep({
+  step,
+  classNames,
+  onDraft,
+  onContinue,
+  onCancel,
+}: {
+  step: { draft: ImportDraft; busy: boolean; problem?: string };
+  classNames: string[];
+  onDraft: (draft: ImportDraft) => void;
+  onContinue: (draft: ImportDraft) => void;
+  onCancel: () => void;
+}) {
+  const { draft } = step;
+  const prepared = prepareImport(draft, classNames);
+  const table = selectedSheets(draft)[0].table;
+  const waiting = prepared.unresolvedClasses.length;
+
+  return (
+    <>
+      <ImportMappingStep
+        fileName={draft.fileName}
+        table={table}
+        headerRow={draft.headerRow}
+        mapping={draft.mapping}
+        busy={step.busy}
+        studentCount={prepared.rows.length}
+        sheetCount={selectedSheets(draft).length}
+        blockReason={
+          waiting > 0
+            ? `${waiting} sınıf adı için ORBIT'teki karşılığı seçin.`
+            : null
+        }
+        onHeaderRowChange={headerRow =>
+          onDraft({
+            ...draft,
+            headerRow,
+            mapping: guessMapping(table[headerRow] ?? []),
+          })
+        }
+        onMappingChange={mapping => onDraft({ ...draft, mapping })}
+        onContinue={() => onContinue(draft)}
+        onCancel={onCancel}
+      >
+        <ImportOptionsPanel
+          sheetNames={draft.sheets.map(sheet => sheet.name)}
+          sheetChoice={draft.sheetChoice}
+          onSheetChoice={choice => onDraft(chooseSheet(draft, choice))}
+          sheetAsClass={draft.sheetAsClass}
+          onSheetAsClass={on =>
+            onDraft({ ...draft, sheetAsClass: on, classChoices: {} })
+          }
+          classValues={prepared.classValues}
+          classNames={classNames}
+          classMap={prepared.classMap}
+          onClassChoice={(value, orbitClass) =>
+            onDraft({
+              ...draft,
+              classChoices: {
+                ...draft.classChoices,
+                [turkishNameKey(value)]: orbitClass,
+              },
+            })
+          }
+          capsSample={prepared.capsSample}
+          fixCaps={prepared.fixCaps}
+          onFixCaps={on => onDraft({ ...draft, fixCaps: on })}
+          canSkipExisting={draft.mapping.student_number !== null}
+          skipExisting={draft.skipExisting}
+          onSkipExisting={on => onDraft({ ...draft, skipExisting: on })}
+        />
+      </ImportMappingStep>
+      {step.problem ? (
+        <p role="alert" className="mt-2 text-[11px] font-bold text-rose-600">
+          {step.problem}
+        </p>
+      ) : null}
     </>
   );
 }
