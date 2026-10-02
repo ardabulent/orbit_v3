@@ -11,26 +11,35 @@ const FIELD_LABELS: Record<string, string> = {
 const PREVIEW_ROWS = 10;
 
 /**
- * Toplu aktarım ön izlemesi: hatalar satır numarasıyla (dosyadaki satır:
- * başlık 1. satır olduğu için +1), ilk satırların görünümü ve kaydet düğmesi.
+ * Toplu aktarım ön izlemesi: hatalar DOSYADAKİ satır numarasıyla (eşleme
+ * adımı her satırın kaçıncı satırdan geldiğini taşır; başlık ilk satırda
+ * olmayabilir), ilk satırların görünümü ve kaydet düğmesi.
  * Hata varken kaydet düğmesi yoktur — ya hepsi ya hiçbiri.
  */
 export function ImportPreview({
   fileName,
   rows,
+  lineNumbers,
   result,
   saving,
   onSave,
+  onBack,
   onCancel,
 }: {
   fileName: string;
   rows: ImportRow[];
+  /** `rows[i]` dosyanın kaçıncı satırı. */
+  lineNumbers: number[];
   result: ImportResult;
   saving: boolean;
   onSave: () => void;
+  /** Sütun eşlemesine geri dön. */
+  onBack: () => void;
   onCancel: () => void;
 }) {
   const hasErrors = result.errors.length > 0;
+  // Sunucu satırı 1'den sayar (gönderilen listenin sırası).
+  const lineOf = (row: number) => lineNumbers[row - 1] ?? row;
 
   return (
     <div className="mt-5 space-y-4">
@@ -53,7 +62,7 @@ export function ImportPreview({
           <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-[11px] text-rose-800">
             {result.errors.map((error, index) => (
               <li key={`${error.row}-${error.field}-${index}`}>
-                <strong>{error.row + 1}. satır</strong> ·{" "}
+                <strong>{lineOf(error.row)}. satır</strong> ·{" "}
                 {FIELD_LABELS[error.field] ?? error.field}: {error.message}
               </li>
             ))}
@@ -79,7 +88,7 @@ export function ImportPreview({
               const bad = result.errors.some(e => e.row === rowNo);
               return (
                 <tr key={rowNo} className={bad ? "bg-rose-50/60" : ""}>
-                  <td className="px-3 py-2 text-slate-400">{rowNo + 1}</td>
+                  <td className="px-3 py-2 text-slate-400">{lineOf(rowNo)}</td>
                   <td className="px-3 py-2 font-bold text-slate-800">
                     {row.full_name || "—"}
                   </td>
@@ -113,6 +122,14 @@ export function ImportPreview({
             </span>
           </button>
         ) : null}
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={saving}
+          className="h-9 rounded-lg border border-slate-200 px-4 text-slate-700 hover:bg-slate-50"
+        >
+          <span className="text-[12px] font-bold">Eşlemeyi değiştir</span>
+        </button>
         <button
           type="button"
           onClick={onCancel}
