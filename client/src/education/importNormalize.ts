@@ -1,4 +1,5 @@
 import type { ImportRow } from "./studentImport";
+import { turkishNameKey } from "./turkishSearch";
 
 /**
  * "Dosyayı olduğu gibi yükle" (2026-10-02). Kullanıcı: kurumun listesini
@@ -15,10 +16,12 @@ import type { ImportRow } from "./studentImport";
  * `import_students`'tadır.
  */
 
-/** `public.turkish_name_key` ile aynı: Türkçe küçük harf, baş/son boşluksuz. */
-export function turkishNameKey(value: string): string {
-  return value.trim().toLocaleLowerCase("tr");
-}
+/**
+ * `public.turkish_name_key`'in birebir kopyası (turkishSearch.ts). 2026-10-03
+ * düzeltmesi: burada `toLocaleLowerCase("tr")` vardı ve "I"yı "ı" yapıyordu,
+ * veritabanı "i" yapıyor — "IŞIK" sınıfı ekranda eşleşip kayıtta reddedilirdi.
+ */
+export { turkishNameKey };
 
 /** Öneri için daha gevşek anahtar: boşluk, tire, nokta ve "/" yok sayılır. */
 const looseKey = (value: string) =>

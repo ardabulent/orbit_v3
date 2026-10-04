@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { searchPattern } from "./turkishSearch";
 
 /**
  * Veli ve öğrenci–veli bağı servis katmanı (v1.4-10 · #275).
@@ -243,8 +244,8 @@ export async function loadGuardians(
 
   const term = options?.search?.trim();
   if (term) {
-    const safe = term.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    query = query.or(`full_name.ilike."%${safe}%",phone.ilike."%${safe}%"`);
+    // Türkçe arama (2026-10-03): `search_key` = search_fold(ad + telefon).
+    query = query.ilike("search_key", searchPattern(term));
   }
 
   const { data, error } = await query

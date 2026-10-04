@@ -1,5 +1,6 @@
 import type { Installment } from "@/education/paymentService";
 import type { PaymentRow } from "../types";
+import { matchesSearch } from "@/education/turkishSearch";
 
 /**
  * Kayıt ve Ödemeler ekranının saf yardımcıları (karar 2026-09-29).
@@ -45,13 +46,9 @@ export function matchesPaymentFilter(
   }
 }
 
-const key = (value: string) => value.toLocaleLowerCase("tr");
-
-/** Öğrenci adı ya da paket adında arar (Türkçe büyük/küçük harf). */
+/** Öğrenci adı ya da paket adında arar ("isik" → "Işık"; turkishSearch). */
 export function matchesPaymentSearch(row: PaymentRow, query: string): boolean {
-  const q = key(query.trim());
-  if (!q) return true;
-  return key(row.student).includes(q) || key(row.plan).includes(q);
+  return matchesSearch(`${row.student} ${row.plan}`, query);
 }
 
 /** Ödenen / taksitlere bölünen oranı (0–100); özet yoksa `null`. */

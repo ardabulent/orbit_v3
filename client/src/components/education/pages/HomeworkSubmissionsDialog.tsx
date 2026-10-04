@@ -21,6 +21,7 @@ import {
   type HomeworkSubmissionItem,
 } from "@/education/homeworkService";
 import type { Homework, Role } from "../types";
+import { matchesSearch } from "@/education/turkishSearch";
 
 export type HomeworkSubmissionsDialogProps = {
   open: boolean;
@@ -343,10 +344,9 @@ export function HomeworkSubmissionsDialog({
 
   const filteredStudents = students.filter(s => {
     if (!search.trim()) return true;
-    const term = search.trim().toLocaleLowerCase("tr");
-    return (
-      Boolean(s.studentName?.toLocaleLowerCase("tr").includes(term)) ||
-      Boolean(s.studentNumber?.toLocaleLowerCase("tr").includes(term))
+    return matchesSearch(
+      `${s.studentName ?? ""} ${s.studentNumber ?? ""}`,
+      search
     );
   });
 

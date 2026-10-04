@@ -21,6 +21,7 @@ import {
   TASK_PRIORITY_META,
   TASK_STATUS_META,
 } from "./taskBoardMeta";
+import { matchesSearch } from "@/education/turkishSearch";
 
 /** Veritabanı durumu ↔ panonun sütun anahtarı (demo verisiyle ortak). */
 const STATUS_TO_COLUMN: Record<TaskStatus, DayPlanTaskStatus> = {
@@ -103,9 +104,7 @@ export function DayPlanToDoBoard({
       : task.label
         ? TASK_LABEL_META[task.label].label
         : "";
-    const matchesQuery = `${title} ${detail} ${cat}`
-      .toLocaleLowerCase("tr")
-      .includes(query.toLocaleLowerCase("tr"));
+    const matchesQuery = matchesSearch(`${title} ${detail} ${cat}`, query);
 
     if (!isRealTask(task)) {
       const matchesCategory = category === "Tümü" || task.category === category;

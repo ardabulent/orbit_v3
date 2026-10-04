@@ -7,6 +7,7 @@ import {
 } from "./examService";
 import { loadStudentPaymentStatuses } from "./paymentService";
 import { loadStudentHomeworkRatios } from "./homeworkService";
+import { searchPattern } from "./turkishSearch";
 
 /**
  * Öğrenci listesi ve CRUD servis katmanı (v1.3-01 & v1.4-01 · #264).
@@ -273,10 +274,9 @@ export async function loadStudents(
 
   const term = options?.search?.trim();
   if (term) {
-    const safe = term.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    query = query.or(
-      `full_name.ilike."%${safe}%",student_number.ilike."%${safe}%"`
-    );
+    // Türkçe arama (2026-10-03): `search_key` = search_fold(ad + numara);
+    // "ilker" → "İlker", "isik" → "Işık". Bkz. turkishSearch.ts.
+    query = query.ilike("search_key", searchPattern(term));
   }
 
   const { data, error } = await query
