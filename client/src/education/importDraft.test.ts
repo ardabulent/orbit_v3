@@ -12,7 +12,9 @@ const ORBIT_CLASSES = ["12-A Sayısal", "12-B Eşit Ağırlık", "11-A Sayısal"
 
 describe("sınıf adı önerisi (2026-10-02)", () => {
   it("harf farkı gözetmeden tam eşleşme", () => {
-    expect(suggestClass("12-a sayisal", ["12-A Sayısal"])).toBeNull();
+    // 2026-10-03: veritabanının turkish_name_key'i "ı" ile "i"yi eşit sayıyor;
+    // ekran da artık aynı kuralı kullanıyor (eskiden burada null bekleniyordu).
+    expect(suggestClass("12-a sayisal", ["12-A Sayısal"])).toBe("12-A Sayısal");
     expect(suggestClass("12-A SAYISAL", ORBIT_CLASSES)).toBe("12-A Sayısal");
   });
 

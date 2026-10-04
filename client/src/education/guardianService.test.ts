@@ -35,6 +35,7 @@ function createQueryChain(
   spy?: {
     eqArgs?: [string, unknown][];
     orArgs?: string[];
+    ilikeArgs?: [string, string][];
     isArgs?: [string, unknown];
     orderArgs?: [string, { ascending?: boolean }];
     limitArg?: number;
@@ -63,6 +64,13 @@ function createQueryChain(
     if (spy) {
       if (!spy.eqArgs) spy.eqArgs = [];
       spy.eqArgs.push([col, val]);
+    }
+    return chain;
+  });
+  chain.ilike = vi.fn((col: string, pattern: string) => {
+    if (spy) {
+      if (!spy.ilikeArgs) spy.ilikeArgs = [];
+      spy.ilikeArgs.push([col, pattern]);
     }
     return chain;
   });
@@ -257,16 +265,19 @@ describe("guardianService (v1.4-10 · #275)", () => {
     });
 
     it("arama terimi verildiğinde ad ve telefona göre süzgeç ekler", async () => {
-      const spy: { orArgs?: string[] } = {};
+      const spy: { ilikeArgs?: [string, string][] } = {};
 
       fromMock.mockReturnValue(
         createQueryChain({ data: [], error: null }, spy)
       );
 
+      // search_key = search_fold(ad + telefon): telefon parçası da, Türkçe
+      // harfsiz yazılmış ad da bulunur (2026-10-03).
       await loadGuardians("org-1", { search: "532" });
+      expect(spy.ilikeArgs).toContainEqual(["search_key", "%532%"]);
 
-      expect(spy.orArgs?.[0]).toContain('full_name.ilike."%532%"');
-      expect(spy.orArgs?.[0]).toContain('phone.ilike."%532%"');
+      await loadGuardians("org-1", { search: "Çağrı" });
+      expect(spy.ilikeArgs).toContainEqual(["search_key", "%cagri%"]);
     });
 
     it("DEFAULT_GUARDIAN_LIMIT varsayılanı 100 olarak tanımlıdır", () => {

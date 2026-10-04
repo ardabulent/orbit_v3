@@ -32,6 +32,7 @@ function createQueryChain(
   spy?: {
     eqArgs?: [string, unknown][];
     orArgs?: string[];
+    ilikeArgs?: [string, string][];
     isArgs?: [string, unknown];
     orderArgs?: [string, { ascending?: boolean }];
     limitArg?: number;
@@ -55,6 +56,13 @@ function createQueryChain(
     if (spy) {
       if (!spy.eqArgs) spy.eqArgs = [];
       spy.eqArgs.push([col, val]);
+    }
+    return chain;
+  });
+  chain.ilike = vi.fn((col: string, pattern: string) => {
+    if (spy) {
+      if (!spy.ilikeArgs) spy.ilikeArgs = [];
+      spy.ilikeArgs.push([col, pattern]);
     }
     return chain;
   });
@@ -394,8 +402,8 @@ describe("studentService", () => {
       expect(result.truncated).toBe(false);
     });
 
-    it("arama terimi verildiğinde sunucu sorgusuna .or() süzgeci ekler", async () => {
-      const querySpy: { orArgs?: string[] } = {};
+    it("arama terimi Türkçe arama anahtarında aranır (2026-10-03)", async () => {
+      const querySpy: { ilikeArgs?: [string, string][] } = {};
 
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
@@ -405,15 +413,14 @@ describe("studentService", () => {
       });
       rpcMock.mockResolvedValue({ data: [], error: null });
 
-      await loadStudents("org-test-1", { search: "Zeynep" });
+      await loadStudents("org-test-1", { search: "İlker IŞIK" });
 
-      expect(querySpy.orArgs).toContain(
-        'full_name.ilike."%Zeynep%",student_number.ilike."%Zeynep%"'
-      );
+      // "İlker IŞIK" → search_fold → "ilker isik"; sütun ad + numarayı taşır.
+      expect(querySpy.ilikeArgs).toContainEqual(["search_key", "%ilker isik%"]);
     });
 
     it("boşluklu arama terimini kırparak gönderir, salt boşlukta süzgeç eklemez", async () => {
-      const querySpy: { orArgs?: string[] } = {};
+      const querySpy: { ilikeArgs?: [string, string][] } = {};
 
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
@@ -424,16 +431,14 @@ describe("studentService", () => {
       rpcMock.mockResolvedValue({ data: [], error: null });
 
       await loadStudents("org-test-1", { search: "   " });
-      expect(querySpy.orArgs).toBeUndefined();
+      expect(querySpy.ilikeArgs).toBeUndefined();
 
       await loadStudents("org-test-1", { search: "  101  " });
-      expect(querySpy.orArgs).toContain(
-        'full_name.ilike."%101%",student_number.ilike."%101%"'
-      );
+      expect(querySpy.ilikeArgs).toContainEqual(["search_key", "%101%"]);
     });
 
-    it("R2 regresyonu: süzgeç dizesi tırnaklıdır ve virgül/tırnak/ters bölü taşıyan terimlerde dize bozulmaz", async () => {
-      const querySpy: { orArgs?: string[] } = {};
+    it("R2 regresyonu: virgül/tırnak/ters bölü ve joker taşıyan terim deseni bozmaz", async () => {
+      const querySpy: { ilikeArgs?: [string, string][] } = {};
 
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
@@ -443,17 +448,16 @@ describe("studentService", () => {
       });
       rpcMock.mockResolvedValue({ data: [], error: null });
 
-      // Virgüllü arama (PostgREST logic tree kırılmasını engeller)
+      // `.ilike()` tek sütunluk süzgeç: virgül artık mantık ağacını bölemez.
       await loadStudents("org-test-1", { search: "Ali, Veli" });
-      expect(querySpy.orArgs).toContain(
-        'full_name.ilike."%Ali, Veli%",student_number.ilike."%Ali, Veli%"'
-      );
+      expect(querySpy.ilikeArgs).toContainEqual(["search_key", "%ali, veli%"]);
 
-      // Çift tırnak ve ters bölü içeren arama
-      await loadStudents("org-test-1", { search: 'Test "1" \\ 2' });
-      expect(querySpy.orArgs).toContain(
-        'full_name.ilike."%Test \\"1\\" \\\\ 2%",student_number.ilike."%Test \\"1\\" \\\\ 2%"'
-      );
+      // Ters bölü, % ve _ kaçırılır; aksi halde joker gibi davranırlardı.
+      await loadStudents("org-test-1", { search: 'Test "1" \\ %_' });
+      expect(querySpy.ilikeArgs).toContainEqual([
+        "search_key",
+        '%test "1" \\\\ \\%\\_%',
+      ]);
     });
 
     it("yoklama kaydı, sınavı veya ödeme planı olmayan öğrencinin alanları undefined kalır (K-22)", async () => {
