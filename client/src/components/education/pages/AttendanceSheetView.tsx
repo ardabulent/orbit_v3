@@ -21,6 +21,7 @@ import {
   countStatuses,
   describeCounts,
   markRemainingPresent,
+  nextAttendanceState,
   type AttendanceTarget,
   type StatusMap,
 } from "./attendanceSheet";
@@ -261,9 +262,17 @@ export function AttendanceSheetView({
                       onClick={() =>
                         setStatuses(prev => ({
                           ...prev,
-                          [student.studentId]:
-                            prev[student.studentId] === state ? null : state,
+                          [student.studentId]: nextAttendanceState(
+                            prev[student.studentId] ?? null,
+                            state,
+                            initial[student.studentId] ?? null
+                          ),
                         }))
+                      }
+                      title={
+                        current === state && initial[student.studentId]
+                          ? "Kaydedilmiş işaret kaldırılamaz; düzeltmek için başka bir durum seçin."
+                          : undefined
                       }
                       className={`rounded-lg px-2.5 py-1.5 transition ${
                         current === state

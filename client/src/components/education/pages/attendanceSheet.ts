@@ -159,3 +159,21 @@ export function lessonsOnDate(
     .filter(item => item.classId === classId && item.dayOfWeek === weekday)
     .sort((a, b) => a.time.localeCompare(b.time));
 }
+
+/**
+ * Bir durum düğmesine basılınca öğrencinin yeni durumu (2026-10-03, v1.5-23).
+ *
+ * Seçili duruma tekrar basmak işareti kaldırır — ama YALNIZ henüz
+ * kaydedilmemişse. Kaydedilmiş bir yoklama kaydı veritabanından silinmez
+ * (kayıtlar arşivlenmez, silinmez); eskiden ekran işareti kaldırıp
+ * "Yoklama kaydedildi" diyordu, veritabanında eski durum kalıyordu. Artık
+ * kaydedilmiş işaret yerinde kalır; düzeltmek için başka bir durum seçilir.
+ */
+export function nextAttendanceState(
+  current: AttendanceState | null,
+  clicked: AttendanceState,
+  saved: AttendanceState | null
+): AttendanceState | null {
+  if (current !== clicked) return clicked;
+  return saved ? clicked : null;
+}
