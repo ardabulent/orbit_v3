@@ -75,3 +75,24 @@ export function examResultStatus(
     return { kind: "complete", entered, expected };
   return { kind: "missing", entered, expected };
 }
+
+/** Net tablosunun bir hücresi: doğru ve yanlış, ekrandaki metin hâliyle. */
+export type ResultCell = { correct: string; wrong: string };
+
+const isBlank = (cell: ResultCell | undefined) =>
+  !cell || (cell.correct.trim() === "" && cell.wrong.trim() === "");
+
+/**
+ * Kaydedilmiş bir sonucu olup şimdi boşaltılmış hücreler (2026-10-03,
+ * v1.5-23). Ders sonucu veritabanından silinmez; eskiden boş hücre kayıtta
+ * atlanıyor, ekran "kaydedildi" diyor, eski sonuç ve net yerinde kalıyordu.
+ * Böyle bir hücre varken kayıt yapılmaz ve hücre işaretlenir.
+ */
+export function clearedSavedCells(
+  initial: Record<string, ResultCell>,
+  cells: Record<string, ResultCell>
+): string[] {
+  return Object.keys(initial).filter(
+    k => !isBlank(initial[k]) && isBlank(cells[k])
+  );
+}

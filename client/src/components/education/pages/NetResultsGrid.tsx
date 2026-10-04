@@ -16,8 +16,9 @@ import { translateExamError } from "@/education/examService";
 import type { ExamSheetStudent } from "@/education/examService";
 import { CardSkeleton, ErrorState } from "../shared";
 import { ExamSectionsQuickStart } from "./ExamSectionsQuickStart";
+import { clearedSavedCells, type ResultCell } from "./examSections";
 
-type Cell = { correct: string; wrong: string };
+type Cell = ResultCell;
 const key = (studentId: string, sectionId: string) =>
   `${studentId}|${sectionId}`;
 
@@ -124,8 +125,18 @@ export function NetResultsGrid({
     };
   };
 
+  // Kaydedilmiş sonucu boşaltılan hücreler: silinemez, kayıt durur (v1.5-23).
+  const cleared = new Set(clearedSavedCells(initial, cells));
+
   const handleSave = async () => {
     if (!sections) return;
+    if (cleared.size > 0) {
+      toast.error("Kaydedilmiş bir sonuç silinemez", {
+        description:
+          "Kırmızı hücrelerin eski sonucu kayıtlı. Doğru ve yanlışı yeniden yazın; öğrenci sınava girmediyse sonucu düzeltmek için yöneticiye başvurun.",
+      });
+      return;
+    }
     const entries: SectionResultInput[] = [];
     for (const student of students) {
       for (const section of sections) {
@@ -299,7 +310,7 @@ export function NetResultsGrid({
                             disabled={!canEdit}
                             placeholder="D"
                             aria-label={`${student.studentName} ${section.name} doğru`}
-                            className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
+                            className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over || cleared.has(key(student.studentId, section.id)) ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
                           />
                           <input
                             type="number"
@@ -314,17 +325,19 @@ export function NetResultsGrid({
                             disabled={!canEdit}
                             placeholder="Y"
                             aria-label={`${student.studentName} ${section.name} yanlış`}
-                            className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
+                            className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over || cleared.has(key(student.studentId, section.id)) ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
                           />
                         </div>
                         <span
                           className={`mt-0.5 block text-center text-[10px] ${over ? "font-bold text-rose-600" : "text-slate-500"}`}
                         >
-                          {over
-                            ? "soru sayısını aşıyor"
-                            : net !== null
-                              ? `${formatNet(net)} net`
-                              : "—"}
+                          {cleared.has(key(student.studentId, section.id))
+                            ? "kayıtlı sonuç boşaltılamaz"
+                            : over
+                              ? "soru sayısını aşıyor"
+                              : net !== null
+                                ? `${formatNet(net)} net`
+                                : "—"}
                         </span>
                       </td>
                     );

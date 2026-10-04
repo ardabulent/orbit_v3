@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { netOf } from "@/education/examNetService";
 import {
+  clearedSavedCells,
   choiceOf,
   penaltyOf,
   totalQuestions,
@@ -47,5 +48,37 @@ describe("validateSections", () => {
     expect(validateSections([{ name: "Fen", questionCount: 0 }])).toMatch(
       /1 ile 200/
     );
+  });
+});
+
+describe("kaydedilmiş sonuç boşaltılamaz (2026-10-03, v1.5-23)", () => {
+  const saved = {
+    "s1|mat": { correct: "20", wrong: "4" },
+    "s2|mat": { correct: "15", wrong: "0" },
+  };
+
+  it("kayıtlı hücre boşaltılınca yakalanır", () => {
+    expect(
+      clearedSavedCells(saved, {
+        "s1|mat": { correct: "", wrong: " " },
+        "s2|mat": { correct: "16", wrong: "0" },
+      })
+    ).toEqual(["s1|mat"]);
+  });
+
+  it("silinen hücre anahtarı da boşaltılmış sayılır", () => {
+    expect(clearedSavedCells(saved, { "s2|mat": saved["s2|mat"] })).toEqual([
+      "s1|mat",
+    ]);
+  });
+
+  it("yeni hücreyi boş bırakmak ya da değeri değiştirmek serbest", () => {
+    expect(
+      clearedSavedCells(saved, {
+        ...saved,
+        "s3|mat": { correct: "", wrong: "" },
+        "s1|mat": { correct: "0", wrong: "0" },
+      })
+    ).toEqual([]);
   });
 });

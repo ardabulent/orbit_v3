@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  nextAttendanceState,
   addDaysIso,
   isoWeekDayOf,
   lessonsOnDate,
@@ -118,5 +119,29 @@ describe("K-03: yoklama listesi önceden işaretli gelmez", () => {
     );
     expect(kod).toContain("map[student.studentId] = student.status ?? null;");
     expect(kod).not.toMatch(/student\.status \?\? "Katıldı"/);
+  });
+});
+
+describe("kaydedilmiş işaret kaldırılamaz (2026-10-03, v1.5-23)", () => {
+  it("kaydedilmemiş işarete tekrar basmak onu kaldırır", () => {
+    expect(nextAttendanceState("Gelmedi", "Gelmedi", null)).toBeNull();
+  });
+
+  it("kaydedilmiş işarete tekrar basmak onu yerinde bırakır", () => {
+    // Eskiden işaret kalkıyor, kayıt gönderilmiyor, ekran "kaydedildi"
+    // diyordu; veritabanında eski durum kalıyordu.
+    expect(nextAttendanceState("Gelmedi", "Gelmedi", "Gelmedi")).toBe(
+      "Gelmedi"
+    );
+    expect(nextAttendanceState("Geç kaldı", "Geç kaldı", "Gelmedi")).toBe(
+      "Geç kaldı"
+    );
+  });
+
+  it("başka bir durum seçmek her zaman serbest", () => {
+    expect(nextAttendanceState("Gelmedi", "Katıldı", "Gelmedi")).toBe(
+      "Katıldı"
+    );
+    expect(nextAttendanceState(null, "Geç kaldı", null)).toBe("Geç kaldı");
   });
 });
