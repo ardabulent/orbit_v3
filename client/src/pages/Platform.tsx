@@ -11,11 +11,13 @@ import {
 } from "@/platform/PlatformShell";
 import type { PlatformTab } from "@/platform/tabs";
 import { PlatformAuditLog } from "@/platform/PlatformAuditLog";
+import { PlatformErrorReports } from "@/platform/PlatformErrorReports";
 import { PlatformOperators } from "@/platform/PlatformOperators";
 import { PlatformOrganizations } from "@/platform/PlatformOrganizations";
 import {
   platformKeys,
   usePlatformAuditEvents,
+  usePlatformErrorReports,
   usePlatformOperators,
   usePlatformOrganizations,
 } from "@/platform/platformQueries";
@@ -50,6 +52,13 @@ export default function Platform() {
   const organizationsQuery = usePlatformOrganizations();
   const operatorsQuery = usePlatformOperators();
   const auditEventsQuery = usePlatformAuditEvents();
+  const errorReportsQuery = usePlatformErrorReports({
+    enabled: tab === "errors",
+  });
+  const errorReports = useMemo(
+    () => errorReportsQuery.data?.pages.flatMap(page => page.rows) ?? [],
+    [errorReportsQuery.data]
+  );
 
   const auditEvents = useMemo(
     () => auditEventsQuery.data?.pages.flatMap(page => page.rows) ?? [],
@@ -196,6 +205,34 @@ export default function Platform() {
             operators={operatorsQuery.data?.rows ?? []}
             truncated={operatorsQuery.data?.truncated}
             limit={DEFAULT_OPERATOR_LIMIT}
+          />
+        )
+      ) : tab === "errors" ? (
+        errorReportsQuery.isLoading ? (
+          <PlatformNotice
+            title="Yükleniyor…"
+            description="Hata kayıtları getiriliyor."
+          />
+        ) : errorReportsQuery.error ? (
+          <PlatformNotice
+            title="Veriler yüklenemedi"
+            description={errorReportsQuery.error.message}
+            footer={
+              <button
+                type="button"
+                onClick={() => void errorReportsQuery.refetch()}
+                className="font-bold text-sky-300"
+              >
+                Tekrar dene
+              </button>
+            }
+          />
+        ) : (
+          <PlatformErrorReports
+            reports={errorReports}
+            hasNextPage={errorReportsQuery.hasNextPage}
+            isFetchingNextPage={errorReportsQuery.isFetchingNextPage}
+            onLoadMore={() => void errorReportsQuery.fetchNextPage()}
           />
         )
       ) : auditEventsQuery.isLoading ? (

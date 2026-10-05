@@ -1,4 +1,8 @@
 import {
+  loadClientErrorReports,
+  type ClientErrorReportPage,
+} from "@/errorReporting/errorReportService";
+import {
   useInfiniteQuery,
   useQuery,
   type InfiniteData,
@@ -42,6 +46,7 @@ export const platformKeys = {
   operators: () => ["platform", "operators", { scope: "platform" }] as const,
   auditEvents: () =>
     ["platform", "auditEvents", { scope: "platform" }] as const,
+  errorReports: () => ["platform", "errorReports"] as const,
   organizationStats: (organizationId: string) =>
     ["platform", "organizationStats", { organizationId }] as const,
 };
@@ -155,5 +160,32 @@ export function useOrganizationStats(
       : (["platform", "organizationStats", { organizationId: "" }] as const),
     queryFn: () => loadOrganizationStats(organizationId!),
     enabled: isEnabled,
+  });
+}
+
+/** Hata kayıtları sayfa boyu (2026-10-05, v1.5-06). */
+export const ERROR_REPORT_PAGE_SIZE = 50;
+
+/**
+ * Ekran hata kayıtları. Yalnız operatörde ve sekme açıkken çalışır; asıl
+ * yetki kontrolü sunucuda (`list_client_error_reports`).
+ */
+export function usePlatformErrorReports(options?: { enabled?: boolean }) {
+  const { identity } = useAuth();
+  const isOperator = Boolean(identity?.platformOperator);
+
+  return useInfiniteQuery<
+    ClientErrorReportPage,
+    Error,
+    InfiniteData<ClientErrorReportPage, string | null>,
+    readonly [string, string],
+    string | null
+  >({
+    queryKey: platformKeys.errorReports(),
+    queryFn: ({ pageParam }) =>
+      loadClientErrorReports(ERROR_REPORT_PAGE_SIZE, pageParam),
+    initialPageParam: null,
+    getNextPageParam: lastPage => lastPage.nextCursor,
+    enabled: (options?.enabled ?? true) && isOperator,
   });
 }

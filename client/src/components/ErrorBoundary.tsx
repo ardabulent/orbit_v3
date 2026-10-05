@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
+import { reportError } from "@/errorReporting/installErrorReporting";
 
 interface Props {
   children: ReactNode;
@@ -21,6 +22,10 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error) {
+    reportError("render", error);
+  }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -31,13 +36,15 @@ class ErrorBoundary extends Component<Props, State> {
               className="text-destructive mb-6 flex-shrink-0"
             />
 
-            <h2 className="text-xl mb-4">An unexpected error occurred.</h2>
-
-            <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
-              <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.stack}
-              </pre>
-            </div>
+            <h2 className="text-xl mb-2">Beklenmeyen bir hata oluştu.</h2>
+            {/* Teknik ayrıntı kullanıcıya gösterilmiyor: kimseye bir şey
+                anlatmıyordu ve kişisel veri taşıyabilirdi. Oturum açıksa hata,
+                kişisel veri ayıklanarak platform paneline yazılır (v1.5-06);
+                açık değilse yazılamaz, bu yüzden ekran "kaydedildi" demiyor. */}
+            <p className="text-sm text-muted-foreground mb-6 text-center">
+              Sayfayı yenileyip tekrar deneyin; sorun sürerse kurum yöneticinize
+              haber verin.
+            </p>
 
             <button
               onClick={() => window.location.reload()}
@@ -48,7 +55,7 @@ class ErrorBoundary extends Component<Props, State> {
               )}
             >
               <RotateCcw size={16} />
-              Reload Page
+              Sayfayı yenile
             </button>
           </div>
         </div>

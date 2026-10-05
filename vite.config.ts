@@ -111,6 +111,11 @@ export default defineConfig(({ mode }) => {
     plugins,
     define: {
       __ORBIT_DEPLOYMENT_ENV__: JSON.stringify(deploymentEnvironment),
+      // Hata kayıtlarında hangi yayının çalıştığını söyler (2026-10-05).
+      // Vercel derlemede commit kimliğini verir; yerelde "yerel".
+      __ORBIT_APP_VERSION__: JSON.stringify(
+        (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || "yerel"
+      ),
       __ORBIT_DEMO_MODE__: JSON.stringify(
         isDemoEnvironment(deploymentEnvironment)
       ),
