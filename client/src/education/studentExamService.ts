@@ -35,6 +35,8 @@ export type StudentExam = {
   score: number | null;
   classAverage: number | null;
   sections: StudentExamSection[];
+  /** "Sınava girmedi" işaretliyse sebebiyle (2026-10-05); yoksa `null`. */
+  absence: { reason: string | null } | null;
 };
 
 export type StudentExamOverview = {
@@ -84,20 +86,27 @@ export async function loadStudentExams(
       ? examQuery.or(`class_id.is.null,class_id.in.(${classIds.join(",")})`)
       : examQuery.is("class_id", null);
 
-  const [examsRes, resultsRes, sectionResultsRes] = await Promise.all([
-    examQuery,
-    supabase
-      .from("exam_results")
-      .select("exam_id, score")
-      .eq("organization_id", organizationId)
-      .eq("student_id", studentId),
-    supabase
-      .from("exam_section_results")
-      .select("exam_id, section_id, correct, wrong")
-      .eq("organization_id", organizationId)
-      .eq("student_id", studentId),
-  ]);
-  for (const res of [examsRes, resultsRes, sectionResultsRes]) {
+  const [examsRes, resultsRes, sectionResultsRes, absencesRes] =
+    await Promise.all([
+      examQuery,
+      supabase
+        .from("exam_results")
+        .select("exam_id, score")
+        .eq("organization_id", organizationId)
+        .eq("student_id", studentId),
+      supabase
+        .from("exam_section_results")
+        .select("exam_id, section_id, correct, wrong")
+        .eq("organization_id", organizationId)
+        .eq("student_id", studentId),
+      supabase
+        .from("exam_absences")
+        .select("exam_id, reason")
+        .eq("organization_id", organizationId)
+        .eq("student_id", studentId)
+        .is("archived_at", null),
+    ]);
+  for (const res of [examsRes, resultsRes, sectionResultsRes, absencesRes]) {
     if (res.error) throw new Error(translateExamError(res.error));
   }
 
@@ -122,9 +131,18 @@ export async function loadStudentExams(
     wrong: number;
   }[];
 
+  const absences = new Map(
+    (
+      (absencesRes.data ?? []) as { exam_id: string; reason: string | null }[]
+    ).map(a => [a.exam_id, { reason: a.reason }])
+  );
+  // Sonucu olan ya da "girmedi" işaretli sınav geçmişe aittir.
+  const settled = (examId: string) =>
+    scores.has(examId) || absences.has(examId);
+
   const netExamIds = exams.filter(e => e.net_penalty).map(e => e.id);
   const pastIds = exams
-    .filter(e => e.exam_date < today || scores.has(e.id))
+    .filter(e => e.exam_date < today || settled(e.id))
     .map(e => e.id);
 
   const [sectionsRes, averages] = await Promise.all([
@@ -158,6 +176,7 @@ export async function loadStudentExams(
       className: relationName(row.classes),
       score: scores.get(row.id) ?? null,
       classAverage: avg?.average ?? null,
+      absence: absences.get(row.id) ?? null,
       sections: sections
         .filter(s => s.exam_id === row.id)
         .map(section => {
@@ -178,9 +197,9 @@ export async function loadStudentExams(
 
   return {
     upcoming: exams
-      .filter(e => e.exam_date >= today && !scores.has(e.id))
+      .filter(e => e.exam_date >= today && !settled(e.id))
       .map(toExam)
       .sort((a, b) => a.examDate.localeCompare(b.examDate)),
-    results: exams.filter(e => scores.has(e.id)).map(toExam),
+    results: exams.filter(e => settled(e.id)).map(toExam),
   };
 }

@@ -197,7 +197,7 @@ select is(
 
 reset role;
 
--- 10 · 🔴 On tablonun onunda da kısıtlayıcı ön süzgeç duruyor mu.
+-- 10 · 🔴 On bir tablonun hepsinde de (2026-10-05'e kadar on) kısıtlayıcı ön süzgeç duruyor mu.
 --
 --      Neden davranışsal bir iddia yetmiyor: konjonksiyon mantıksal olarak
 --      gereksiz (her mevcut ayrık onu ima ediyor — ispat migration
@@ -210,8 +210,10 @@ select is(
    where p.polname = c.relname || '_tenant_prefilter'
      and not p.polpermissive
      and pg_get_expr(p.polqual, p.polrelid) like '%current_user_scope_org_ids%'),
-  10::bigint,
-  'all ten restrictive tenant prefilters are still in place — behaviour cannot detect their removal, only the schema can'
+  -- Sonradan düzeltme (2026-10-05): 11. tablo `exam_absences` ("Sınava
+  -- girmedi") aynı ön süzgeçle doğdu; sayı bilinçli olarak 10 → 11.
+  11::bigint,
+  'all eleven restrictive tenant prefilters are still in place — behaviour cannot detect their removal, only the schema can'
 );
 
 select * from finish();

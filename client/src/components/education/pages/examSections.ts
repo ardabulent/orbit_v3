@@ -96,3 +96,18 @@ export function clearedSavedCells(
     k => !isBlank(initial[k]) && isBlank(cells[k])
   );
 }
+
+/**
+ * Puanlı sınavda kayıtlı puanı silinmiş öğrenciler (2026-10-05). Puan da
+ * boş gönderilmez; eskiden ekran "kaydedildi" diyor, eski puan kalıyordu
+ * (v1.5-23'ün puanlı sınavdaki kardeşi). Sonucu kaldırmanın yolu artık
+ * "Sınava girmedi".
+ */
+export function clearedSavedScores(
+  initial: Record<string, string>,
+  scores: Record<string, string>
+): string[] {
+  return Object.keys(initial).filter(
+    id => initial[id].trim() !== "" && (scores[id] ?? "").trim() === ""
+  );
+}

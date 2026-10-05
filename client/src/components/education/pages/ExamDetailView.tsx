@@ -25,6 +25,12 @@ import {
 import type { ClassGroup, Role, Section } from "../types";
 import { ExamFormDialog } from "./ExamFormDialog";
 import { NetResultsGrid } from "./NetResultsGrid";
+import { ExamAbsenceControl } from "./ExamAbsenceControl";
+import { clearedSavedScores } from "./examSections";
+import {
+  loadExamAbsences,
+  type ExamAbsence,
+} from "@/education/examAbsenceService";
 
 export type ExamDetailViewProps = {
   role: Role;
@@ -178,6 +184,9 @@ export function ExamDetailView({
     }
   );
   const [isSaving, setIsSaving] = useState(false);
+  // "Sınava girmedi" sonrası çizelge yeniden okunur (2026-10-05).
+  const [sheetReload, setSheetReload] = useState(0);
+  const [absences, setAbsences] = useState<Map<string, ExamAbsence>>(new Map());
 
   useEffect(() => {
     if (exam && !activeExam) {
@@ -192,10 +201,14 @@ export function ExamDetailView({
       setIsSheetLoading(true);
       setSheetError(null);
 
-      loadExamSheet(organizationId, activeExam.id)
-        .then(loadedSheet => {
+      Promise.all([
+        loadExamSheet(organizationId, activeExam.id),
+        loadExamAbsences(organizationId, activeExam.id),
+      ])
+        .then(([loadedSheet, loadedAbsences]) => {
           if (cancelled) return;
           setSheet(loadedSheet);
+          setAbsences(loadedAbsences);
           const initial: Record<string, string> = {};
           for (const st of loadedSheet.students) {
             // Puanı olmayan öğrenci BOŞTUR (0 uydurulmaz - K-03)
@@ -220,7 +233,7 @@ export function ExamDetailView({
         cancelled = true;
       };
     }
-  }, [activeDemo, organizationId, activeExam?.id]);
+  }, [activeDemo, organizationId, activeExam?.id, sheetReload]);
 
   // Demo modunda örnek öğrenci listesi
   useEffect(() => {
@@ -335,8 +348,23 @@ export function ExamDetailView({
       }
     }
 
+    const cleared = clearedSavedScores(initialScores, scores).filter(
+      id => !absences.has(id)
+    );
+    if (cleared.length > 0) {
+      const names = cleared
+        .map(id => sheet?.students.find(s => s.studentId === id)?.studentName)
+        .filter(Boolean)
+        .join(", ");
+      toast.error("Kayıtlı bir puan silinemez", {
+        description: `${names}: puanı yeniden yazın. Öğrenci sınava girmediyse satırdaki “Girmedi” bağlantısını kullanın.`,
+      });
+      return;
+    }
+
     const entries: ExamResultEntryInput[] = [];
     for (const [studentId, scoreStr] of Object.entries(scores)) {
+      if (absences.has(studentId)) continue;
       if (scoreStr.trim() !== "") {
         const parsed = Number(scoreStr);
         if (!Number.isNaN(parsed)) {
@@ -598,9 +626,31 @@ export function ExamDetailView({
                                 {student.studentCode}
                               </p>
                             ) : null}
+                            {!activeDemo ? (
+                              <ExamAbsenceControl
+                                examId={activeExam.id}
+                                studentId={student.studentId}
+                                studentName={student.studentName}
+                                absence={absences.get(student.studentId)}
+                                canEdit={canManageExams && !isPersonal}
+                                hasResult={
+                                  (
+                                    initialScores[student.studentId] ?? ""
+                                  ).trim() !== ""
+                                }
+                                onChanged={async () => {
+                                  setSheetReload(n => n + 1);
+                                  await onSaved?.();
+                                }}
+                              />
+                            ) : null}
                           </td>
                           <td className="px-5 py-3.5 text-right">
-                            {canManageExams && !isPersonal ? (
+                            {absences.has(student.studentId) ? (
+                              <span className="text-xs font-bold text-amber-700">
+                                Girmedi
+                              </span>
+                            ) : canManageExams && !isPersonal ? (
                               <div className="flex items-center justify-end gap-1.5">
                                 <input
                                   type="number"
