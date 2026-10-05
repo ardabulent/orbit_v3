@@ -152,24 +152,37 @@ function ExamResultCard({ exam }: { exam: StudentExam }) {
             {exam.className ? ` · ${exam.className}` : ""}
           </p>
         </div>
-        <div className="text-right">
-          <p className="font-display text-[24px] font-extrabold tracking-[-.04em] text-slate-900">
-            {exam.score !== null ? formatNumber(exam.score) : "—"}
-            <span className="ml-1 text-[12px] font-semibold tracking-normal text-slate-500">
-              {exam.maxScore && !exam.netPenalty
-                ? `/ ${formatNumber(exam.maxScore)}`
-                : unit}
-            </span>
-          </p>
-          <p className="text-[11px] text-slate-500">
-            {exam.classAverage !== null
-              ? `Sınıf ortalaması ${formatNumber(exam.classAverage)} ${unit}`
-              : "Sınıf ortalaması 3 sonuçtan sonra görünür"}
-          </p>
-        </div>
+        {exam.absence ? (
+          <div className="text-right">
+            <p className="rounded-lg bg-amber-100 px-2.5 py-1 text-[13px] font-extrabold text-amber-800">
+              Sınava girmedi
+            </p>
+            {exam.absence.reason ? (
+              <p className="mt-1 text-[11px] text-slate-500">
+                {exam.absence.reason}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="text-right">
+            <p className="font-display text-[24px] font-extrabold tracking-[-.04em] text-slate-900">
+              {exam.score !== null ? formatNumber(exam.score) : "—"}
+              <span className="ml-1 text-[12px] font-semibold tracking-normal text-slate-500">
+                {exam.maxScore && !exam.netPenalty
+                  ? `/ ${formatNumber(exam.maxScore)}`
+                  : unit}
+              </span>
+            </p>
+            <p className="text-[11px] text-slate-500">
+              {exam.classAverage !== null
+                ? `Sınıf ortalaması ${formatNumber(exam.classAverage)} ${unit}`
+                : "Sınıf ortalaması 3 sonuçtan sonra görünür"}
+            </p>
+          </div>
+        )}
       </div>
 
-      {exam.sections.length > 0 ? (
+      {exam.sections.length > 0 && !exam.absence ? (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-[12px]">
             <thead>

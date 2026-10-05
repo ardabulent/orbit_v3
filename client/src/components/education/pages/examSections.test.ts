@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { netOf } from "@/education/examNetService";
 import {
   clearedSavedCells,
+  clearedSavedScores,
   choiceOf,
   penaltyOf,
   totalQuestions,
@@ -80,5 +81,16 @@ describe("kaydedilmiş sonuç boşaltılamaz (2026-10-03, v1.5-23)", () => {
         "s1|mat": { correct: "0", wrong: "0" },
       })
     ).toEqual([]);
+  });
+});
+
+describe("kayıtlı puan silinemez (2026-10-05)", () => {
+  it("kayıtlı puanı boşaltılan öğrenci yakalanır, yeni boş puan serbest", () => {
+    expect(
+      clearedSavedScores(
+        { s1: "72.5", s2: "", s3: "40" },
+        { s1: " ", s2: "", s3: "41" }
+      )
+    ).toEqual(["s1"]);
   });
 });

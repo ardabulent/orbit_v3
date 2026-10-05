@@ -17,6 +17,11 @@ import type { ExamSheetStudent } from "@/education/examService";
 import { CardSkeleton, ErrorState } from "../shared";
 import { ExamSectionsQuickStart } from "./ExamSectionsQuickStart";
 import { clearedSavedCells, type ResultCell } from "./examSections";
+import { ExamAbsenceControl } from "./ExamAbsenceControl";
+import {
+  loadExamAbsences,
+  type ExamAbsence,
+} from "@/education/examAbsenceService";
 
 type Cell = ResultCell;
 const key = (studentId: string, sectionId: string) =>
@@ -54,6 +59,9 @@ export function NetResultsGrid({
   onDirtyChange?: (isDirty: boolean) => void;
 }) {
   const [sections, setSections] = useState<ExamSection[] | null>(null);
+  // "Sınava girmedi" işaretleri (2026-10-05): o satırın hücreleri kapalıdır.
+  // Sonuçlarla aynı yükleme adımında okunur.
+  const [absences, setAbsences] = useState<Map<string, ExamAbsence>>(new Map());
   const [cells, setCells] = useState<Record<string, Cell>>({});
   const [initial, setInitial] = useState<Record<string, Cell>>({});
   const [averages, setAverages] = useState<Map<string, ExamAverage>>(new Map());
@@ -65,12 +73,15 @@ export function NetResultsGrid({
     let ignore = false;
     (async () => {
       try {
-        const [loadedSections, results, avg] = await Promise.all([
-          loadExamSections(examId),
-          loadSectionResults(examId),
-          loadExamAverages([examId]),
-        ]);
+        const [loadedSections, results, avg, loadedAbsences] =
+          await Promise.all([
+            loadExamSections(examId),
+            loadSectionResults(examId),
+            loadExamAverages([examId]),
+            loadExamAbsences(organizationId ?? "", examId),
+          ]);
         if (ignore) return;
+        setAbsences(loadedAbsences);
         const map: Record<string, Cell> = {};
         for (const r of results) {
           map[key(r.studentId, r.sectionId)] = {
@@ -89,7 +100,7 @@ export function NetResultsGrid({
     return () => {
       ignore = true;
     };
-  }, [examId, reloadKey]);
+  }, [examId, organizationId, reloadKey]);
 
   const isDirty = useMemo(
     () =>
@@ -139,6 +150,7 @@ export function NetResultsGrid({
     }
     const entries: SectionResultInput[] = [];
     for (const student of students) {
+      if (absences.has(student.studentId)) continue;
       for (const section of sections) {
         const value = parse(cells[key(student.studentId, section.id)]);
         if (!value) continue;
@@ -280,6 +292,22 @@ export function NetResultsGrid({
                         {student.studentCode}
                       </span>
                     ) : null}
+                    <ExamAbsenceControl
+                      examId={examId}
+                      studentId={student.studentId}
+                      studentName={student.studentName}
+                      absence={absences.get(student.studentId)}
+                      canEdit={canEdit}
+                      hasResult={sections.some(
+                        section =>
+                          parse(initial[key(student.studentId, section.id)]) !==
+                          null
+                      )}
+                      onChanged={async () => {
+                        setReloadKey(k => k + 1);
+                        await onSaved?.();
+                      }}
+                    />
                   </td>
                   {sections.map(section => {
                     const cell = cells[key(student.studentId, section.id)];
@@ -307,7 +335,9 @@ export function NetResultsGrid({
                                 correct: e.target.value,
                               })
                             }
-                            disabled={!canEdit}
+                            disabled={
+                              !canEdit || absences.has(student.studentId)
+                            }
                             placeholder="D"
                             aria-label={`${student.studentName} ${section.name} doğru`}
                             className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over || cleared.has(key(student.studentId, section.id)) ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
@@ -322,7 +352,9 @@ export function NetResultsGrid({
                                 wrong: e.target.value,
                               })
                             }
-                            disabled={!canEdit}
+                            disabled={
+                              !canEdit || absences.has(student.studentId)
+                            }
                             placeholder="Y"
                             aria-label={`${student.studentName} ${section.name} yanlış`}
                             className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over || cleared.has(key(student.studentId, section.id)) ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
