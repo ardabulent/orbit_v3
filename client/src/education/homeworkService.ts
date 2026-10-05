@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { Homework, HomeworkStatus } from "@/components/education/types";
-import { POSTGREST_MAX_ROWS } from "@/lib/postgrestLimits";
 import { formatTrDate, getOrbitToday } from "./trDate";
 import { readAllPages, PagedReadError } from "@/lib/pagedRead";
 
@@ -259,99 +258,43 @@ export async function loadStaffNames(
 }
 
 /**
- * Sınıfların AKTİF öğrenci KİMLİKLERİ.
+ * Ödev başına teslim eden ve payda (2026-10-05, v1.5-24).
  *
- * ⚠️ Sayı değil **kimlik** döner ve sebebi bir kusurun düzeltilmesi: payda ile
- * pay farklı kümelerden geliyordu. Sınıftan ayrılmış bir öğrencinin geçmiş
- * teslimi sayılıyor ama kendisi paydaya girmiyordu; 10 aktif öğrencilik bir
- * sınıfta 12 teslim çıkabiliyordu. Kimlik döndürünce payda **birleşim** olarak
- * kurulabiliyor ve uydurulmuş bir sayı olmuyor.
+ * Eskiden iki ayrı okumayla (sınıf kayıtları + teslimler) istemcide
+ * hesaplanıyordu; ikisi de 1000 satır tavanına dayanınca "ölçülemedi"
+ * diyordu (100 ödev × 30 öğrenci = 3000 satır). Artık sayım sunucuda:
+ * `homework_completion_counts`. Anlam aynı — payda sınıfın etkin öğrencileri
+ * ∪ teslim edenler (K-03). Yalnız yönetici ve sınıfın öğretmeni için satır
+ * döner; satırı gelmeyen ödevde oran gösterilmez.
+ *
+ * `null` = ölçülemedi (hata); boş Map = ölçüldü ama görünür satır yok.
  */
-async function loadClassStudentIds(
-  organizationId: string,
-  classIds: string[],
-  limit = POSTGREST_MAX_ROWS
-): Promise<Map<string, Set<string>> | null> {
-  const unique = Array.from(new Set(classIds.filter(Boolean)));
-  if (unique.length === 0 || !organizationId) return new Map();
-  // null = "ölçülemedi" (tavan ya da hata). Boş Map = "ölçüldü, kimse yok".
-  // İkisi ayrı şeyler: ilki sayı ÜRETTİRMEZ, ikincisi 0 üretir.
-
-  try {
-    const query = supabase.from("class_enrollments");
-    if (!query || typeof query.select !== "function") return new Map();
-
-    const { data, error } = await query
-      .select("class_id, student_id")
-      .eq("organization_id", organizationId)
-      .in("class_id", unique)
-      .is("archived_at", null)
-      .limit(limit);
-
-    if (error || !data) return null;
-
-    // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense ÖLÇÜLEMEDİ denir.
-    if (data.length >= limit) {
-      return null;
-    }
-
-    const idMap = new Map<string, Set<string>>();
-    for (const row of data as { class_id: string; student_id: string }[]) {
-      if (!row.class_id || !row.student_id) continue;
-      let set = idMap.get(row.class_id);
-      if (!set) {
-        set = new Set();
-        idMap.set(row.class_id, set);
-      }
-      set.add(row.student_id);
-    }
-    return idMap;
-  } catch {
-    return null;
-  }
-}
-
-/** Ödevlerin teslim eden öğrenci KİMLİKLERİ (bkz. `loadClassStudentIds`). */
-async function loadHomeworkSubmitterIds(
-  organizationId: string,
-  homeworkIds: string[],
-  limit = POSTGREST_MAX_ROWS
-): Promise<Map<string, Set<string>> | null> {
+async function loadHomeworkCompletionCounts(
+  homeworkIds: string[]
+): Promise<Map<string, { submitted: number; total: number }> | null> {
   const unique = Array.from(new Set(homeworkIds.filter(Boolean)));
-  if (unique.length === 0 || !organizationId) return new Map();
+  if (unique.length === 0) return new Map();
 
-  try {
-    const query = supabase.from("homework_submissions");
-    if (!query || typeof query.select !== "function") return new Map();
+  const { data, error } = await supabase.rpc("homework_completion_counts", {
+    target_homework_ids: unique,
+  });
+  if (error || !Array.isArray(data)) return null;
 
-    const { data, error } = await query
-      .select("homework_id, student_id")
-      .eq("organization_id", organizationId)
-      .in("homework_id", unique)
-      .is("archived_at", null)
-      .limit(limit);
-
-    if (error || !data) return null;
-
-    // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense ÖLÇÜLEMEDİ denir.
-    if (data.length >= limit) {
-      return null;
-    }
-
-    const idMap = new Map<string, Set<string>>();
-    for (const row of data as { homework_id: string; student_id: string }[]) {
-      if (!row.homework_id || !row.student_id) continue;
-      let set = idMap.get(row.homework_id);
-      if (!set) {
-        set = new Set();
-        idMap.set(row.homework_id, set);
-      }
-      set.add(row.student_id);
-    }
-    return idMap;
-  } catch {
-    return null;
-  }
+  return new Map(
+    (
+      data as {
+        homework_id: string;
+        submitted_count: number | string;
+        total_count: number | string;
+      }[]
+    ).map(row => [
+      row.homework_id,
+      {
+        submitted: Number(row.submitted_count),
+        total: Number(row.total_count),
+      },
+    ])
+  );
 }
 
 export function mapHomeworkRow(
@@ -485,34 +428,19 @@ export async function loadHomework(
   const homeworkIds = rawRows.map(r => r.id);
   const today = getOrbitToday();
 
-  const [staffNames, classStudentIds, homeworkSubmitterIds] = await Promise.all(
-    [
-      loadStaffNames(classIds),
-      loadClassStudentIds(organizationId, classIds),
-      loadHomeworkSubmitterIds(organizationId, homeworkIds),
-    ]
-  );
+  const [staffNames, completion] = await Promise.all([
+    loadStaffNames(classIds),
+    loadHomeworkCompletionCounts(homeworkIds),
+  ]);
 
   const rows = rawRows.map(row => {
-    const submitters = homeworkSubmitterIds?.get(row.id);
-    const classStudents = classStudentIds?.get(row.class_id);
-    const olculdu = homeworkSubmitterIds !== null && classStudentIds !== null;
-
-    // Payda, payın geldiği kümeyle AYNI olmak zorunda: sınıfın aktif
-    // öğrencileri **birleşim** teslim edenler. Sınıftan ayrılmış bir öğrencinin
-    // teslimi sayılıyorsa kendisi de paydaya girer; girmezse "12 / 10" gibi bir
-    // oran ya da uydurulmuş bir payda çıkar (**K-03**).
-    const total =
-      !olculdu || classStudents === undefined
-        ? undefined
-        : new Set([...classStudents, ...(submitters ?? [])]).size;
-
+    const counts = completion?.get(row.id);
     return mapHomeworkRow(
       row,
       staffNames,
       today,
-      olculdu ? (submitters?.size ?? 0) : undefined,
-      total
+      counts?.submitted,
+      counts?.total
     );
   });
 
