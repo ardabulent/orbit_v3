@@ -1,3 +1,4 @@
+import { shouldLoadForTab } from "./familyTabLoading";
 import { useEffect, useMemo, useState } from "react";
 import { OrbitMark } from "@/components/OrbitMark";
 import { LogOut, Menu, PanelLeft, ShieldCheck, X } from "lucide-react";
@@ -260,7 +261,12 @@ export function EducationPlatform({
     setConfirmDialogOpen(true);
   };
 
-  const studentsQuery = useStudents({ search: query, enabled: !isDemoMode });
+  // Öğrenci/veli: kurum listeleri yalnız onları gösteren sekmede okunur.
+  const loadsFor = (...tabs: Section[]) => shouldLoadForTab(role, active, tabs);
+  const studentsQuery = useStudents({
+    search: query,
+    enabled: !isDemoMode && loadsFor("Ödevler"),
+  });
   const membersQuery = useSettingsMembers({
     enabled: role === "admin" && !isDemoMode,
   });
@@ -569,9 +575,23 @@ export function EducationPlatform({
     }
   };
 
-  const classesQuery = useClasses({ enabled: !isDemoMode });
-  const scheduleQuery = useSchedule({ enabled: !isDemoMode });
-  const examQuery = useLatestExam({ enabled: !isDemoMode });
+  const classesQuery = useClasses({
+    enabled:
+      !isDemoMode &&
+      loadsFor(
+        "Ders Programı",
+        "Sınavlar",
+        "Ödevler",
+        "İletişim",
+        "Kayıt ve Ödemeler"
+      ),
+  });
+  const scheduleQuery = useSchedule({
+    enabled: !isDemoMode && loadsFor("Ders Programı"),
+  });
+  const examQuery = useLatestExam({
+    enabled: !isDemoMode && loadsFor("Sınavlar"),
+  });
   // Sınavlar listesi (C-07) — yönetici ve öğretmen.
   const isStaffRole = role === "admin" || role === "teacher";
   const examListQuery = useExams({
@@ -581,9 +601,15 @@ export function EducationPlatform({
       (active === "Sınavlar" || active === "Gün Planı"),
   });
   const examPageQuery = isStaffRole ? examListQuery : examQuery;
-  const paymentsQuery = usePayments({ enabled: !isDemoMode });
-  const paymentOverviewQuery = usePaymentOverview({ enabled: !isDemoMode });
-  const homeworkQuery = useHomework({ enabled: !isDemoMode });
+  const paymentsQuery = usePayments({
+    enabled: !isDemoMode && loadsFor("Kayıt ve Ödemeler"),
+  });
+  const paymentOverviewQuery = usePaymentOverview({
+    enabled: !isDemoMode && loadsFor("Kayıt ve Ödemeler"),
+  });
+  const homeworkQuery = useHomework({
+    enabled: !isDemoMode && loadsFor("Ödevler"),
+  });
   const reportAttendanceQuery = useReportAttendanceWeeks({
     enabled: !isDemoMode && active === "Raporlar",
     range: reportRange,
