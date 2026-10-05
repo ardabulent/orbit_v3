@@ -1200,28 +1200,11 @@ describe("v1.4-15 Ödev Teslim Takibi (homework_submissions & K-23)", () => {
       expect(hw.status).not.toBe("Tamamlandı");
     });
 
-    it("🔴 payda BİRLEŞİM olarak kuruluyor: ayrılmış teslimci paydaya da girer", async () => {
-      // 2 aktif öğrenci (s1, s2) + ayrılmış s3'ün teslimi → payda 3, pay 2.
-      fromMock.mockImplementation((table: string) => {
-        if (table === "class_enrollments") {
-          return createQueryChain({
-            data: [
-              { class_id: "cls-1", student_id: "s1" },
-              { class_id: "cls-1", student_id: "s2" },
-            ],
-            error: null,
-          });
-        }
-        if (table === "homework_submissions") {
-          return createQueryChain({
-            data: [
-              { homework_id: "hw-1", student_id: "s1" },
-              { homework_id: "hw-1", student_id: "s3" },
-            ],
-            error: null,
-          });
-        }
-        return createQueryChain({
+    it("🔴 tamamlanma sayımı tek veritabanı çağrısından gelir (v1.5-24)", async () => {
+      // Birleşim payda (sınıfın etkin öğrencileri ∪ teslim edenler) artık
+      // sunucuda; kuralı `homework_completion_counts.test.sql` sınıyor.
+      fromMock.mockImplementation(() =>
+        createQueryChain({
           data: [
             {
               id: "hw-1",
@@ -1235,14 +1218,64 @@ describe("v1.4-15 Ödev Teslim Takibi (homework_submissions & K-23)", () => {
             },
           ],
           error: null,
-        });
-      });
-      rpcMock.mockResolvedValue({ data: [], error: null });
+        })
+      );
+      rpcMock.mockImplementation((fn: string) =>
+        Promise.resolve(
+          fn === "homework_completion_counts"
+            ? {
+                data: [
+                  { homework_id: "hw-1", submitted_count: 2, total_count: "3" },
+                ],
+                error: null,
+              }
+            : { data: [], error: null }
+        )
+      );
 
       const res = await loadHomework("org-1");
+
+      expect(rpcMock).toHaveBeenCalledWith("homework_completion_counts", {
+        target_homework_ids: ["hw-1"],
+      });
+      // Sınıf kaydı ve teslim tablosu artık istemciden okunmuyor.
+      expect(fromMock).not.toHaveBeenCalledWith("class_enrollments");
+      expect(fromMock).not.toHaveBeenCalledWith("homework_submissions");
       expect(res.rows[0].submissionCount).toBe(2);
       expect(res.rows[0].totalStudents).toBe(3);
       expect(res.rows[0].status).not.toBe("Tamamlandı");
+    });
+
+    it("sayım alınamazsa oran uydurulmaz (ölçülemedi)", async () => {
+      fromMock.mockImplementation(() =>
+        createQueryChain({
+          data: [
+            {
+              id: "hw-1",
+              organization_id: "org-1",
+              class_id: "cls-1",
+              title: "Test",
+              assigned_on: "2026-09-10",
+              due_date: "2026-09-20",
+              submissions_recorded_at: null,
+              archived_at: null,
+            },
+          ],
+          error: null,
+        })
+      );
+      rpcMock.mockImplementation((fn: string) =>
+        Promise.resolve(
+          fn === "homework_completion_counts"
+            ? { data: null, error: { code: "57014" } }
+            : { data: [], error: null }
+        )
+      );
+
+      const res = await loadHomework("org-1");
+
+      expect(res.rows[0].submissionCount).toBeUndefined();
+      expect(res.rows[0].totalStudents).toBeUndefined();
     });
 
     it("ödev tamamlandığında ve işaretleme bitirildiğinde rozet 'Tamamlandı' ve sayı çizilir", () => {

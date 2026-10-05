@@ -42,6 +42,13 @@
  * okuma için düşürülmüş bir sunucu tavanı tam olarak sessiz yanlış sayı
  * üretir — yukarıdaki uyarının sebebi bu. Kayıt düzeltildi, silinmedi
  * (**K-10**).
+ *
+ * **Sonradan düzeltme (2026-10-05):** `homeworkService`'in o iki iç adımı
+ * kaldırıldı; ödev sayımı artık tek bir veritabanı çağrısı
+ * (`homework_completion_counts`, v1.5-24). Bugün bu sabite açıkça dayanan
+ * okuma yok; listeler `lib/pagedRead.ts` ile sayfa sayfa okunuyor ve sayfa
+ * boyu bu sabitin altında tutuluyor. "Düşürülmemeli" uyarısı yine geçerli:
+ * sayfa boyu ile bu sabit arasındaki ilişkiyi kapı ölçüyor.
  */
 
 export const POSTGREST_MAX_ROWS = 1000;
