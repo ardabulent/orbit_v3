@@ -13,7 +13,7 @@ import { Badge, TableSkeleton } from "../shared";
 import { educationKeys } from "@/education/educationQueries";
 import { loadClassEnrollments } from "@/education/classService";
 import {
-  DEFAULT_HOMEWORK_LIMIT,
+  DEFAULT_SUBMISSION_LIMIT,
   loadHomeworkSubmissions,
   markSubmission,
   setSubmissionsRecorded,
@@ -395,7 +395,7 @@ export function HomeworkSubmissionsDialog({
 
         {truncated ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
-            Liste üst sınıra ({DEFAULT_HOMEWORK_LIMIT} kayıt) ulaştı. Kalan
+            Liste üst sınıra ({DEFAULT_SUBMISSION_LIMIT} kayıt) ulaştı. Kalan
             kayıtları görmek için filtreleyin.
           </div>
         ) : null}

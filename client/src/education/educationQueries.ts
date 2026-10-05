@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
 import {
-  DEFAULT_STUDENT_LIMIT,
+  STUDENT_TOTAL_CAP,
   loadStudents,
   type StudentListResult,
 } from "./studentService";
@@ -36,7 +36,7 @@ import {
   type Installment,
 } from "./paymentService";
 import {
-  DEFAULT_HOMEWORK_LIMIT,
+  HOMEWORK_TOTAL_CAP,
   loadHomework,
   type HomeworkListResult,
 } from "./homeworkService";
@@ -63,7 +63,7 @@ import {
   type ClassTeacherListResult,
 } from "./classTeacherService";
 import {
-  DEFAULT_GUARDIAN_LIMIT,
+  GUARDIAN_TOTAL_CAP,
   loadGuardians,
   loadStudentGuardianLinks,
   type GuardianListResult,
@@ -377,7 +377,7 @@ export function useStudents(options?: UseStudentsOptions) {
   const { identity } = useAuth();
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
-  const limit = options?.limit ?? DEFAULT_STUDENT_LIMIT;
+  const limit = options?.limit ?? STUDENT_TOTAL_CAP;
   const debouncedSearch = useDebouncedValue(
     options?.search,
     options?.debounceMs ?? 300
@@ -694,7 +694,7 @@ export function useHomework(options?: UseHomeworkOptions) {
   const { identity } = useAuth();
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
-  const limit = options?.limit ?? DEFAULT_HOMEWORK_LIMIT;
+  const limit = options?.limit ?? HOMEWORK_TOTAL_CAP;
   const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
 
   return useQuery<HomeworkListResult, Error>({
@@ -889,7 +889,7 @@ export function useGuardians(options?: UseGuardiansOptions) {
   const { identity } = useAuth();
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
-  const limit = options?.limit ?? DEFAULT_GUARDIAN_LIMIT;
+  const limit = options?.limit ?? GUARDIAN_TOTAL_CAP;
   const debouncedSearch = useDebouncedValue(
     options?.search,
     options?.debounceMs ?? 300

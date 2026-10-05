@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { READ_PAGE_SIZE } from "@/lib/pagedRead";
 import {
-  DEFAULT_STUDENT_LIMIT,
+  STUDENT_TOTAL_CAP,
   archiveStudent,
   createStudent,
   extractBranchName,
@@ -88,6 +89,14 @@ function createQueryChain(
   chain.limit = vi.fn((limit: number) => {
     if (spy) spy.limitArg = limit;
     return Promise.resolve(result);
+  });
+  // Sayfalı okuma (2026-10-05): `range(from, to)` verinin o dilimini döner;
+  // `limitArg` istenen satırın üst ucu (to + 1).
+  chain.range = vi.fn((from: number, to: number) => {
+    if (spy) spy.limitArg = to + 1;
+    const res = result as { data?: unknown; error?: unknown };
+    if (res.error || !Array.isArray(res.data)) return Promise.resolve(result);
+    return Promise.resolve({ ...res, data: res.data.slice(from, to + 1) });
   });
   chain.then = (
     resolve: (val: unknown) => unknown,
@@ -388,7 +397,7 @@ describe("studentService", () => {
       // ROADMAP §4.12, #249: Açık organization_id süzgeci zorunludur
       expect(querySpy.eqArgs).toContainEqual(["organization_id", "org-test-1"]);
       expect(querySpy.isArgs).toEqual(["archived_at", null]);
-      expect(querySpy.orderArgs).toEqual(["full_name", { ascending: true }]);
+      expect(querySpy.orderArgs).toEqual(["id", { ascending: true }]); // ad sıralamasından sonra eşitlik bozucu (sayfalı okuma);
       expect(querySpy.limitArg).toBe(50);
       expect(querySpy.orArgs).toBeUndefined();
 
@@ -545,7 +554,7 @@ describe("studentService", () => {
       expect(result.truncated).toBe(true);
     });
 
-    it("varsayılan üst sınır 100'dür", async () => {
+    it("varsayılan toplam tavan 5000; ilk sayfa READ_PAGE_SIZE ister (2026-10-05)", async () => {
       const spy: { limitArg?: number } = {};
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
@@ -557,7 +566,8 @@ describe("studentService", () => {
 
       await loadStudents("org-test-1");
 
-      expect(spy.limitArg).toBe(DEFAULT_STUDENT_LIMIT);
+      expect(STUDENT_TOTAL_CAP).toBe(5000);
+      expect(spy.limitArg).toBe(READ_PAGE_SIZE);
     });
 
     it("veritabanı hatasında anlamlı Türkçe hata fırlatır (K-04)", async () => {

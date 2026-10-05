@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  DEFAULT_GUARDIAN_LIMIT,
+  GUARDIAN_TOTAL_CAP,
   archiveGuardian,
   createGuardian,
   extractActiveStudentNames,
@@ -92,6 +92,14 @@ function createQueryChain(
   chain.limit = vi.fn((lim: number) => {
     if (spy) spy.limitArg = lim;
     return Promise.resolve(result);
+  });
+  // Sayfalı okuma (2026-10-05): `range(from, to)` verinin o dilimini döner;
+  // `limitArg` istenen satırın üst ucu (to + 1).
+  chain.range = vi.fn((from: number, to: number) => {
+    if (spy) spy.limitArg = to + 1;
+    const res = result as { data?: unknown; error?: unknown };
+    if (res.error || !Array.isArray(res.data)) return Promise.resolve(result);
+    return Promise.resolve({ ...res, data: res.data.slice(from, to + 1) });
   });
 
   // Thenable for queries ending with select() after update/delete
@@ -258,7 +266,7 @@ describe("guardianService (v1.4-10 · #275)", () => {
       expect(fromMock).toHaveBeenCalledWith("guardians");
       expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
       expect(spy.isArgs).toEqual(["archived_at", null]);
-      expect(spy.orderArgs).toEqual(["full_name", { ascending: true }]);
+      expect(spy.orderArgs).toEqual(["id", { ascending: true }]); // ad sıralamasından sonra eşitlik bozucu (sayfalı okuma);
       expect(spy.limitArg).toBe(50);
       expect(result.rows).toHaveLength(1);
       expect(result.truncated).toBe(false);
@@ -280,8 +288,8 @@ describe("guardianService (v1.4-10 · #275)", () => {
       expect(spy.ilikeArgs).toContainEqual(["search_key", "%cagri%"]);
     });
 
-    it("DEFAULT_GUARDIAN_LIMIT varsayılanı 100 olarak tanımlıdır", () => {
-      expect(DEFAULT_GUARDIAN_LIMIT).toBe(100);
+    it("veli listesinin toplam tavanı 5000 (2026-10-05, sayfalı okuma)", () => {
+      expect(GUARDIAN_TOTAL_CAP).toBe(5000);
     });
 
     it("satır sayısı limite ulaştığında truncated true döner", async () => {

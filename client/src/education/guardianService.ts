@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { searchPattern } from "./turkishSearch";
+import { readAllPages, PagedReadError } from "@/lib/pagedRead";
 
 /**
  * Veli ve öğrenci–veli bağı servis katmanı (v1.4-10 · #275).
@@ -26,7 +27,12 @@ import { searchPattern } from "./turkishSearch";
  *    satır silmez. Sıfır satır etkileyen yazma işlemleri hata fırlatır (K-14).
  */
 
-export const DEFAULT_GUARDIAN_LIMIT = 100;
+/**
+ * Listenin toplam tavanı (2026-10-05). Eskiden tek sorguda 100'dü; 300
+ * öğrencili kurumda liste eksik kalıyordu. Artık sayfa sayfa
+ * (`lib/pagedRead.ts`) bu tavana kadar okunur.
+ */
+export const GUARDIAN_TOTAL_CAP = 5000;
 
 export type Guardian = {
   id: string;
@@ -216,12 +222,13 @@ export async function loadGuardians(
   organizationId: string,
   options?: LoadGuardiansOptions
 ): Promise<GuardianListResult> {
-  const limit = options?.limit ?? DEFAULT_GUARDIAN_LIMIT;
+  const limit = options?.limit ?? GUARDIAN_TOTAL_CAP;
 
-  let query = supabase
-    .from("guardians")
-    .select(
-      `
+  const page = (from: number, to: number) => {
+    let query = supabase
+      .from("guardians")
+      .select(
+        `
       id,
       organization_id,
       full_name,
@@ -238,31 +245,34 @@ export async function loadGuardians(
         )
       )
     `
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null);
+      )
+      .eq("organization_id", organizationId)
+      .is("archived_at", null);
 
-  const term = options?.search?.trim();
-  if (term) {
-    // Türkçe arama (2026-10-03): `search_key` = search_fold(ad + telefon).
-    query = query.ilike("search_key", searchPattern(term));
-  }
+    const term = options?.search?.trim();
+    if (term) {
+      // Türkçe arama (2026-10-03): `search_key` = search_fold(ad + telefon).
+      query = query.ilike("search_key", searchPattern(term));
+    }
 
-  const { data, error } = await query
-    .order("full_name", { ascending: true })
-    .limit(limit);
-
-  if (error) {
-    throw new Error("Veli listesi yüklenemedi.");
-  }
-
-  const rawRows = (data ?? []) as RawGuardianRow[];
-  const rows = rawRows.map(mapGuardianRow);
-
-  return {
-    rows,
-    truncated: rows.length === limit,
+    return query
+      .order("full_name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to);
   };
+
+  try {
+    const { rows: rawRows, truncated } = await readAllPages<RawGuardianRow>(
+      page,
+      limit
+    );
+    return { rows: rawRows.map(mapGuardianRow), truncated };
+  } catch (err) {
+    if (err instanceof PagedReadError) {
+      throw new Error("Veli listesi yüklenemedi.", { cause: err });
+    }
+    throw err;
+  }
 }
 
 /**
