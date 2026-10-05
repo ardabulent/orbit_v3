@@ -2,7 +2,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
 import {
-  DEFAULT_PAYMENT_LIMIT,
+  PAYMENT_TOTAL_CAP,
   type Installment,
 } from "@/education/paymentService";
 import { getOrbitToday } from "@/education/trDate";
@@ -49,7 +49,7 @@ export function PaymentsPage({
   error = null,
   onRetry,
   truncated = false,
-  limit = DEFAULT_PAYMENT_LIMIT,
+  limit = PAYMENT_TOTAL_CAP,
   isDemo = isDemoMode,
   onAddPlan,
   onSelectPlan,

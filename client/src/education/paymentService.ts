@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { PaymentRow } from "@/components/education/types";
 import { formatTrDate } from "./trDate";
+import { readAllPages, PagedReadError } from "@/lib/pagedRead";
 
 /**
  * Ödeme servis katmanı (v1.3-01 · E parçası).
@@ -48,7 +49,12 @@ import { formatTrDate } from "./trDate";
  * Demo'daki "Hatırlatma gerekli" ve "Gecikme riski" üretimde çizilmez.
  */
 
-export const DEFAULT_PAYMENT_LIMIT = 100;
+/**
+ * Listenin toplam tavanı (2026-10-05). Eskiden tek sorguda 100'dü; 300
+ * öğrencili kurumda liste eksik kalıyordu. Artık sayfa sayfa
+ * (`lib/pagedRead.ts`) bu tavana kadar okunur.
+ */
+export const PAYMENT_TOTAL_CAP = 5000;
 
 export type LoadPaymentsOptions = {
   limit?: number;
@@ -245,12 +251,13 @@ export async function loadPayments(
   organizationId: string,
   options?: LoadPaymentsOptions
 ): Promise<PaymentListResult> {
-  const limit = options?.limit ?? DEFAULT_PAYMENT_LIMIT;
+  const limit = options?.limit ?? PAYMENT_TOTAL_CAP;
 
-  let query = supabase
-    .from("payment_plans")
-    .select(
-      `
+  const page = (from: number, to: number) => {
+    let query = supabase
+      .from("payment_plans")
+      .select(
+        `
       id,
       name,
       student_id,
@@ -259,40 +266,46 @@ export async function loadPayments(
       archived_at,
       created_at
     `
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null);
+      )
+      .eq("organization_id", organizationId)
+      .is("archived_at", null);
 
-  if (options?.studentId) {
-    query = query.eq("student_id", options.studentId);
-  }
-
-  if (options?.search) {
-    const trimmed = options.search.trim();
-    if (trimmed.length > 0) {
-      query = query.ilike("name", `%${trimmed}%`);
+    if (options?.studentId) {
+      query = query.eq("student_id", options.studentId);
     }
+
+    if (options?.search) {
+      const trimmed = options.search.trim();
+      if (trimmed.length > 0) {
+        query = query.ilike("name", `%${trimmed}%`);
+      }
+    }
+
+    return query
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to);
+  };
+
+  let rawRows: RawPaymentPlanRow[];
+  let truncated: boolean;
+  try {
+    ({ rows: rawRows, truncated } = await readAllPages<RawPaymentPlanRow>(
+      page,
+      limit
+    ));
+  } catch (err) {
+    if (err instanceof PagedReadError) {
+      throw new Error("Ödeme listesi yüklenemedi.", { cause: err });
+    }
+    throw err;
   }
-
-  const { data, error } = await query
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    throw new Error("Ödeme listesi yüklenemedi.");
-  }
-
-  const rawRows = (data ?? []) as RawPaymentPlanRow[];
   const planIds = rawRows.map(row => row.id).filter(Boolean);
 
   const summaries = await loadPaymentPlanSummaries(planIds);
   const rows = rawRows.map(row => mapPaymentRow(row, summaries.get(row.id)));
 
-  return {
-    rows,
-    truncated: rows.length === limit,
-  };
+  return { rows, truncated };
 }
 
 /**

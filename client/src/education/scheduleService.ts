@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { ScheduleItem } from "@/components/education/types";
 import { isoToWeekDay } from "./weekDays";
+import { readAllPages } from "@/lib/pagedRead";
 
 /**
  * Ders programı servis katmanı (v1.3-01 · B parçası).
@@ -38,17 +39,9 @@ import { isoToWeekDay } from "./weekDays";
  *
  * Adı bilinçli olarak `DEFAULT_…_LIMIT` değil: o adlar TEK sorguluk tavandır
  * ve `postgrestLimits.test.ts` onları sunucu tavanının altında tutar. Bu bir
- * toplamdır; tek istek `SCHEDULE_PAGE_SIZE`'ı aşmaz.
+ * toplamdır; okuma ortak `lib/pagedRead.ts` ile sayfa sayfa yapılır.
  */
 export const SCHEDULE_TOTAL_CAP = 5000;
-
-/**
- * Sayfa boyu sunucu tavanının (`POSTGREST_MAX_ROWS`) ALTINDA olmak zorunda:
- * eşit olsaydı ve üretimdeki tavan bir gün düşürülseydi her sayfa eksik
- * gelir, döngü onu "son sayfa" sanıp durur, program sessizce kesilirdi.
- * Kapı: `postgrestLimits.test.ts`.
- */
-const SCHEDULE_PAGE_SIZE = 500;
 
 export type ScheduleListResult = {
   rows: ScheduleItem[];
@@ -245,14 +238,14 @@ export async function loadSchedule(
   // Sayfa sayfa: sunucu tek yanıtta en çok `max_rows` satır döner. Sıralamada
   // `id` eşitlik bozucu; o olmadan aynı gün ve saatteki satırlar sayfalar
   // arasında yer değiştirip bir satır iki kez, bir başkası hiç gelmeyebilirdi.
-  const rawRows: RawScheduleRow[] = [];
-  while (rawRows.length < limit) {
-    const from = rawRows.length;
-    const to = Math.min(from + SCHEDULE_PAGE_SIZE, limit) - 1;
-    const page = await loadSchedulePage(organizationId, from, to);
-    rawRows.push(...page);
-    if (page.length < to - from + 1) break;
-  }
+  const { rows: rawRows, truncated } = await readAllPages<RawScheduleRow>(
+    (from, to) =>
+      loadSchedulePage(organizationId, from, to).then(data => ({
+        data,
+        error: null,
+      })),
+    limit
+  );
 
   const classIds = Array.from(
     new Set(rawRows.map(r => r.class_id).filter(Boolean))
@@ -270,7 +263,7 @@ export async function loadSchedule(
     // hesaplasaydık, sorgu tam limite dayanmışken bir satır elendiği anda
     // kesilme bandı SESSİZCE çizilmezdi — sözleşmenin yasakladığı şeyin ta
     // kendisi (`DECISION_LOG` — "kesildiği söylenmeden hiçbir liste kesilmez").
-    truncated: rawRows.length === limit,
+    truncated,
   };
 }
 

@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { Homework, HomeworkStatus } from "@/components/education/types";
 import { POSTGREST_MAX_ROWS } from "@/lib/postgrestLimits";
 import { formatTrDate, getOrbitToday } from "./trDate";
+import { readAllPages, PagedReadError } from "@/lib/pagedRead";
 
 /**
  * Ödev servis katmanı (v1.4-05 · #273).
@@ -27,7 +28,15 @@ import { formatTrDate, getOrbitToday } from "./trDate";
  *    Çözülemezse `null` bırakılır; isim uydurulmaz (K-22).
  */
 
-export const DEFAULT_HOMEWORK_LIMIT = 100;
+/**
+ * Listenin toplam tavanı (2026-10-05). Eskiden tek sorguda 100'dü; 300
+ * öğrencili kurumda liste eksik kalıyordu. Artık sayfa sayfa
+ * (`lib/pagedRead.ts`) bu tavana kadar okunur.
+ */
+export const HOMEWORK_TOTAL_CAP = 5000;
+
+/** Tek ödevin teslim listesi; tek sorgu, sunucu tavanının altında (bir sınıf). */
+export const DEFAULT_SUBMISSION_LIMIT = 500;
 
 // `POSTGREST_MAX_ROWS` v1.5-09'da `@/lib/postgrestLimits`'e taşındı: platformun
 // tamamına ait bir gerçek, tek bir özelliğin servis dosyasına değil (K-06).
@@ -431,12 +440,13 @@ export async function loadHomework(
   organizationId: string,
   options?: { limit?: number }
 ): Promise<HomeworkListResult> {
-  const limit = options?.limit ?? DEFAULT_HOMEWORK_LIMIT;
+  const limit = options?.limit ?? HOMEWORK_TOTAL_CAP;
 
-  const { data, error } = await supabase
-    .from("homework_assignments")
-    .select(
-      `
+  const page = (from: number, to: number) =>
+    supabase
+      .from("homework_assignments")
+      .select(
+        `
       id,
       organization_id,
       class_id,
@@ -451,18 +461,26 @@ export async function loadHomework(
       classes ( id, name, archived_at ),
       subjects ( id, name, archived_at )
     `
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null)
-    .order("due_date", { ascending: true })
-    .order("id", { ascending: false })
-    .limit(limit);
+      )
+      .eq("organization_id", organizationId)
+      .is("archived_at", null)
+      .order("due_date", { ascending: true })
+      .order("id", { ascending: false })
+      .range(from, to);
 
-  if (error) {
-    throw new Error(translateHomeworkError(error));
+  let rawRows: RawHomeworkRow[];
+  let truncated: boolean;
+  try {
+    ({ rows: rawRows, truncated } = await readAllPages<RawHomeworkRow>(
+      page,
+      limit
+    ));
+  } catch (err) {
+    if (err instanceof PagedReadError) {
+      throw new Error(translateHomeworkError(err.cause), { cause: err });
+    }
+    throw err;
   }
-
-  const rawRows = (data ?? []) as RawHomeworkRow[];
   const classIds = rawRows.map(r => r.class_id).filter(Boolean);
   const homeworkIds = rawRows.map(r => r.id);
   const today = getOrbitToday();
@@ -500,7 +518,7 @@ export async function loadHomework(
 
   return {
     rows,
-    truncated: rawRows.length === limit,
+    truncated,
   };
 }
 
@@ -655,7 +673,7 @@ export async function loadHomeworkSubmissions(
   homeworkId: string,
   options?: { limit?: number }
 ): Promise<HomeworkSubmissionListResult> {
-  const limit = options?.limit ?? DEFAULT_HOMEWORK_LIMIT;
+  const limit = options?.limit ?? DEFAULT_SUBMISSION_LIMIT;
 
   const { data, error } = await supabase
     .from("homework_submissions")

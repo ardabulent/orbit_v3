@@ -8,6 +8,7 @@ import {
 import { loadStudentPaymentStatuses } from "./paymentService";
 import { loadStudentHomeworkRatios } from "./homeworkService";
 import { searchPattern } from "./turkishSearch";
+import { readAllPages, PagedReadError } from "@/lib/pagedRead";
 
 /**
  * Öğrenci listesi ve CRUD servis katmanı (v1.3-01 & v1.4-01 · #264).
@@ -42,7 +43,12 @@ import { searchPattern } from "./turkishSearch";
  * kesinlikle `0` veya uydurulmuş dizelerle doldurulmaz.
  */
 
-export const DEFAULT_STUDENT_LIMIT = 100;
+/**
+ * Listenin toplam tavanı (2026-10-05). Eskiden tek sorguda 100'dü; 300
+ * öğrencili kurumda liste eksik kalıyordu. Artık sayfa sayfa
+ * (`lib/pagedRead.ts`) bu tavana kadar okunur.
+ */
+export const STUDENT_TOTAL_CAP = 5000;
 
 export type StudentListResult = {
   rows: Student[];
@@ -247,12 +253,13 @@ export async function loadStudents(
   organizationId: string,
   options?: LoadStudentsOptions
 ): Promise<StudentListResult> {
-  const limit = options?.limit ?? DEFAULT_STUDENT_LIMIT;
+  const limit = options?.limit ?? STUDENT_TOTAL_CAP;
 
-  let query = supabase
-    .from("students")
-    .select(
-      `
+  const page = (from: number, to: number) => {
+    let query = supabase
+      .from("students")
+      .select(
+        `
       id,
       full_name,
       student_number,
@@ -268,26 +275,36 @@ export async function loadStudents(
         guardians ( full_name, archived_at )
       )
     `
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null);
+      )
+      .eq("organization_id", organizationId)
+      .is("archived_at", null);
 
-  const term = options?.search?.trim();
-  if (term) {
-    // Türkçe arama (2026-10-03): `search_key` = search_fold(ad + numara);
-    // "ilker" → "İlker", "isik" → "Işık". Bkz. turkishSearch.ts.
-    query = query.ilike("search_key", searchPattern(term));
+    const term = options?.search?.trim();
+    if (term) {
+      // Türkçe arama (2026-10-03): `search_key` = search_fold(ad + numara);
+      // "ilker" → "İlker", "isik" → "Işık". Bkz. turkishSearch.ts.
+      query = query.ilike("search_key", searchPattern(term));
+    }
+
+    return query
+      .order("full_name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to);
+  };
+
+  let rawRows: RawStudentRow[];
+  let truncated: boolean;
+  try {
+    ({ rows: rawRows, truncated } = await readAllPages<RawStudentRow>(
+      page,
+      limit
+    ));
+  } catch (err) {
+    if (err instanceof PagedReadError) {
+      throw new Error("Öğrenci listesi yüklenemedi.", { cause: err });
+    }
+    throw err;
   }
-
-  const { data, error } = await query
-    .order("full_name", { ascending: true })
-    .limit(limit);
-
-  if (error) {
-    throw new Error("Öğrenci listesi yüklenemedi.");
-  }
-
-  const rawRows = (data ?? []) as RawStudentRow[];
   const studentIds = rawRows.map(r => r.id);
   const [attendancePercentages, latestScores, paymentStatuses, homeworkRatios] =
     await Promise.all([
@@ -307,10 +324,7 @@ export async function loadStudents(
     )
   );
 
-  return {
-    rows,
-    truncated: rows.length === limit,
-  };
+  return { rows, truncated };
 }
 
 export type CreateStudentInput = {

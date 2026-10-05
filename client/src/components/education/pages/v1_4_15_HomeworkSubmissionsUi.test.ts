@@ -481,7 +481,7 @@ describe("HomeworkSubmissionsDialog — v1.4-15 Rol Güvenliği ve K-23", () => 
     );
 
     expect(html).toContain(
-      "Liste üst sınıra (100 kayıt) ulaştı. Kalan kayıtları görmek için filtreleyin."
+      "Liste üst sınıra (500 kayıt) ulaştı. Kalan kayıtları görmek için filtreleyin."
     );
   });
 

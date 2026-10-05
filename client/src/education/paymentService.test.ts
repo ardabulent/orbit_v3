@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { READ_PAGE_SIZE } from "@/lib/pagedRead";
 import {
-  DEFAULT_PAYMENT_LIMIT,
+  PAYMENT_TOTAL_CAP,
   extractStudentName,
   formatCurrency,
   loadPaymentOverviewCounts,
@@ -86,6 +87,14 @@ function createQueryChain(
   chain.limit = vi.fn((limit: number) => {
     if (spy) spy.limitArg = limit;
     return Promise.resolve(result);
+  });
+  // Sayfalı okuma (2026-10-05): `range(from, to)` verinin o dilimini döner;
+  // `limitArg` istenen satırın üst ucu (to + 1).
+  chain.range = vi.fn((from: number, to: number) => {
+    if (spy) spy.limitArg = to + 1;
+    const res = result as { data?: unknown; error?: unknown };
+    if (res.error || !Array.isArray(res.data)) return Promise.resolve(result);
+    return Promise.resolve({ ...res, data: res.data.slice(from, to + 1) });
   });
   return chain;
 }
@@ -333,7 +342,7 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
       });
 
       const result = await loadPayments("org-1", {
-        limit: DEFAULT_PAYMENT_LIMIT,
+        limit: PAYMENT_TOTAL_CAP,
       });
 
       expect(fromMock).toHaveBeenCalledWith("payment_plans");
@@ -348,7 +357,8 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
         ["created_at", { ascending: false }],
         ["id", { ascending: false }],
       ]);
-      expect(spy.limitArg).toBe(DEFAULT_PAYMENT_LIMIT);
+      // Sayfalı okuma (2026-10-05): ilk sayfa READ_PAGE_SIZE satır ister.
+      expect(spy.limitArg).toBe(READ_PAGE_SIZE);
 
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].student).toBe("Aras Öztürk");

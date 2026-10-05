@@ -2,11 +2,12 @@ import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { READ_PAGE_SIZE } from "@/lib/pagedRead";
 
 (globalThis as unknown as { React: typeof React }).React = React;
 
 import {
-  DEFAULT_HOMEWORK_LIMIT,
+  HOMEWORK_TOTAL_CAP,
   archiveHomework,
   createHomework,
   extractClassName,
@@ -120,6 +121,14 @@ function createQueryChain(
   chain.limit = vi.fn((limit: number) => {
     if (spy) spy.limitArg = limit;
     return chain;
+  });
+  // Sayfalı okuma (2026-10-05): `range(from, to)` verinin o dilimini döner;
+  // `limitArg` istenen satırın üst ucu (to + 1).
+  chain.range = vi.fn((from: number, to: number) => {
+    if (spy) spy.limitArg = to + 1;
+    const res = result as { data?: unknown; error?: unknown };
+    if (res.error || !Array.isArray(res.data)) return Promise.resolve(result);
+    return Promise.resolve({ ...res, data: res.data.slice(from, to + 1) });
   });
   chain.insert = vi.fn((payload: unknown) => {
     if (spy) spy.insertArg = payload;
@@ -484,7 +493,7 @@ describe("homeworkService (v1.4-05 · #273 Ödev Akışı)", () => {
       expect(result.truncated).toBe(false);
     });
 
-    it("varsayılan üst sınır DEFAULT_HOMEWORK_LIMIT (100)'dir", async () => {
+    it("varsayılan toplam tavan 5000; ilk sayfa READ_PAGE_SIZE ister (2026-10-05)", async () => {
       const spy: { limitArg?: number } = {};
       fromMock.mockReturnValueOnce(
         createQueryChain({ data: [], error: null }, spy)
@@ -492,8 +501,8 @@ describe("homeworkService (v1.4-05 · #273 Ödev Akışı)", () => {
 
       await loadHomework("org-1");
 
-      expect(spy.limitArg).toBe(DEFAULT_HOMEWORK_LIMIT);
-      expect(DEFAULT_HOMEWORK_LIMIT).toBe(100);
+      expect(spy.limitArg).toBe(READ_PAGE_SIZE);
+      expect(HOMEWORK_TOTAL_CAP).toBe(5000);
     });
   });
 });

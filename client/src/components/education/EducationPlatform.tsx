@@ -76,10 +76,10 @@ import {
   unlinkStudentGuardian,
   restoreStudentGuardianLink,
   translateGuardianError,
-  DEFAULT_GUARDIAN_LIMIT,
+  GUARDIAN_TOTAL_CAP,
   type Guardian,
 } from "@/education/guardianService";
-import { DEFAULT_HOMEWORK_LIMIT } from "@/education/homeworkService";
+import { HOMEWORK_TOTAL_CAP } from "@/education/homeworkService";
 import { StudentFormDialog } from "./pages/StudentFormDialog";
 import { NewStudentDialog } from "./pages/NewStudentDialog";
 import { GuardianFormDialog } from "./pages/GuardianFormDialog";
@@ -99,14 +99,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useOrganizationChannel } from "@/realtime/useOrganizationChannel";
-import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
+import { STUDENT_TOTAL_CAP } from "@/education/studentService";
 import {
   archiveClass,
   restoreClass,
   DEFAULT_CLASS_LIMIT,
 } from "@/education/classService";
 import { SCHEDULE_TOTAL_CAP } from "@/education/scheduleService";
-import { DEFAULT_PAYMENT_LIMIT } from "@/education/paymentService";
+import { PAYMENT_TOTAL_CAP } from "@/education/paymentService";
 import { allNav } from "./navigation";
 import { roleMeta } from "./roleMeta";
 import { AssessmentsPage } from "./pages/AssessmentsPage";
@@ -915,7 +915,7 @@ export function EducationPlatform({
           error={!isDemoMode ? studentsQuery.error : null}
           onRetry={!isDemoMode ? () => void studentsQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(studentsQuery.data?.truncated)}
-          limit={DEFAULT_STUDENT_LIMIT}
+          limit={STUDENT_TOTAL_CAP}
           linkableMembers={studentMembers}
           onEdit={student => {
             if (isDemoMode) {
@@ -980,7 +980,7 @@ export function EducationPlatform({
           guardiansTruncated={
             !isDemoMode && Boolean(guardiansQuery.data?.truncated)
           }
-          guardiansLimit={DEFAULT_GUARDIAN_LIMIT}
+          guardiansLimit={GUARDIAN_TOTAL_CAP}
         />
       );
     if (active === "Sınıflar")
@@ -1130,7 +1130,7 @@ export function EducationPlatform({
           error={homeworkQuery.error}
           onRetry={() => homeworkQuery.refetch()}
           truncated={!isDemoMode && Boolean(homeworkQuery.data?.truncated)}
-          limit={DEFAULT_HOMEWORK_LIMIT}
+          limit={HOMEWORK_TOTAL_CAP}
           organizationId={organizationId}
           classes={activeClasses}
           onSaved={async () => {
@@ -1176,7 +1176,7 @@ export function EducationPlatform({
               : undefined
           }
           truncated={!isDemoMode && Boolean(paymentsQuery.data?.truncated)}
-          limit={DEFAULT_PAYMENT_LIMIT}
+          limit={PAYMENT_TOTAL_CAP}
           installments={parentInstallmentsQuery.data}
           installmentsError={parentInstallmentsQuery.isError}
           onAddPlan={() => {
