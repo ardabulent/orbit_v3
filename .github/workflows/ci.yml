@@ -54,6 +54,20 @@ jobs:
       - name: Tip Kontrolü (Type Check)
         run: pnpm check
 
+      # Edge Function'lar Deno'da çalışıyor ve yukarıdaki `pnpm check`in
+      # kapsamı dışında (2026-10-05, kapsamlı analiz 2. madde). Yanlış yazılmış
+      # bir alan adı ya da değişen bir imza, fonksiyon o kod yoluna girene kadar
+      # görünmezdi; zincir testi fonksiyonun AÇILDIĞINI ölçer, tiplerini değil.
+      # Kullanıcı onayıyla eklendi (yeni CI bağımlılığı). Deno sürümü sabit:
+      # tip kuralları sürümler arasında değişir, kapı sessizce kaymasın.
+      - name: Deno kurulumu
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.9.6
+
+      - name: Edge Function tip kontrolü (Deno)
+        run: deno check supabase/functions/*/index.ts
+
       - name: Birim Testleri Çalıştır
         run: pnpm test
 
