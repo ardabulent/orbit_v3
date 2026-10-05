@@ -136,7 +136,7 @@ temizle() {
 }
 
 temizle
-echo "0/7 temiz başlangıç"
+echo "0/8 temiz başlangıç"
 
 # --- 1) Kurum, şube ve yönetici hazırlanıyor --------------------------------
 
@@ -161,7 +161,7 @@ admin_user_id=$(json "id" < /tmp/zincir_admin)
 rest POST "organization_memberships" \
   "{\"organization_id\":\"${org_id}\",\"branch_id\":\"${branch_id}\",\"user_id\":\"${admin_user_id}\",\"role\":\"admin\",\"status\":\"active\",\"person_code\":1000}" >/dev/null
 
-echo "1/7 kurum, şube ve yönetici hazır (org ${org_id})"
+echo "1/8 kurum, şube ve yönetici hazır (org ${org_id})"
 
 # --- 2) Yönetici giriş yapıp gerçek bir JWT alıyor --------------------------
 #
@@ -179,7 +179,7 @@ signin_kod=$(curl -s -o /tmp/zincir_signin -w '%{http_code}' \
 access_token=$(json "access_token" < /tmp/zincir_signin)
 [ -n "$access_token" ] || fail "giriş başarılı ama access_token dönmedi"
 
-echo "2/7 yönetici giriş yaptı ve JWT aldı"
+echo "2/8 yönetici giriş yaptı ve JWT aldı"
 
 # --- 3) Zincir: HTTP → JWT → Edge Function → RPC → SQL ----------------------
 
@@ -207,7 +207,7 @@ temporary_password=$(json "data.temporary_password" < /tmp/zincir_uye)
 [ -n "$login_number" ] || fail "üye oluştu ama giriş numarası dönmedi"
 [ -n "$temporary_password" ] || fail "üye oluştu ama geçici şifre dönmedi"
 
-echo "3/7 zincir çalıştı (HTTP 201, giriş no ${login_number})"
+echo "3/8 zincir çalıştı (HTTP 201, giriş no ${login_number})"
 
 # --- 4) Kilit ÜYELİKLE AYNI İŞLEMDE yazıldı mı? -----------------------------
 #
@@ -223,7 +223,7 @@ kilit=$(rest GET "profiles?id=eq.${yeni_uye_id}&select=must_change_password" | j
 Kâğıda yazılan geçici şifre süresiz ve değiştirilmesi zorunlu olmayan bir
 kimlik bilgisine dönüşmüş demektir."
 
-echo "4/7 kilit üyelikle aynı işlemde yazılmış (must_change_password=true)"
+echo "4/8 kilit üyelikle aynı işlemde yazılmış (must_change_password=true)"
 
 # --- 5) Aynı anahtarla ikinci istek işi TEKRAR YAPMIYOR ---------------------
 #
@@ -252,7 +252,7 @@ ogretmen_sayisi=$(rest GET "organization_memberships?organization_id=eq.${org_id
 
 [ "$ogretmen_sayisi" = "1" ] || fail "tekrar sonrası ${ogretmen_sayisi} öğretmen var, 1 olmalıydı"
 
-echo "5/7 tekrarlanan istek işi tekrar yapmadı (replay, şifre dönmedi, tek üye)"
+echo "5/8 tekrarlanan istek işi tekrar yapmadı (replay, şifre dönmedi, tek üye)"
 
 # --- 6) Yeni üye gerçekten giriş yapabiliyor mu? ----------------------------
 #
@@ -267,9 +267,60 @@ uye_signin=$(curl -s -o /tmp/zincir_uye_giris -w '%{http_code}' \
 
 [ "$uye_signin" = "200" ] || { cat /tmp/zincir_uye_giris; fail "yeni üye giriş yapamadı (HTTP ${uye_signin})"; }
 
-echo "6/7 yeni üye giriş numarası ve geçici şifresiyle giriş yaptı"
+echo "6/8 yeni üye giriş numarası ve geçici şifresiyle giriş yaptı"
 
-# --- 7) Kilitli yönetici hiçbir Edge işini yaptıramaz ------------------------
+# --- 7) Sekiz fonksiyonun sekizi de açılıyor ve kapısını tutuyor ------------
+#
+# 2026-10-05 (kapsamlı analiz, 2. madde). Bu dosya yalnız `create-member`'ı
+# uçtan uca ölçüyordu; diğer yedi fonksiyonun hiçbiri hiçbir testte çağrılmıyor,
+# TypeScript'leri de hiçbir tip denetiminden geçmiyordu. Bir fonksiyonun içe
+# aktarması bozulsa ya da sözdizimi hatası olsa edge-runtime onu AÇAMAZ ve
+# her istek 5xx döner — bunu ilk gören üretimdeki kullanıcı olurdu.
+#
+# Her fonksiyon için beş sözleşme (gerçek HTTP, gerçek JWT):
+#   tanınmayan origin → 403 · GET → 405 · başlıksız → 401 ·
+#   sahte jeton → 403 · gerçek yönetici + boş gövde →
+#     üye işlemleri 400 (girdi şeması) / operatör işlemleri 403 (yönetici
+#     platform operatörü değil).
+
+readonly IZINLI_ORIGIN="http://127.0.0.1:5173"
+
+sozlesme() {
+  local fn="$1" beklenen_son="$2" kod
+  local url="${API_URL}/functions/v1/${fn}"
+
+  kod=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$url" -H "Origin: https://kotu.example")
+  [ "$kod" = "403" ] || fail "${fn}: tanınmayan origin ${kod} döndü, 403 bekleniyordu"
+
+  # Ağ geçidini geçmesi için anahtarla; 405'i fonksiyonun KENDİSİ döner, yani
+  # bu istek fonksiyonun açılabildiğinin kanıtı.
+  kod=$(curl -s -o /dev/null -w '%{http_code}' -X GET "$url" -H "Origin: ${IZINLI_ORIGIN}"     -H "Authorization: Bearer ${ANON_KEY}")
+  [ "$kod" = "405" ] || fail "${fn}: GET ${kod} döndü, 405 bekleniyordu (fonksiyon açılamıyor olabilir)"
+
+  kod=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url" -H "Origin: ${IZINLI_ORIGIN}" \
+    -H "Content-Type: application/json" -d '{}')
+  # Ağ geçidi (verify_jwt) başlıksız isteği fonksiyona varmadan 401 ile keser.
+  [ "$kod" = "401" ] || fail "${fn}: başlıksız istek ${kod} döndü, 401 bekleniyordu"
+
+  kod=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url" -H "Origin: ${IZINLI_ORIGIN}" \
+    -H "Authorization: Bearer ${ANON_KEY}" -H "Content-Type: application/json" -d '{}')
+  [ "$kod" = "403" ] || fail "${fn}: kullanıcısız jeton ${kod} döndü, 403 bekleniyordu"
+
+  kod=$(curl -s -o /tmp/zincir_sozlesme -w '%{http_code}' -X POST "$url" -H "Origin: ${IZINLI_ORIGIN}" \
+    -H "Authorization: Bearer ${access_token}" -H "Content-Type: application/json" -d '{}')
+  [ "$kod" = "$beklenen_son" ] || { cat /tmp/zincir_sozlesme; echo; fail "${fn}: boş gövde ${kod} döndü, ${beklenen_son} bekleniyordu"; }
+}
+
+for fn in create-member change-member-role remove-member reset-member-password switch-account; do
+  sozlesme "$fn" 400
+done
+for fn in bootstrap-organization delete-organization reset-admin-password; do
+  sozlesme "$fn" 403
+done
+
+echo "7/8 sekiz fonksiyon açılıyor; origin, yöntem, oturum, jeton ve girdi kapıları tutuyor"
+
+# --- 8) Kilitli yönetici hiçbir Edge işini yaptıramaz ------------------------
 #
 # v1.5-20'nin kanıtı (2026-10-03). 2026-09-19'da ölçülmüştü: kilitli yönetici
 # jetonuyla `create-member` HTTP 201 döndü. Kilit artık bütün fonksiyonların
@@ -299,7 +350,7 @@ ogretmen_sayisi=$(rest GET "organization_memberships?organization_id=eq.${org_id
   | node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync(0,'utf8')||'[]').length))")
 [ "$ogretmen_sayisi" = "1" ] || fail "kilitli denemeler sonrası ${ogretmen_sayisi} öğretmen var, 1 olmalıydı"
 
-echo "7/7 kilitli yönetici reddedildi (create-member ve change-member-role 403, hiçbir şey değişmedi)"
+echo "8/8 kilitli yönetici reddedildi (create-member ve change-member-role 403, hiçbir şey değişmedi)"
 echo
 echo "Auth → Edge Function → SQL zinciri uçtan uca çalışıyor."
 
