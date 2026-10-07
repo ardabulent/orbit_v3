@@ -141,6 +141,14 @@
 - Yedek Supabase Pro'dan değil gecelik şifreli kendi dökümümüzden; yapı göçlerden, veri yedekten
 - Yedek gizli anahtarı MVP'de kurum sahibinin masaüstünde durur; ajanlar dokunmaz
 - C-11 yeniden üretilemedi ve ölçümle kapatıldı
+- Vekil öğretmen bir öğretmenin yerine geçer, ders saatinin değil; erişim tarih aralığıyla SQL'de açılır
+- Veli çocuk seçicisi üst çubukta ve bütün veli sekmelerinde ortak; "Tümü" yok, İletişim süzülmez
+- Raporlar net denemeyi netle, puanlı sınavı yüzdeyle gösterir; dikkat listesi dört koşulla sunucuda süzülür
+- Sınav duyurusu İletişim'de yapılır; duyurunun türü ve günü var, günlü duyuru takvimde görünür
+- Ödeme planı ve taksitleri tek pencerede, tek işlemde kaydedilir
+- Ders programı bir şablon olarak çizilir ve sınıflara kopyalanır
+- İçe aktarma Excel'i ve kurumun kendi düzenini kabul eder; yeni paket `read-excel-file`
+- Testler üretime istek atmaz; şifre izi uygulamadan da yazılır; "Giriş hesabı" terimleri
 
 ---
 
@@ -3778,3 +3786,163 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Tekrar görülürse:** Aynı yöntem uygulanır: temiz sekme, ağ ve konsol kaydı açık; ilk denemenin HTTP kodu ve `error_code`'u kaydedilir. Tahminle düzeltme yapılmaz.
 
 **Yan bulgu (ölçerken):** Öğrenci ve veli girişi, kullanmadığı kurum listelerini de okuyordu (~10 boşa istek). #441 ile kapandı.
+
+### Karar: Vekil öğretmen bir öğretmenin yerine geçer, ders saatinin değil; erişim tarih aralığıyla SQL'de açılır
+
+**Durum:** Kabul edildi · uygulandı (#367, #369)
+**Tarih:** 2026-09-27 (ilk karar) · 2026-09-28 (inceltme ve plan onayı)
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** 2026-09-27'de ölçüldü: başka bir sınıfın dersine `schedule_entries.membership_id` ile yazılan öğretmen, ders satırını görüyor ama sınıfı göremiyor (`classes_select_teacher` yalnız `current_user_teaches_class`'a bakıyor). Yoklamayı da göremiyor. Vekilin dersi Genel Bakış'tan düşüyor, Ders Programı'nda da sınıf adı çıkmıyordu.
+
+**Karar:**
+
+1. Vekili **yönetici** atar, ayrı bir ekrandan: **Ders Programı · Vekiller** alt sekmesi.
+2. Vekil **bir öğretmenin yerine** geçer, tek tek ders saatlerinin değil. Örneğin: _"Murat 5–20 Ekim izinli, Ayşe bakıyor"_. Murat'ın o aralıktaki bütün dersleri Ayşe'ye geçer. Tek günlük vekillikte başlangıç ve bitiş aynı gündür.
+3. Süre boyunca vekil, **sınıfın öğretmeni gibi** çalışır: sınıfı ve öğrencileri görür, yoklama alır, sınıfın geçmişini de görür. Süre bitince erişim kapanır.
+4. İzinli öğretmen erişimini **korur** ve kimin yerine baktığını görür.
+5. "Bugün" kurum saatiyle hesaplanır (`orbit_today()`), `current_date` kullanılmaz.
+6. İptal edilen vekillik erişimi hemen kapatır; atama da iptal de denetim kaydına düşer. Süren bir vekilliği olan üyeliğin rolü değiştirilemez.
+
+**Uygulama:** `substitute_assignments` tablosu `current_user_teaches_class`'ı besler (göç `20261005000000`). pgTAP `substitute_assignments.test.sql` 25 iddia taşıyor, bunlar arasında pencere dışı, iptal, izinli öğretmenin erişimi ve denetim var. Ekran tarafı: `education/substituteService.ts`, `pages/substitutePeriods.ts`.
+
+**Alternatifler:** Ders satırı bazında vekil yazmak. Reddedildi: izinli bir öğretmenin her dersini tek tek yeniden yazmak gerekirdi ve sınıf görünürlüğü yine açılmazdı.
+
+### Karar: Veli çocuk seçicisi üst çubukta ve bütün veli sekmelerinde ortak; "Tümü" yok, İletişim süzülmez
+
+**Durum:** Kabul edildi · uygulandı (#423)
+**Tarih:** 2026-09-27 · ek kararlar 2026-10-02
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** 2026-09-27'de ölçüldü: çocuk seçicisi yalnız velinin Genel Bakış'ında vardı. Ders Programı, Ödevler, Sınavlar ve Ödemeler'de iki çocuğun kayıtları karışık listeleniyordu ve çoğunda hangi satırın hangi çocuğa ait olduğu yazmıyordu. Üretimde iki çocuklu veli olmadığı için fark edilmemişti.
+
+**Karar:**
+
+1. Seçici üst çubuğa taşınır, seçim bütün veli sekmeleri için **ortak** olur ve sekme değişince korunur.
+2. Tek çocuklu veliye seçici gösterilmez.
+3. **"Tümü" seçeneği yok:** her ekran tek bir çocuğa aittir.
+4. **İletişim süzülmez:** duyurular çocuğa göre ayrılmaz.
+5. Seçim, sayfa yenilenince sekme belleğinde (`sessionStorage`, kullanıcıya göre ayrı anahtar) korunur; tarayıcı kapanınca silinir. Ortak kullanılan bir bilgisayarda bir sonraki kişiye geçmez.
+
+**Güvenlik sınırı:** Süzme yalnız görünüm içindir. Velinin yalnız kendi çocuklarını görmesini RLS sağlar; bu karar ona dokunmuyor.
+
+### Karar: Raporlar net denemeyi netle, puanlı sınavı yüzdeyle gösterir; dikkat listesi dört koşulla sunucuda süzülür
+
+**Durum:** Kabul edildi · uygulandı (#391, #393, #395)
+**Tarih:** 2026-09-29
+**Onaylayan:** Arda Bülent
+
+**Karar:**
+
+1. Net denemeler **ortalama netle**, puanlı sınavlar ayrı bir kartta **yüzdeyle** gösterilir.
+2. Raporlar ekranının üstünde sınıf süzgeci ve **4 / 8 / 12 hafta** seçimi var.
+3. Sınıf karşılaştırma tablosu var ve **CSV** olarak indirilebiliyor.
+4. **Dikkat listesi:** seçili aralıkta aşağıdaki koşullardan birine takılan öğrenci listeye girer. Birden çok koşula takılan üstte durur; ada tıklayınca öğrenci sayfası açılır.
+
+| Koşul         | Eşik                                             | Asgari veri                  |
+| ------------- | ------------------------------------------------ | ---------------------------- |
+| Devam         | %80'in altı (**izinli sayılmaz**)                | 5 ölçülmüş ders              |
+| Ödev          | %60'ın altı                                      | 3 bitirilmiş ödev            |
+| Net düşüşü    | son deneme bir öncekinden ≥5 net düşük           | 2 net deneme                 |
+| Ortalama altı | son denemede sınıf ortalamasının ≥10 net altında | sınıf ortalaması ≥3 sonuçtan |
+
+**Uygulama:**
+
+- Eşikler SQL'de (`report_attention_students`, göç `20261013000000`). Ekran nedeni ham sayılardan yazar, bayrağı yeniden hesaplamaz.
+- Yüzde karşılaştırması ekranın yuvarlamasıyla yapılır: ekranda "%80" görünen öğrenci "%80'in altında" diye listelenmez.
+- Sekiz mutasyonun sekizi de testi kırmızıya döndürdü.
+- 2026-10-07'de eşiklerin kodla birebir aynı olduğu yeniden okundu.
+
+### Karar: Sınav duyurusu İletişim'de yapılır; duyurunun türü ve günü var, günlü duyuru takvimde görünür
+
+**Durum:** Kabul edildi · uygulandı (#407, #409)
+**Tarih:** 2026-09-30
+**Onaylayan:** Arda Bülent
+
+**Karar:**
+
+- Yeni duyuruda **tür** (Genel / Sınav / Etkinlik / Toplantı) ve isteğe bağlı **gün** seçilir. Günü olan duyuru Gün Planı takviminde görünür.
+- Sınavlar sekmesi yalnız sınav kaydı ve sonuç girişi içindir. Listede sonuç durumu görünür ("Sonuç gir · 12/30"); yeni sınav açılınca sonuç ekranına geçilir.
+
+**Uygulama:** `daily_feed_posts.kind` (4 değer) ve `event_date` (göç `20261018000000`). Eski duyurular "Genel" kalır.
+
+⚠️ **Doğrulama boşluğu (2026-10-07):** #409 tarayıcıda denenmeden birleşti. PR'da _"birleştirmeden sonra üretimde bakılacak"_ yazıyordu ve buna dair bir kayıt yok. pgTAP (6 iddia) ve vitest geçmişti.
+
+### Karar: Ödeme planı ve taksitleri tek pencerede, tek işlemde kaydedilir
+
+**Durum:** Kabul edildi · uygulandı (#415)
+**Tarih:** 2026-09-30 (geri bildirim) · 2026-10-01 (uygulama)
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** Kullanıcı geri bildirimi: _"Ödeme planı ekleme ve taksite bölme işlemi karışık olmuş; tek ekran üzerinden tek yerden yönetebilmemiz lazım."_
+
+**Karar:**
+
+- Tek pencerede: öğrenci, paket, toplam, peşinat, taksit sayısı, ilk vade. Taksit tablosu kendiliğinden oluşur; satırlar düzeltilebilir; plan tek kayıtla kaydedilir.
+- `save_payment_plan` (göç `20261019000000`) şu kuralları uygular:
+  - plan ve bütün taksitler **tek işlemde** yazılır;
+  - **ödenmiş taksitlere dokunulmaz**;
+  - ödenmemiş taksitler **arşivlenir**, silinmez;
+  - ödenmiş + yeni taksitler toplamı **paket tutarına eşit olmalıdır**, değilse hiçbir şey yazılmaz;
+  - en çok 60 taksit.
+
+### Karar: Ders programı bir şablon olarak çizilir ve sınıflara kopyalanır
+
+**Durum:** Kabul edildi · uygulandı (#417)
+**Tarih:** 2026-10-01
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** Kullanıcı geri bildirimi: _"Ders programı bir program oluşturup sınıflara atama şeklinde olmalı."_
+
+**Karar:**
+
+1. Haftalık tablo (gün × saat) bir **şablon** olarak çizilir ve tek seferde birden çok sınıfa atanır.
+2. Atamada iki seçenek var: **"Tamamen değiştir"** (varsayılan; sınıfın mevcut programı arşivlenir) ya da **"Yalnız boş saatleri doldur"**.
+3. Atama bir **kopyadır**: şablon sonradan değişse de sınıfların programı değişmez. Şablon silinince (arşivlenince) sınıfların programı yerinde kalır.
+4. Öğretmen, sınıfın ders–öğretmen eşleşmesinden gelir. Eşleşme yoksa ya da öğretmen o saatte başka sınıftaysa ders **öğretmensiz** eklenir ve kaydetmeden önceki ön izlemede "açıkta kalan dersler" olarak tek tek listelenir.
+5. Ön izleme aynı hesabı yapar ama **hiçbir şey yazmaz**.
+
+**Uygulama:** `schedule_templates`, `schedule_template_slots`, `apply_schedule_template` (göç `20261020000000`). Ekran tarafı: `education/scheduleTemplateService.ts`.
+
+### Karar: İçe aktarma Excel'i ve kurumun kendi düzenini kabul eder; yeni paket `read-excel-file`
+
+**Durum:** Kabul edildi · uygulandı (#419, #421)
+**Tarih:** 2026-09-30 (karar, yeni paket onayı) · 2026-10-02 (uygulama)
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** Kurumun öğrenci listesi farklı bir Excel düzeninde tutuluyor. Kullanıcıya göre en çok zaman kaybettiren şey: _"her girişi yeni formata elle yazmak"_.
+
+**Karar:**
+
+- Akış şöyle: dosya → **sütun eşleme** → ön izleme → kayıt.
+- Kabul edilen biçimler **.xlsx** ve **CSV**.
+- Kurumun dosyasını olduğu gibi yükleyebilmesi için:
+  - bütün sayfalar okunur; sayfa adı sınıf adı sayılabilir;
+  - dosyadaki her farklı sınıf adı için **bir kez** ORBIT karşılığı seçilir;
+  - BÜYÜK HARFLİ adlar Türkçe kuralla düzeltilir;
+  - numarası zaten kayıtlı öğrenciler atlanabilir.
+- Doğrulama kuralları tek yerde kalır: `import_students`.
+
+**Paket seçimi:** `read-excel-file` (MIT, yalnız okur, yalnız dosya seçilince yüklenir). Kullanıcı bu kararla onayladı. Elenenler:
+
+- `xlsx` (SheetJS): npm'de 0.18.5'te kaldı ve bilinen açıkları kapatılmadı.
+- `exceljs`: 2024'ten beri güncellenmiyor.
+
+**Sınır:** .xlsx en çok **300 KB**. Paketin açıcısı büyük dosyada bir işçi (worker) başlatıyor ve CSP bunu engelliyor, dosya sessizce okunamıyor (`education/importFile.ts`).
+
+### Karar: Testler üretime istek atmaz; şifre izi uygulamadan da yazılır; "Giriş hesabı" terimleri
+
+**Durum:** Kabul edildi · uygulandı (#405)
+**Tarih:** 2026-09-29/30
+**Onaylayan:** Arda Bülent
+
+**Bağlam ve karar:**
+
+1. **Testler üretime istek atıyordu.** Yerel `.env` üretim adresini taşıyordu ve vitest onu okuyordu; taklit edilmemiş bir çağrı her test çalıştırmasında üretimdeki `switch-account`'a gidiyordu.
+   - Düzeltme: `vitest.config.ts` hiçbir `.env` okumaz.
+   - Kapı: `testsNeverReachProduction.test.ts`. Ayar geri alındığında kırmızıya döndüğü doğrulandı.
+2. **Şifre değişim izi (#403) üretimde yazılmıyordu.** İz `auth.audit_log_entries` tetikleyicisine bağlıydı; barındırılan Supabase'te bu tablo hiç dolmuyor.
+   - Düzeltme: başarılı şifre değişiminden sonra uygulama `log_own_password_change` çağırır.
+   - Tetikleyici yerinde kalır, çünkü kendi sunucumuzda gerekebilir; aynı olay iki kez yazılmaz.
+   - **Bilinen zayıflık:** uygulamayı atlayıp GoTrue'yu doğrudan çağıran biri bu izi atlayabilir.
+3. **Terimler:** ekranda "Giriş hesabı ata / ayır" ve "Giriş hesabı yok" kullanılır. Seçilebilir hesaplar yalnız hiçbir kayda bağlı olmayanlardır (`organization/linkableMembers.ts`).
