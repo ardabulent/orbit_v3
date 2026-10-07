@@ -78,6 +78,8 @@ client/src/
 │   │   ├── StudentDetail.tsx # Öğrenci profil çekmecesi
 │   │   ├── EducationPlatform.tsx # Kompozisyon kökü (state + localStorage demo kalıcılığı)
 │   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
+│   │   ├── guardianChild/    # Veli çocuk seçicisi: üst çubukta, bütün veli sekmelerinde geçerli (#423)
+│   │   ├── familyTabLoading.ts # Öğrenci/veli kurum listelerini yalnız ilgili sekmede okur (#441)
 │   │   └── pages/            # StudentsPage, ClassesPage, AttendancePage, ... SettingsPage vb.
 │   │                         #   SettingsMembersSection + MemberCreateDialog: üye tablosu ve ekleme
 │   ├── credentials/        # Giriş fişi: bir kez göster, yazdır. Operatör ve kurum
@@ -118,7 +120,9 @@ client/src/
 │   ├── educationQueries.ts # React Query anahtarları ve hook'ları — [alan, kaynak, kapsam]
 │   ├── weekDays.ts         # Hafta yedi gün; ISO 1–7 ↔ etiket dönüşümünün tek kaynağı
 │   ├── trDate.ts           # Türkçe tarih biçimlendirici + getOrbitToday (takvim gününün tek kaynağı)
-│   └── attendanceStatus.ts # Yoklama durumu eşlemesi
+│   ├── attendanceStatus.ts # Yoklama durumu eşlemesi
+│   ├── turkishSearch.ts    # Türkçe arama: `search_fold` / `turkish_name_key`'in istemci ikizi (#429)
+│   └── examAbsenceService.ts # "Sınava girmedi" işareti: koy, geri al (#433)
 ├── audit/                  # Kurum denetim kaydı
 │   ├── auditService.ts     # İmleçli sayfalama; sıra sütunu `id`, `created_at` DEĞİL
 │   └── auditQueries.ts     # useInfiniteQuery
@@ -138,12 +142,19 @@ client/src/
 │   ├── organizationSlug.ts # Kurum adından slug (Türkçe harf çevirisi)
 │   ├── PlatformOrganizations.tsx / OrganizationCreateDialog.tsx
 │   ├── OrganizationProfileDialog.tsx # Kurum profili ve şifre sıfırlama
-│   └── PlatformOperators.tsx / PlatformAuditLog.tsx
+│   ├── PlatformOperators.tsx / PlatformAuditLog.tsx
+│   └── PlatformErrorReports.tsx # "Hata Kayıtları" sekmesi (#443)
+├── errorReporting/         # Ekran hataları kendi veritabanımıza (v1.5-06, #443)
+│   ├── scrubErrorText.ts   # Kişisel veri ayıklama — sunucudaki `internal_scrub_error_text` ile aynı kurallar
+│   ├── errorReporter.ts    # Aynı mesaj 10 dk'da bir, açılış başına 20 kayıt
+│   ├── errorReportService.ts # `report_client_error` / `list_client_error_reports`
+│   └── installErrorReporting.ts # `error` + `unhandledrejection` dinleyicileri; demo modunda kapalı
 ├── contexts/               # ThemeProvider
 ├── hooks/                  # useComposition
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue, documents (ÖLÜ KOD)
 │   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)
-│   └── cspConnectSrc.ts    # CSP connect-src ↔ VITE_SUPABASE_URL denetleyicisi; `vite.config.ts` çağırır (v1.5-09)
+│   ├── cspConnectSrc.ts    # CSP connect-src ↔ VITE_SUPABASE_URL denetleyicisi; `vite.config.ts` çağırır (v1.5-09)
+│   └── pagedRead.ts        # Sayfa sayfa okuma: READ_PAGE_SIZE 500, `*_TOTAL_CAP` tavanları (#435)
 └── pages/
     ├── Home.tsx            # Giriş yönlendirici; önce kilit, sonra operatör → /platform
     ├── Platform.tsx        # Platform paneli rotası
@@ -151,6 +162,8 @@ client/src/
     ├── SetPassword.tsx     # /sifre-belirle — Supabase kurtarma bağlantısının hedefi
     └── NotFound.tsx        # 404 sayfası
 ```
+
+**Repo kökünde, istemci dışında (2026-10-07):** `ops/yedek/` — gece yedeğinin anahtar üretme ve geri yükleme betikleri ile tarifi (`README.md`); görev `.github/workflows/gece-yedegi.yml`. Gizli anahtar repoda **değil** (`AGENTS.md` kısıt 4).
 
 **Bağlayıcı kural — taşınabilirlik:** `components/` ve `pages/` altındaki dosyalar Supabase istemcisini **doğrudan import edemez**; veri erişimi yukarıdaki servis modüllerinden geçer. Kural ESLint ile zorlanır (`eslint.config.js`). Gerekçe: `DECISION_LOG.md` — "Taşınabilirlik sınırı".
 
