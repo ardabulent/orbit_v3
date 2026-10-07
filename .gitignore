@@ -115,3 +115,7 @@ licenses.json
 
 # Eşzamanlılık ölçümünde basılan yerel jetonlar (üç saatte geçersiz olur, git'e girmez)
 supabase/perf/k6/jetonlar.json
+
+# Yedek gizli anahtarı hiçbir koşulda repoya girmez (ops/yedek/README.md).
+# Dosya repo dışında, masaüstünde üretilir; bu satır yanlışlıkla kopyalanmasına karşı.
+*GIZLI-anahtar*.asc
