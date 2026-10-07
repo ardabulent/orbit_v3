@@ -4,10 +4,14 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
 import { purgeDemoStorageIfProduction } from "./lib/demoStorage";
+import { installErrorReporting } from "./errorReporting/installErrorReporting";
 import "./index.css";
 
 // Üretim ortamında geçmişten kalan ölü demo anahtarlarını uygulama başlangıcında temizle
 purgeDemoStorageIfProduction();
+
+// Ekrandaki yakalanmamış hatalar kendi veritabanımıza yazılır (v1.5-06).
+installErrorReporting();
 
 function isPermissionOrAuthError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
