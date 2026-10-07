@@ -1,4 +1,5 @@
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
+import { userFacingErrorText } from "@/lib/userFacingError";
 import type { EducationRole } from "@/components/educationAccess";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -492,8 +493,11 @@ export function translateMembershipActionError(
     return "Servis şu anda yanıt vermiyor. Birkaç dakika sonra tekrar deneyin.";
   }
 
-  if (err instanceof Error && err.message) {
-    return err.message;
+  // Türkçe veritabanı uyarısı ve ağ hatası gösterilir; İngilizce teknik
+  // metin gösterilmez (B6, 2026-10-07 — `lib/userFacingError.ts`).
+  const shown = userFacingErrorText(err);
+  if (shown) {
+    return shown;
   }
 
   return "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.";

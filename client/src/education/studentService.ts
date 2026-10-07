@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { userFacingErrorText } from "@/lib/userFacingError";
 import type { Student } from "@/components/education/types";
 import { loadStudentAttendancePercentages } from "./attendanceService";
 import {
@@ -131,13 +132,12 @@ export function translateStudentError(error: unknown): string {
         return message;
       }
     }
-    if (
-      error.message &&
-      !error.message.includes("PGRST") &&
-      !error.message.includes("PostgREST")
-    ) {
-      return error.message;
-    }
+  }
+  // Türkçe veritabanı uyarısı ve ağ hatası gösterilir; İngilizce teknik
+  // metin gösterilmez (B6, 2026-10-07 — `lib/userFacingError.ts`).
+  const shown = userFacingErrorText(error);
+  if (shown) {
+    return shown;
   }
 
   return "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.";

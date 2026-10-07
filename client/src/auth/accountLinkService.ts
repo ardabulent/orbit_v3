@@ -1,4 +1,5 @@
 import { useContext } from "react";
+import { userFacingErrorText } from "@/lib/userFacingError";
 import { createClient } from "@supabase/supabase-js";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import { isDemoMode } from "@/auth/runtime";
@@ -123,7 +124,7 @@ export async function issueAccountLinkCode(): Promise<string> {
     if (details && details in LINK_ERROR_MESSAGES) {
       throw new Error(LINK_ERROR_MESSAGES[details]);
     }
-    throw new Error(error.message || "Bağlama kodu üretilemedi.");
+    throw new Error(userFacingErrorText(error) ?? "Bağlama kodu üretilemedi.");
   }
 
   if (!data || typeof data !== "string") {
@@ -192,7 +193,9 @@ export async function loadLinkedAccounts(): Promise<LinkedAccount[]> {
   const { data, error } = await supabase.rpc("my_linked_accounts");
 
   if (error) {
-    throw new Error(error.message || "Bağlı hesaplar yüklenemedi.");
+    throw new Error(
+      userFacingErrorText(error) ?? "Bağlı hesaplar yüklenemedi."
+    );
   }
 
   return (
