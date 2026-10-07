@@ -73,7 +73,12 @@ jobs:
           python3 - <<'PY'
           import os, re, sys
           from urllib.parse import urlsplit, unquote
-          u = urlsplit(os.environ["DB_URL"].strip())
+          ham = os.environ["DB_URL"].strip()
+          if "[" in ham or "]" in ham:
+              # urlsplit köşeli parantezi IPv6 sanıp çöküyor; önce yakala.
+              print("::error::Adreste köşeli parantez var. Supabase örneğindeki [YOUR-PASSWORD] yazısının parantezleri şifreye dahil değildir: :[sifre]@ değil, :sifre@ olmalı.")
+              sys.exit(1)
+          u = urlsplit(ham)
           sifre = unquote(u.password or "")
           sorun = []
           print(f"şema: {u.scheme} · kullanıcı: {u.username} · sunucu: {u.hostname} · port: {u.port} · veritabanı: {u.path.lstrip('/')}")
@@ -86,8 +91,8 @@ jobs:
               sorun.append("pooler kullanıcı adı 'postgres.<proje-kodu>' biçiminde olmalı")
           if u.port == 6543:
               sorun.append("6543 Transaction pooler; Session pooler (5432) gerekli")
-          if "[" in sifre or "]" in sifre or "YOUR-PASSWORD" in sifre:
-              sorun.append("şifrede köşeli parantez ya da [YOUR-PASSWORD] kalmış")
+          if "YOUR-PASSWORD" in sifre:
+              sorun.append("şifre yerine YOUR-PASSWORD yazısı kalmış")
           if not sifre:
               sorun.append("şifre boş")
           for s in sorun:
