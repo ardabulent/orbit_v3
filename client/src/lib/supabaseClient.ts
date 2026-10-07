@@ -1,4 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
+import {
+  newTabId,
+  removeLegacyAuthTokens,
+  tabAuthStorageKey,
+} from "./tabSessionKey";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -35,13 +40,22 @@ export const arrivedWithRecoveryLink =
 // kullanıcının oturumunun devralınmasını engellemek için oturum jetonu
 // `sessionStorage`'da saklanır. Böylece her sekme kendi bağımsız oturumunu
 // yürütür ve sekme kapatıldığında oturum sonlanır (#132).
+//
+// Anahtar sekmeye özgüdür (B17, 2026-10-07): auth-js giriş/çıkış olaylarını
+// anahtarla aynı adlı bir kanaldan bütün sekmelere duyuruyor; ortak anahtar,
+// bir sekmedeki girişin öbür sekmenin ekranını değiştirmesi demekti. Ayrıntı
+// `tabSessionKey.ts`.
+const tabStorage =
+  typeof window !== "undefined" ? window.sessionStorage : undefined;
+removeLegacyAuthTokens(tabStorage);
+
 export const supabase = createClient(
   supabaseUrl || "https://placeholder.supabase.co",
   supabaseAnonKey || "placeholder-anon-key",
   {
     auth: {
-      storage:
-        typeof window !== "undefined" ? window.sessionStorage : undefined,
+      storage: tabStorage,
+      storageKey: tabAuthStorageKey(tabStorage, newTabId),
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
