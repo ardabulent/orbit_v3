@@ -135,6 +135,12 @@
 - Migration anahtarları saat yakalayana kadar önde kalır
 - Ortaklık sona erdi; üç platform da tek sahibe döndü ve Supabase temiz kurulumla yeniden açıldı
 - Arayüz dondurma kararı sona erdi; yenileme uzun ömürlü dalda yapılır, kopya klasörde değil
+- Sınava girmeyen öğrencinin sonucu silinmez, "Girmedi" işaretine dönüşür
+- Edge Function'lar CI'da Deno ile tip denetiminden geçer
+- Ekran hataları üçüncü bir araca değil kendi Postgres'imize yazılır
+- Yedek Supabase Pro'dan değil gecelik şifreli kendi dökümümüzden; yapı göçlerden, veri yedekten
+- Yedek gizli anahtarı MVP'de kurum sahibinin masaüstünde durur; ajanlar dokunmaz
+- C-11 yeniden üretilemedi ve ölçümle kapatıldı
 
 ---
 
@@ -3623,3 +3629,152 @@ Bu, **K-30**'un ürün tarafındaki karşılığıdır: bir ortamda görünmeyen
 - **Kopya klasörde geliştirmek** — yukarıda.
 - **Repoyu şimdi gizliye almak** — GitHub Pro'da ruleset private repoda da çalışır, yani uygulanabilirdi. Ertelendi çünkü CodeQL ve secret scanning private repoda Advanced Security istiyor ve ikisi de bugün açık. Kazanç, kaybı karşılamıyor.
 - **Demo için üretimi kullanmak** — gerçek veri riski ve C-11 gibi maddeler demoyu baltalar; önizleme demo modu ikisini de ortadan kaldırıyor.
+
+### Karar: Sınava girmeyen öğrencinin sonucu silinmez, "Girmedi" işaretine dönüşür
+
+**Durum:** Kabul edildi
+**Tarih:** 2026-10-05
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** Kapsamlı analiz turu (2026-10-03) şunu buldu: yoklama ve sınavda kaydedilmiş bir işaret ekrandan kaldırılınca veritabanında kalıyordu (`v1.5-23`). #431 kaldırmayı engelledi. Ama sınava girmeyen bir öğrenciye yanlışlıkla girilmiş sonucun gerçek bir "kaldırma" yolu yine yoktu.
+
+**Karar:**
+
+1. Kaldırılan sonucun yerine **"Sınava girmedi"** işareti konur. Ortalamaya ve sıralamaya katılmaz, veli görür.
+2. İşareti **yönetici ve sınıfın öğretmeni** koyabilir.
+3. Sebep isteğe bağlıdır, işaret **geri alınabilir**. Kaldırılan sonucun tam kopyası `exam_absences.saved_result`'a yazılır ve geri almada aynen döner. İşlem denetim kaydına düşer.
+4. Yalnız sınavda geçerli; yoklamada böyle bir işaret yok.
+
+**Gerekçe:** Silmek, öğretmenin yanlış tıklamasını geri dönüşsüz yapardı. "Girmedi" işareti hem gerçeği söylüyor (veli boşluk değil durum görüyor) hem de verinin kaybolmasını engelliyor. Uygulama: #433 (göç `20261023000000`, `ALLOW-DESTRUCTIVE` gerekçeli).
+
+**Alternatifler:** Sonucu düpedüz silmek (geri dönüşsüz); "0 puan" girmek (ortalamayı bozar, yanlış bilgi verir).
+
+### Karar: Edge Function'lar CI'da Deno ile tip denetiminden geçer
+
+**Durum:** Kabul edildi
+**Tarih:** 2026-10-05
+**Onaylayan:** Arda Bülent (yeni CI bağımlılığı onayı)
+
+**Bağlam:** 8 Edge Function (~2.241 satır) `pnpm check`'in ve vitest'in kapsamı dışındaydı. Zincir testi yalnız `create-member`'ı çağırıyordu.
+
+**Karar:** `quality-gate`'e `denoland/setup-deno` (commit'e sabitli, v2.0.5; Deno 2.9.6) ve `deno check supabase/functions/*/index.ts` eklendi. Zincir testi her fonksiyonu beş sözleşmeyle çağırıyor (#439).
+
+**Gerekçe:** İki kapı farklı hataları yakalıyor ve ikisi de ölçüldü:
+
+- Bilerek bozulan bir fonksiyon açılamayıp 503 döndü; zincir testi kırmızıya döndü.
+- Yanlış yazılmış bir alan adını (`TS2551`) yalnız Deno denetimi yakaladı.
+
+**Alternatifler:** Yalnız zincir testi (tip hatası, o kod yoluna girilmezse görünmez).
+
+### Karar: Ekran hataları üçüncü bir araca değil kendi Postgres'imize yazılır
+
+**Durum:** Kabul edildi
+**Tarih:** 2026-10-05
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** Kullanıcının ekranındaki bir hata, ancak kullanıcı söylerse öğreniliyordu (`v1.5-06`). Seçenekler: Sentry (AB bölgesi), kendi veritabanımız ya da ertelemek.
+
+**Karar:** Hatalar `client_error_reports` tablosuna yazılır (#443).
+
+- Yazma `report_client_error` ile, okuma `list_client_error_reports` ile yapılır; okuma yalnız kilitsiz platform operatörüne açık.
+- Platform panelinde "Hata Kayıtları" sekmesi var.
+- Kişisel veri istemcide **ve** sunucuda ayıklanır: e-posta, 6+ haneli sayı, adres sorgusu.
+- Operatöre kullanıcı kimliği gösterilmez, yalnız kurum adı gösterilir.
+- Kişi başına saatte 30, sayfa açılışı başına 20 kayıt; kayıtlar 30 gün saklanır.
+
+**Gerekçe:**
+
+- Bütçe sıfır.
+- Veri yurt dışında üçüncü bir firmaya gitmiyor; KVKK seti henüz hazır değil.
+- Hetzner'e taşınınca aynen gelir (`AGENTS.md` kısıt 6).
+- Pilot ölçeğinde (bir kurum, ~100 kişi) liste gözle izlenebilir.
+
+**Bilinen eksikler:**
+
+- Gruplama ve e-posta uyarısı yok.
+- Yığın izi küçültülmüş kodu gösterir; işe yarayan kısım mesaj, sayfa ve sürümdür.
+- Oturum açılmadan oluşan hatalar yazılmaz; anonim yazma bilinçli olarak kapalı.
+
+**Yeniden değerlendirme tetikleyicileri:**
+
+- ikinci ya da üçüncü kurum;
+- listeyi gözle izlemenin zorlaşması;
+- bir hatanın "hangi satır" sorusu yüzünden bulunamaması;
+- KVKK setinin tamamlanması.
+
+O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapalı) ya da kendi sunucumuzda GlitchTip. İkisi aynı SDK'yı kullanır.
+
+**Alternatifler:** Sentry'yi şimdi kurmak (yeni firma, yeni yurt dışı aktarımı, CSP değişikliği); hiçbir şey yapmamak (sorunlar kullanıcıdan öğrenilmeye devam eder).
+
+### Karar: Yedek Supabase Pro'dan değil gecelik şifreli kendi dökümümüzden; yapı göçlerden, veri yedekten
+
+**Durum:** Kabul edildi
+**Tarih:** 2026-10-05 (karar) · 2026-10-07 (kurulum ve prova)
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** Organizasyon planı `free`: otomatik yedek de PITR de yok (`v1.5-08`, 2026-09-16'da ölçüldü). Bütçe 0₺.
+
+**Karar:**
+
+1. `.github/workflows/gece-yedegi.yml` her gece 03:17'de `supabase db dump` ile rolleri, şemayı ve `auth`+`public` verisini alır. Arşiv, repodaki **açık anahtarla** `gpg` ile şifrelenir ve Actions eki olarak **90 gün** saklanır. Tek sır `SUPABASE_DB_URL` (Session pooler).
+2. Geri yüklemede **yapı göçlerden** (`db push`), **veri yedekten** gelir (`ops/yedek/geri-yukle.sh`).
+3. Yeni bir firma ya da eylem eklenmedi; `gpg` hem koşucuda hem Git for Windows'ta hazır geliyor.
+
+**Gerekçe:** Repo herkese açık ve Actions ekini GitHub'a giriş yapmış herkes indirebiliyor. Bu yüzden şifresiz hiçbir şey yüklenmiyor.
+
+**Prova (yerel, 2026-10-07):**
+
+- Sayılar birebir tuttu ve `organization_code_seq` korundu.
+- Geri yüklenen sistemde giriş çalıştı.
+- 🔴 **Bir açık buldu:** `schema.sql`, `auth.users` ve `auth.audit_log_entries` üzerindeki üç tetikleyicimizi taşımıyor. Supabase'in önerdiği "roller + şema + veri" geri yüklemesi sistemi açar, ama yeni kullanıcıya profil oluşturmaz. Kararın 2. maddesinin sebebi bu.
+- Çıplak `supabase/postgres` kabına yükleme olmuyor, çünkü orada GoTrue göçleri yok. Hedef her zaman tam bir Supabase yığını olmalı.
+
+**Bilinen sınırlar:** Günde bir yedek alınıyor (PITR yok). Yedeğin tek kopyası GitHub'da.
+
+**Alternatifler:**
+
+- Supabase Pro (~25$/ay, 7 günlük yedek; PITR ayrıca ücretli). İlk gerçek kurum verisinde yeniden gündeme gelebilir.
+- `age` ile şifreleme. Yeni bir bağımlılık olurdu; `gpg` aynı işi görüyor.
+
+### Karar: Yedek gizli anahtarı MVP'de kurum sahibinin masaüstünde durur; ajanlar dokunmaz
+
+**Durum:** Kabul edildi — **geçici**
+**Tarih:** 2026-10-07
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** Gece yedeklerini açan tek anahtar `ORBIT-yedek-GIZLI-anahtar.asc`. Öneri, onu şifre yöneticisine ya da iki adımlı doğrulamalı Google Drive'a taşıyıp masaüstünden silmekti.
+
+**Karar:** MVP aşamasında anahtar masaüstünde kalır. Karşılığında iki önlem alındı:
+
+- `AGENTS.md` kısıt 4'e alt madde eklendi: hiçbir ajan bu dosyayı okumaz, kopyalamaz, içe aktarmaz ya da bir komuta vermez; yedek açmak insan işidir.
+- `.gitignore`, `*GIZLI-anahtar*.asc` dosyalarını dışlar.
+
+**Kabul edilen risk:**
+
+- Bilgisayar kaybolur ya da bozulursa yedekler açılamaz.
+- Başkası anahtara erişirse 90 günlük bütün yedekler okunabilir; şifreli yedekler herkese açık indirilebildiği için bu risk gerçektir.
+
+**Yeniden değerlendirme:** İlk gerçek kurum verisinden önce. Önerilen yer: iki adımlı doğrulamalı Google Drive ve bir USB kopya.
+
+### Karar: C-11 yeniden üretilemedi ve ölçümle kapatıldı
+
+**Durum:** Kapatıldı (yeniden açılabilir)
+**Tarih:** 2026-10-05
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** C-11 (2026-09-19, §4.24) şuydu: _"doğru bilgilerle giriş her seferinde ilk denemede hata veriyor."_ Ölçülmemiş bir gözlemdi. §4.24, _"ağ sekmesinde ölçülmeden sebep tahmin edilmemeli"_ diyordu.
+
+**Ölçüm (altı deneme, hepsi ilk denemede açıldı):**
+
+- **Yerel, beş deneme:**
+  - sihirli bağlantı ×2;
+  - "son etkinlik" kaydı iki saat eskitilmişken;
+  - e-posta + şifre;
+  - 8 haneli numara + şifre, hiç oturum bilgisi olmayan yeni sekmede.
+- **Üretim, bir deneme:** Kurum sahibi şifresini kendisi yazdı; temiz sekme, ağ kaydı açık. `/auth/v1/token` 200 döndü (892 ms), panel açıldı, konsolda hata yok.
+
+**Karar:** C-11 kapatıldı. Hareketsizlik sayacı şüphesi ölçümle çürüdü. 2026-09-19'dan bu yana giriş tarafında değişiklikler yapıldı; sorunu hangisinin giderdiği kanıtlanamıyor, çünkü o günün kaydı yok.
+
+**Tekrar görülürse:** Aynı yöntem uygulanır: temiz sekme, ağ ve konsol kaydı açık; ilk denemenin HTTP kodu ve `error_code`'u kaydedilir. Tahminle düzeltme yapılmaz.
+
+**Yan bulgu (ölçerken):** Öğrenci ve veli girişi, kullanmadığı kurum listelerini de okuyordu (~10 boşa istek). #441 ile kapandı.
