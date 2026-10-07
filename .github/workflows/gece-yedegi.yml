@@ -72,7 +72,11 @@ jobs:
           cd "$RUNNER_TEMP/yedek"
           supabase db dump --db-url "$DB_URL" -f roles.sql --role-only
           supabase db dump --db-url "$DB_URL" -f schema.sql
-          supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only
+          # Veri yalnız auth + public: geri yükleme provası bu kapsamla yapıldı
+          # (2026-10-07). storage kullanılmıyor (kova yok) ve postgres
+          # kullanıcısının oraya yazma yetkisi yok. storage kullanılmaya
+          # başlanırsa burası ve README güncellenir.
+          supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only --schema auth,public
 
           # Boş ya da yarım yedek "başarılı" görünmesin.
           for tablo in '"auth"."users"' '"public"."organizations"' '"public"."students"'; do

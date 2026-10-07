@@ -8,7 +8,7 @@
 
 ## Nasıl çalışır
 
-1. `supabase db dump` üç dosya çıkarır: roller, şema ve veri. Veri, kullanıcı hesaplarını (şifre özetleri dahil) ve bütün uygulama tablolarını içerir.
+1. `supabase db dump` üç dosya çıkarır: roller, şema ve veri. Veri `auth` ve `public` şemalarıyla sınırlıdır: kullanıcı hesapları (şifre özetleri dahil) ve bütün uygulama tabloları. Dosya deposu (`storage`) kullanılmadığı için alınmaz; kullanılmaya başlanırsa görev güncellenmelidir.
 2. Üç dosya tek arşive konur ve repodaki **açık anahtarla** şifrelenir.
 3. Şifreli dosya, o gecenin GitHub Actions koşusuna ek (artifact) olarak konur ve 90 gün saklanır.
 
