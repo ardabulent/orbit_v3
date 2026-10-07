@@ -1,0 +1,109 @@
+name: Gece Yedeği
+
+# Üretim veritabanının gecelik yedeği (2026-10-07, kapsamlı analiz 3. madde,
+# ROADMAP v1.5-08).
+#
+# Karar (kullanıcı, 2026-10-05): Supabase Pro değil, ücretsiz kendi yedeğimiz.
+# Ücretsiz planda otomatik yedek de PITR de yok.
+#
+# Nasıl çalışır:
+#   1. `supabase db dump` üç dosya üretir: roller, şema, veri. Veri
+#      kullanıcı hesaplarını (şifre özetleri dahil) içerir.
+#   2. Üçü tek arşivde, repodaki AÇIK anahtarla şifrelenir. Açan GİZLİ anahtar
+#      repoda değil, yalnız kurum sahibinde (ops/yedek/README.md).
+#   3. Şifreli dosya bu koşunun eki (artifact) olarak 90 gün saklanır.
+#      ⚠️ Repo herkese açık: ek, giriş yapmış her GitHub kullanıcısı
+#      tarafından indirilebilir. Bu yüzden şifresiz hiçbir şey yüklenmez.
+#
+# Gereken tek sır: SUPABASE_DB_URL — Supabase panelindeki "Session pooler"
+# bağlantı adresi (GitHub koşucuları IPv6'ya çıkamaz; doğrudan bağlantı
+# adresi IPv6'dır ve burada çalışmaz).
+#
+# Geri yükleme provası 2026-10-07'de yerelde yapıldı; tarif ve bulunan açık
+# ops/yedek/README.md'de.
+
+on:
+  schedule:
+    # Her gece 03:17 (Türkiye). Tam saatler GitHub'da kalabalık.
+    - cron: "17 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gece-yedegi
+  cancel-in-progress: false
+
+jobs:
+  yedek:
+    # Çatallarda (fork) koşmaz: sırrı yoktur ve yedeğin yeri burasıdır.
+    if: github.repository == 'ardabulent/orbit_v3'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Supabase CLI kurulumu
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.115.0
+
+      - name: Sır ve anahtar yerinde mi
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL sırrı tanımlı değil (ops/yedek/README.md, 2. adım)."
+            exit 1
+          fi
+          if ! grep -q "BEGIN PGP PUBLIC KEY BLOCK" ops/yedek/yedek-acik-anahtar.asc 2>/dev/null; then
+            echo "::error::Açık anahtar yok: ops/yedek/yedek-acik-anahtar.asc (ops/yedek/README.md, 1. adım)."
+            exit 1
+          fi
+
+      - name: Yedeği al
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/yedek"
+          cd "$RUNNER_TEMP/yedek"
+          supabase db dump --db-url "$DB_URL" -f roles.sql --role-only
+          supabase db dump --db-url "$DB_URL" -f schema.sql
+          supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only
+
+          # Boş ya da yarım yedek "başarılı" görünmesin.
+          for tablo in '"auth"."users"' '"public"."organizations"' '"public"."students"'; do
+            if ! grep -q "^COPY $tablo" data.sql; then
+              echo "::error::Yedekte $tablo yok; yedek eksik."
+              exit 1
+            fi
+          done
+          sha256sum roles.sql schema.sql data.sql > SHA256SUMS
+          echo "Boyutlar: $(du -h roles.sql schema.sql data.sql | tr '\n' ' ')"
+
+      - name: Şifrele
+        id: sifrele
+        run: |
+          set -euo pipefail
+          dosya="$RUNNER_TEMP/orbit-yedek-$(date -u +%Y%m%d-%H%M).tar.gz.gpg"
+          tar -C "$RUNNER_TEMP/yedek" -czf - . \
+            | gpg --batch --yes --trust-model always \
+                --recipient-file ops/yedek/yedek-acik-anahtar.asc \
+                --encrypt -o "$dosya"
+          # Şifresiz kopyalar koşucuda kalmasın.
+          rm -rf "$RUNNER_TEMP/yedek"
+          echo "dosya=$dosya" >> "$GITHUB_OUTPUT"
+          echo "Şifreli yedek: $(du -h "$dosya" | cut -f1)"
+
+      - name: Şifreli yedeği sakla (90 gün)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: orbit-yedek-${{ github.run_id }}
+          path: ${{ steps.sifrele.outputs.dosya }}
+          retention-days: 90
+          if-no-files-found: error
+          # Zaten sıkıştırılmış ve şifreli; yeniden sıkıştırmak boşa.
+          compression-level: 0
