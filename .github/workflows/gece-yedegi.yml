@@ -62,6 +62,50 @@ jobs:
             exit 1
           fi
 
+      # Adresin BİÇİMİNİ şifreyi göstermeden denetler ve bağlantıyı yedek
+      # aracından bağımsız dener (2026-10-07: ilk kurulumda üç deneme
+      # "Network is unreachable" ve "password authentication failed" ile
+      # düştü; hangisinin adresten geldiğini kayıt söylemiyordu).
+      - name: Bağlantı adresi doğru biçimde mi
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          from urllib.parse import urlsplit, unquote
+          ham = os.environ["DB_URL"].strip()
+          if "[" in ham or "]" in ham:
+              # urlsplit köşeli parantezi IPv6 sanıp çöküyor; önce yakala.
+              print("::error::Adreste köşeli parantez var. Supabase örneğindeki [YOUR-PASSWORD] yazısının parantezleri şifreye dahil değildir: :[sifre]@ değil, :sifre@ olmalı.")
+              sys.exit(1)
+          u = urlsplit(ham)
+          sifre = unquote(u.password or "")
+          sorun = []
+          print(f"şema: {u.scheme} · kullanıcı: {u.username} · sunucu: {u.hostname} · port: {u.port} · veritabanı: {u.path.lstrip('/')}")
+          print(f"şifre: {len(sifre)} karakter · yalnız harf/rakam: {'evet' if re.fullmatch(r'[A-Za-z0-9]+', sifre or '-') else 'hayır'}")
+          if os.environ["DB_URL"] != os.environ["DB_URL"].strip():
+              sorun.append("adresin başında ya da sonunda boşluk/satır sonu var")
+          if u.hostname and u.hostname.startswith("db."):
+              sorun.append("Direct connection adresi girilmiş; Session pooler adresi gerekli (GitHub IPv6'ya çıkamaz)")
+          if u.hostname and "pooler.supabase.com" in u.hostname and "." not in (u.username or ""):
+              sorun.append("pooler kullanıcı adı 'postgres.<proje-kodu>' biçiminde olmalı")
+          if u.port == 6543:
+              sorun.append("6543 Transaction pooler; Session pooler (5432) gerekli")
+          if "YOUR-PASSWORD" in sifre:
+              sorun.append("şifre yerine YOUR-PASSWORD yazısı kalmış")
+          if not sifre:
+              sorun.append("şifre boş")
+          for s in sorun:
+              print(f"::error::{s}")
+          sys.exit(1 if sorun else 0)
+          PY
+          if psql "$DB_URL" -tAc "select 'bağlantı tamam: ' || current_user" ; then
+            :
+          else
+            echo "::error::Adresin biçimi doğru ama veritabanı bağlantıyı reddetti. Şifre yanlış ya da sıfırlama henüz yayılmadı."
+            exit 1
+          fi
+
       - name: Yedeği al
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
