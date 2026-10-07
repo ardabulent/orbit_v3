@@ -76,6 +76,7 @@ Prova 2026-10-07'de yerelde yapıldı. Sayılar birebir tuttu, kurum kodu sayac�
 
 ## Bilinen sınırlar
 
+- **Gizli anahtar bugün kurum sahibinin masaüstünde duruyor.** Bu, MVP aşaması için bilinçli bir karar (kurum sahibi, 2026-10-07). Risk: bilgisayar kaybolur ya da bozulursa yedekler açılamaz; başkası erişirse yedekler okunabilir, ve şifreli yedekleri herkes indirebiliyor. **İlk gerçek kurum verisinden önce yeniden bakılacak.** Önerilen yer: iki adımlı doğrulaması açık Google Drive, artı bir USB kopya. Ajanlar bu dosyayı hiçbir koşulda okumaz ve kullanmaz (AGENTS.md, kısıt 4).
 - **Günde bir yedek.** Kötü günde en fazla bir günlük veri kaybolur. Saniyesi saniyesine dönüş (PITR) Supabase Pro ister.
 - **Yedeğin tek kopyası GitHub'da.** GitHub hesabı kaybedilirse yedekler de gider. İkinci bir kopya (ör. ayda bir bilgisayara indirmek) elle yapılır.
 - **Hata bildirimi:** gece görevi başarısız olursa GitHub, görevi son değiştirene e-posta atar.
