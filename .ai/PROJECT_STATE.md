@@ -80,6 +80,7 @@ client/src/
 │   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
 │   │   ├── guardianChild/    # Veli çocuk seçicisi: üst çubukta, bütün veli sekmelerinde geçerli (#423)
 │   │   ├── familyTabLoading.ts # Öğrenci/veli kurum listelerini yalnız ilgili sekmede okur (#441)
+│   │   │   (pages/substitutePeriods.ts: vekilliği kurum saatiyle süren/yaklaşan/geçmiş diye ayırır, #369)
 │   │   └── pages/            # StudentsPage, ClassesPage, AttendancePage, ... SettingsPage vb.
 │   │                         #   SettingsMembersSection + MemberCreateDialog: üye tablosu ve ekleme
 │   ├── credentials/        # Giriş fişi: bir kez göster, yazdır. Operatör ve kurum
@@ -122,6 +123,11 @@ client/src/
 │   ├── trDate.ts           # Türkçe tarih biçimlendirici + getOrbitToday (takvim gününün tek kaynağı)
 │   ├── attendanceStatus.ts # Yoklama durumu eşlemesi
 │   ├── turkishSearch.ts    # Türkçe arama: `search_fold` / `turkish_name_key`'in istemci ikizi (#429)
+│   ├── substituteService.ts # Vekil öğretmen: aç, iptal et, listele (#369)
+│   ├── scheduleTemplateService.ts # Ders programı şablonu: kaydet, sınıflara ata, ön izle (#417)
+│   ├── paymentSchedule.ts  # Peşinat + eşit taksit tablosu hesabı; kayıt `save_payment_plan` (#415)
+│   ├── importFile.ts / importDraft.ts / importNormalize.ts # İçe aktarma: dosya okuma (.xlsx ≤ 300 KB, CSV),
+│   │                       #   ekran taslağı, sınıf eşleme ve Türkçe büyük harf düzeltme (#419, #421)
 │   └── examAbsenceService.ts # "Sınava girmedi" işareti: koy, geri al (#433)
 ├── audit/                  # Kurum denetim kaydı
 │   ├── auditService.ts     # İmleçli sayfalama; sıra sütunu `id`, `created_at` DEĞİL
@@ -132,6 +138,7 @@ client/src/
 ├── settings/               # Ayar ekranlarının sorgu katmanı
 │   └── settingsQueries.ts  # Üyeler, şubeler, kişi iletişim bilgisi
 ├── organization/           # Dershane tarafının veri katmanı — kurum yöneticisinin gördüğü
+│   ├── linkableMembers.ts  # "Giriş hesabı ata" listesi: yalnız hiçbir kayda bağlı olmayan hesaplar (#405)
 │   └── memberService.ts    # Kurum üyeleri: listeleme, şifre sıfırlama, üye oluşturma, şubeler.
 │                           #   Giriş numarası kurulumu ve sıralama saf fonksiyonlarda
 ├── platform/               # Platform operatörü paneli — dershane ağacından ayrı

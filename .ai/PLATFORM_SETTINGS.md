@@ -203,6 +203,16 @@ Olayın tamamı üç göçte saklı — `20260928000000` varsayım, `20260929000
 | Vercel                         | **Bağlantı yok (0 project connection).** Bilinçli — bkz. bölüm 3.5.                                                                                                                                                                                                                                                                          |
 | Branching (preview veritabanı) | **Kullanılamıyor — Pro plan gerektiriyor.** Biz kapatmadık; organizasyon planı `free` olduğu için Supabase her PR'da atlıyor.                                                                                                                                                                                                                |
 
+> ⚠️ **Birleştirme commit'indeki "Supabase Preview" kontrolü takılı kalabilir (2026-10-07'de ölçüldü).** 2026-09-19 ile 10-07 arasındaki 62 birleştirmenin 56'sında kontrol `success`. Göç taşıyan tek istisna **#425**: kontrol _"Waiting for branch action run to complete"_ durumunda kaldı ve hiç bitmedi. Sonraki birleştirmeler başarılıydı, ama raporları boştu ve neyi uyguladıklarını söylemiyordu. **Kontrol durumu göçün uygulandığının kanıtı değildir.** Kanıt, aşağıdaki salt-okuma sorgusudur. Kurum sahibi SQL Editor'de çalıştırır (ajanın üretim veritabanı erişimi yok); sonuç repodaki göç dosyası sayısıyla karşılaştırılır:
+>
+> ```sql
+> select
+>   (select count(*) from supabase_migrations.schema_migrations) as goc_sayisi,
+>   (select max(version) from supabase_migrations.schema_migrations) as son_goc;
+> ```
+>
+> 2026-10-07 sonucu: **100 · `20261025000000`**. Repo da 100; `migrationOrderIsMonotonic.test.ts` aynı sayıyı tutuyor. #425'in kilit kodu ayrıca `pg_proc.prosrc` üzerinden canlı görüldü.
+
 > **"Supabase Preview — skipping" her PR'da görünür ve bir arıza değildir.** GitHub entegrasyonu bağlı, ancak Branching ücretli planda. Doğrulama: `list_branches` yalnızca production `main` kaydını döndürüyor, hiç preview branch'i yok; organizasyon planı `free`.
 >
 > **Kaybımız:** PR'lar migration'ları geçici bir kopya veritabanında denemiyor.
