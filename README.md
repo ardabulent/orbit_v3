@@ -10,9 +10,9 @@ ORBIT; devamsızlık takibi, ders programı, deneme sınavı analizleri, veli il
 
 ### 👥 Roller ve Çalışma Alanları
 
-- 👑 **Kurum Yöneticisi (Admin):** Kurum genel özeti, öğrenci ve sınıf organizasyonu, yoklama takibi, sınav başarı grafikleri, kayıt ve ödeme takibi, raporlar ve ayarlar.
-- 🧑‍🏫 **Öğretmen (Teacher):** Ders programı, hızlı yoklama alma, sınıf listeleri, sınav analizleri, insan takibi gereken öğrenci sinyalleri ve veli iletişimi.
-- 🎒 **Öğrenci (Student):** Kişisel ders programı, haftalık ödev/etüt takibi, deneme sınavı gelişim grafikleri ve öğretmenle mesajlaşma.
+- 👑 **Kurum Yöneticisi (Admin):** Kurum genel özeti, öğrenci ve sınıf organizasyonu, yoklama takibi, sınav sonuçları ve sınıf karşılaştırması, kayıt ve ödeme takibi, raporlar ve ayarlar.
+- 🧑‍🏫 **Öğretmen (Teacher):** Ders programı, hızlı yoklama alma, sınıf listeleri, sınav sonuçları, takip gereken öğrencilerin dikkat listesi ve duyurularla veli iletişimi.
+- 🎒 **Öğrenci (Student):** Kişisel ders programı, ödev takibi, deneme sonuçları (ders ders doğru/yanlış/net ve sınıf ortalaması) ve kurum duyuruları. Birebir mesajlaşma henüz yok.
 - 👨‍👩‍👧 **Veli (Parent):** Öğrencinin devam durumu, son sınav karnesi, ödeme planı/taksit takibi ve kurum duyuruları.
 
 ---

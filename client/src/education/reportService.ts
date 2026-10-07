@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { userFacingErrorText } from "@/lib/userFacingError";
 import { calculateAttendancePercentage } from "./attendanceService";
 
 /**
@@ -75,13 +76,11 @@ function translateReportError(error: unknown): string {
     return "Bu raporu görüntüleme yetkiniz bulunmuyor.";
   }
 
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  if (typeof error === "object" && error !== null && "message" in error) {
-    const msg = String((error as { message: unknown }).message);
-    if (msg) return msg;
+  // Türkçe veritabanı uyarısı ve ağ hatası gösterilir; İngilizce teknik
+  // metin gösterilmez (B6, 2026-10-07 — `lib/userFacingError.ts`).
+  const shown = userFacingErrorText(error);
+  if (shown) {
+    return shown;
   }
 
   return "Rapor verileri yüklenirken bir hata oluştu.";

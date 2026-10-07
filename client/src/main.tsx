@@ -46,7 +46,9 @@ function isPermissionOrAuthError(error: unknown): boolean {
  *    Sıfır bayatlama süresi diyalog ve sayfa geçişlerinde aşırı ağ trafiği yaratır;
  *    1 dakikalık kısa bellek paylaşılan istemcide akıcı bir deneyim sunar.
  *
- * 4. Hata yönetimi: Genel bildirim (toast) kurulmaz. Hata sorgunun kendisinde
+ * 4. Ağ kipi "always": ayrıntı aşağıda, `networkMode` satırında.
+ *
+ * 5. Hata yönetimi: Genel bildirim (toast) kurulmaz. Hata sorgunun kendisinde
  *    bırakılır ve doğrudan ilgili ekrana yansır; global toast hangi ekranın çöktüğünü
  *    gizler ve ekran düzeyindeki hata durumlarını (EmptyState) anlamsızlaştırır.
  */
@@ -61,6 +63,18 @@ export const queryClient = new QueryClient({
       },
       refetchOnWindowFocus: false,
       staleTime: 60 * 1000,
+      // Bağlantı yokken ya da sekme arka plandayken BEKLEME, dene ve hatayı
+      // ver (2026-10-07). Varsayılan "online" kipinde sorgu duraklatılıyor;
+      // duraklatılmış sorgu ne yükleniyor ne hata sayılıyor ve ekranlar onu
+      // "veri yok" diye çiziyordu: internet kesilen yönetici Raporlar'da
+      // "dikkat gerektiren öğrenci yok" görüyordu (tarayıcıda ölçüldü).
+      // Bağlantı gelince hatalı sorgular `refetchOnReconnect` ile yenilenir.
+      networkMode: "always",
+    },
+    mutations: {
+      // Aynı sebeple: çevrimdışı bir kayıt "Kaydediliyor…" durumunda asılı
+      // kalmasın, hemen Türkçe bağlantı hatasıyla dönsün.
+      networkMode: "always",
     },
   },
 });
