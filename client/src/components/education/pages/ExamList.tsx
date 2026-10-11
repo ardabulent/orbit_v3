@@ -155,12 +155,16 @@ function ResultStatusBadge({ status }: { status: ExamResultStatus }) {
   // eksik olup olmadığı bilinmediği için uyarı rengi değil, nötr sayı.
   if (status.expected === null && status.entered > 0)
     return <Badge tone="slate">{status.entered} sonuç girildi</Badge>;
+  // Eyleme çağrı: soluk bir rozet değil, düğme gibi görünür (kullanıcı
+  // geri bildirimi 2026-10-11 — "sınav sonucu girme ekranı yok" sanılıyordu;
+  // ekran vardı, giriş yeri bir rozetin içinde kayboluyordu).
   return (
-    <Badge tone="amber">
+    <span className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
       Sonuç gir
       {status.expected !== null
         ? ` · ${status.entered}/${status.expected}`
         : ""}
-    </Badge>
+      <ChevronRight className="h-3 w-3" aria-hidden="true" />
+    </span>
   );
 }

@@ -428,7 +428,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const requestPasswordReset = useCallback(async (email: string) => {
     if (isDemoMode) {
       throw new Error(
-        "Şifre sıfırlama yalnızca canlı ortamda kullanılabilir. Demo modunda şifre demo123'tür."
+        "Şifre sıfırlama yalnızca canlı ortamda kullanılabilir. Demo şifresi giriş ekranında yazılıdır."
       );
     }
 

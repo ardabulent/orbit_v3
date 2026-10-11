@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { QueryLoadAlert } from "./QueryLoadAlert";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import {
@@ -69,9 +70,13 @@ export function NewStudentDialog({
   const [result, setResult] = useState<NewStudentResult | null>(null);
   const [accountIndex, setAccountIndex] = useState(0);
 
-  const { data: branches = [] } = useSettingsBranches(organizationId, {
+  const branchesQuery = useSettingsBranches(organizationId, {
     enabled: open,
   });
+  const branches = useMemo(
+    () => branchesQuery.data ?? [],
+    [branchesQuery.data]
+  );
   const classesQuery = useClasses({ organizationId, enabled: open });
   const guardiansQuery = useGuardians({ organizationId, enabled: open });
   const guardians = guardiansQuery.data?.rows ?? [];
@@ -280,6 +285,26 @@ export function NewStudentDialog({
               </div>
             ) : null}
 
+            {/* Okunamayan liste boş liste gibi görünmesin (2026-10-11). */}
+            {branchesQuery.isError ? (
+              <QueryLoadAlert
+                what="Şube listesi"
+                onRetry={() => void branchesQuery.refetch()}
+              />
+            ) : null}
+            {classesQuery.isError ? (
+              <QueryLoadAlert
+                what="Sınıf listesi"
+                onRetry={() => void classesQuery.refetch()}
+              />
+            ) : null}
+            {guardiansQuery.isError ? (
+              <QueryLoadAlert
+                what="Veli listesi"
+                onRetry={() => void guardiansQuery.refetch()}
+              />
+            ) : null}
+
             <fieldset className="space-y-3" disabled={submitting}>
               <legend className="text-[11px] font-extrabold uppercase tracking-[.1em] text-slate-400">
                 Öğrenci
@@ -462,7 +487,13 @@ export function NewStudentDialog({
               <button
                 type="button"
                 onClick={() => void handleSubmit()}
-                disabled={Boolean(validation) || submitting}
+                disabled={
+                  Boolean(validation) ||
+                  submitting ||
+                  branchesQuery.isError ||
+                  classesQuery.isError ||
+                  guardiansQuery.isError
+                }
                 title={validation ?? undefined}
                 className="inline-flex h-9 items-center rounded-lg bg-slate-900 px-4 text-white hover:bg-slate-800 disabled:opacity-50"
               >

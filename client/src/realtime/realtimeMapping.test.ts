@@ -186,11 +186,32 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
       "subjects",
       "class_teachers",
       "daily_feed_posts",
+      "exam_absences",
+      "exam_sections",
+      "exam_section_results",
+      "substitute_assignments",
+      "schedule_templates",
+      "schedule_template_slots",
     ];
 
     for (const tbl of tables) {
       const keys = getAffectedQueryKeys(tbl, orgId);
       expect(keys).not.toContainEqual(educationKeys.all);
     }
+  });
+
+  it("yeni tablolar boş dönmez: sınav sonuç durumu, vekil ve şablon ekranları tazelenir", () => {
+    expect(
+      getAffectedQueryKeys("exam_section_results", "org-1")
+    ).toContainEqual(["education", "examList"]);
+    expect(getAffectedQueryKeys("exam_absences", "org-1")).toContainEqual(
+      educationKeys.exam("org-1")
+    );
+    expect(
+      getAffectedQueryKeys("substitute_assignments", "org-1")
+    ).toContainEqual(educationKeys.substitutes("org-1"));
+    expect(getAffectedQueryKeys("schedule_template_slots", "org-1")).toEqual([
+      educationKeys.scheduleTemplates("org-1"),
+    ]);
   });
 });

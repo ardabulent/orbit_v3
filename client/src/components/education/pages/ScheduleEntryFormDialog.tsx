@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { QueryLoadAlert } from "./QueryLoadAlert";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -398,6 +399,18 @@ export function ScheduleEntryFormDialog({
             ) : null}
           </div>
 
+          {subjectsQuery.isError ? (
+            <QueryLoadAlert
+              what="Ders listesi"
+              onRetry={() => void subjectsQuery.refetch()}
+            />
+          ) : null}
+          {membersQuery.isError ? (
+            <QueryLoadAlert
+              what="Öğretmen listesi"
+              onRetry={() => void membersQuery.refetch()}
+            />
+          ) : null}
           <DialogFooter>
             <button
               type="button"
@@ -409,7 +422,9 @@ export function ScheduleEntryFormDialog({
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={
+                loading || subjectsQuery.isError || membersQuery.isError
+              }
               className="inline-flex h-9 items-center justify-center rounded-lg bg-blue-600 px-4 text-[12px] font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
             >
               {loading

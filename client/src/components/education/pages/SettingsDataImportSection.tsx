@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { QueryLoadAlert } from "./QueryLoadAlert";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
@@ -291,6 +292,13 @@ export function SettingsDataImportSection() {
           <span className="text-[11px] text-slate-500">
             .xlsx veya .csv · eski .xls için Excel'de “Farklı Kaydet → .xlsx”
           </span>
+          {/* Sınıflar okunamazsa her satır "sınıf bulunamadı" derdi. */}
+          {classesQuery.isError ? (
+            <QueryLoadAlert
+              what="Sınıf listesi"
+              onRetry={() => void classesQuery.refetch()}
+            />
+          ) : null}
           {step.kind === "idle" && step.problem ? (
             <span role="alert" className="text-[11px] font-bold text-rose-600">
               {step.problem}
@@ -299,7 +307,9 @@ export function SettingsDataImportSection() {
           <input
             type="file"
             accept=".xlsx,.csv,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            disabled={step.kind === "reading" || !organizationId}
+            disabled={
+              step.kind === "reading" || !organizationId || classesQuery.isError
+            }
             className="sr-only"
             onChange={e => {
               const file = e.target.files?.[0];

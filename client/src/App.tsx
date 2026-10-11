@@ -1,14 +1,18 @@
 // ORBIT Education Platform: Modern, multi-role CRM and operations dashboard for education centers.
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
-import Platform from "./pages/Platform";
-import SetPassword from "./pages/SetPassword";
+import { lazy, Suspense } from "react";
+
+// Platform paneli ve şifre ekranları ayrı parça (2026-10-11): dershane
+// kullanıcısının telefonuna operatör paneli inmesin.
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const SetPassword = lazy(() => import("./pages/SetPassword"));
+const Platform = lazy(() => import("./pages/Platform"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 /**
  * ⚠️ Bu rota listesinin **derleyicinin göremediği bir ikizi var**:
@@ -60,7 +64,18 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster position="top-right" richColors />
-          <Router />
+          <Suspense
+            fallback={
+              <div
+                role="status"
+                className="grid min-h-screen place-items-center text-[12px] font-semibold text-slate-400"
+              >
+                Yükleniyor…
+              </div>
+            }
+          >
+            <Router />
+          </Suspense>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

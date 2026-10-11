@@ -50,32 +50,41 @@ export function SettingsDataManagementSection({
                 Verileri dışa aktar
               </h3>
               <p className="mt-0.5 text-[10px] text-slate-500">
-                Seçili biçimde bir dışa aktarma hazırlanır.
+                {isDemoMode
+                  ? "Seçili biçimde bir dışa aktarma hazırlanır."
+                  : "Henüz yok; aşağıdaki nota bakın."}
               </p>
             </div>
           </div>
-          <div className="mt-4">
-            <Select value={exportFormat} onValueChange={setExportFormat}>
-              <SelectTrigger className="h-9 w-full text-[13px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="CSV">CSV</SelectItem>
-                <SelectItem value="Excel">Excel</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <button
-            onClick={() =>
-              toast.info("Dışa aktarma henüz aktif değil", {
-                description:
-                  "Gerçek dışa aktarma bir sonraki kalıcı veri fazında etkinleşecek.",
-              })
-            }
-            className="mt-4 text-[11px] font-bold text-blue-600"
-          >
-            Dışa Aktarmayı Hazırla
-          </button>
+          {/* Biçim seçimi ve düğme yalnız demoda (2026-10-11): üretimde hiçbir
+              şey yapmayan bir düğme gösteriliyordu. Özelliğin henüz olmadığını
+              aşağıdaki not söylüyor. */}
+          {isDemoMode ? (
+            <>
+              <div className="mt-4">
+                <Select value={exportFormat} onValueChange={setExportFormat}>
+                  <SelectTrigger className="h-9 w-full text-[13px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CSV">CSV</SelectItem>
+                    <SelectItem value="Excel">Excel</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <button
+                onClick={() =>
+                  toast.info("Dışa aktarma henüz aktif değil", {
+                    description:
+                      "Gerçek dışa aktarma bir sonraki kalıcı veri fazında etkinleşecek.",
+                  })
+                }
+                className="mt-4 text-[11px] font-bold text-blue-600"
+              >
+                Dışa Aktarmayı Hazırla
+              </button>
+            </>
+          ) : null}
           <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
             <span>

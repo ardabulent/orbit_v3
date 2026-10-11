@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { QueryLoadAlert } from "./QueryLoadAlert";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Search, UserMinus, UserPlus } from "lucide-react";
@@ -194,6 +195,11 @@ export function ClassEnrollmentDialog({
                   <p className="p-2 text-center text-xs text-slate-500">
                     Öğrenciler aranıyor…
                   </p>
+                ) : searchStudentsQuery.isError ? (
+                  <QueryLoadAlert
+                    what="Öğrenci listesi"
+                    onRetry={() => void searchStudentsQuery.refetch()}
+                  />
                 ) : searchResults.length === 0 ? (
                   <p className="p-2 text-center text-xs text-slate-500">
                     Kayıt edilebilir öğrenci bulunamadı.
@@ -243,6 +249,11 @@ export function ClassEnrollmentDialog({
             </h3>
             {enrollmentsQuery.isLoading ? (
               <TableSkeleton rows={3} columns={2} />
+            ) : enrollmentsQuery.isError ? (
+              <QueryLoadAlert
+                what="Sınıfın kayıt listesi"
+                onRetry={() => void enrollmentsQuery.refetch()}
+              />
             ) : enrollments.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-6 text-center text-xs text-slate-500">
                 Bu sınıfta henüz kayıtlı öğrenci bulunmuyor.

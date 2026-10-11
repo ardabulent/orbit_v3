@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isDemoMode } from "@/auth/runtime";
 import type { FormEvent } from "react";
 import { Link } from "wouter";
 import { ChevronRight, MailCheck } from "lucide-react";
@@ -40,7 +41,9 @@ export function ForgotPasswordScreen({
     }
   };
 
-  if (demoMode) {
+  // `isDemoMode` derleme sabiti: üretimde dal elenir, demo şifresi pakete
+  // girmez (B12, 2026-10-11).
+  if (isDemoMode && demoMode) {
     return (
       <AuthShell
         title="Şifre sıfırlama"

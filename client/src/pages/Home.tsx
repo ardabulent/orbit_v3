@@ -1,11 +1,18 @@
 import { OrbitMark } from "@/components/OrbitMark";
 import { EducationLoginScreen } from "@/components/education/LoginScreen";
-import { EducationPlatform } from "@/components/education/EducationPlatform";
+import { lazy } from "react";
 import { ForcePasswordChangeScreen } from "@/components/auth/ForcePasswordChangeScreen";
 import { ProfileUnavailableScreen } from "@/components/auth/ProfileUnavailableScreen";
 import { useAuth } from "@/auth/useAuth";
 import { Redirect } from "wouter";
 import { toast } from "sonner";
+
+// Dershane paneli ayrı parça (2026-10-11): giriş ekranı onu beklemeden açılır.
+const EducationPlatform = lazy(() =>
+  import("@/components/education/EducationPlatform").then(m => ({
+    default: m.EducationPlatform,
+  }))
+);
 
 export default function Home() {
   const {
