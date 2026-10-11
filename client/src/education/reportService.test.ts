@@ -1,4 +1,5 @@
 import * as React from "react";
+import { NETWORK_ERROR_TEXT } from "@/lib/userFacingError";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -255,7 +256,7 @@ describe("Rapor ekranı ve servisleri (v1.4-16 · #278 / K-22, K-23)", () => {
         error: { code: "PGRST301", message: "connection timeout" },
       } as unknown as Awaited<ReturnType<typeof supabase.rpc>>);
 
-      await expect(loadExamAverages()).rejects.toThrow("connection timeout");
+      await expect(loadExamAverages()).rejects.toThrow(NETWORK_ERROR_TEXT);
     });
 
     it("loadHomeworkWeeks: RPC hatasında null dönmez, hata fırlatır", async () => {
@@ -264,7 +265,7 @@ describe("Rapor ekranı ve servisleri (v1.4-16 · #278 / K-22, K-23)", () => {
         error: { code: "ECONNREFUSED", message: "network unreachable" },
       } as unknown as Awaited<ReturnType<typeof supabase.rpc>>);
 
-      await expect(loadHomeworkWeeks()).rejects.toThrow("network unreachable");
+      await expect(loadHomeworkWeeks()).rejects.toThrow(NETWORK_ERROR_TEXT);
     });
   });
 

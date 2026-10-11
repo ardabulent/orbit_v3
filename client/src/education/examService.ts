@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { userFacingErrorText } from "@/lib/userFacingError";
 import { formatTrDate } from "./trDate";
 
 /**
@@ -202,8 +203,11 @@ export function translateExamError(error: unknown): string {
     return "Sınav adı 1 ile 160 karakter arasında olmalıdır.";
   }
 
-  if (error instanceof Error && error.message) {
-    return error.message;
+  // Türkçe veritabanı uyarısı ve ağ hatası gösterilir; İngilizce teknik
+  // metin gösterilmez (B6, 2026-10-07 — `lib/userFacingError.ts`).
+  const shown = userFacingErrorText(error);
+  if (shown) {
+    return shown;
   }
 
   return "Sınav işlemi sırasında bir hata oluştu.";

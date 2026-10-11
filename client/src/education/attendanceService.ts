@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { userFacingErrorText } from "@/lib/userFacingError";
 import type { AttendanceState } from "@/components/education/types";
 import {
   ATTENDANCE_DB_STATUSES,
@@ -362,8 +363,11 @@ export function translateAttendanceError(error: unknown): string {
     return "Geçersiz yoklama durumu değeri gönderildi.";
   }
 
-  if (error instanceof Error && error.message) {
-    return error.message;
+  // Türkçe veritabanı uyarısı ve ağ hatası gösterilir; İngilizce teknik
+  // metin gösterilmez (B6, 2026-10-07 — `lib/userFacingError.ts`).
+  const shown = userFacingErrorText(error);
+  if (shown) {
+    return shown;
   }
 
   return "Yoklama işlemi sırasında bir hata oluştu.";
