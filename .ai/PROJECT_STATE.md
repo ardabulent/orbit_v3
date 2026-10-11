@@ -79,9 +79,12 @@ client/src/
 │   │   ├── EducationPlatform.tsx # Kompozisyon kökü (state + localStorage demo kalıcılığı)
 │   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
 │   │   ├── guardianChild/    # Veli çocuk seçicisi: üst çubukta, bütün veli sekmelerinde geçerli (#423)
-│   │   ├── familyTabLoading.ts # Öğrenci/veli kurum listelerini yalnız ilgili sekmede okur (#441)
+│   │   ├── familyTabLoading.ts # Liste yalnız onu gösteren sekme açıkken / rolün menüsünde varsa okunur (#441)
+│   │   ├── activeSectionMemory.ts # Açık sekme yenilemede korunur (C-01)
+│   │   ├── lazyPages.ts      # Sekmeler ihtiyaç anında yüklenir (paket bölme)
 │   │   │   (pages/substitutePeriods.ts: vekilliği kurum saatiyle süren/yaklaşan/geçmiş diye ayırır, #369)
 │   │   └── pages/            # StudentsPage, ClassesPage, AttendancePage, ... SettingsPage vb.
+│   │                         #   QueryLoadAlert: pencerenin listesi okunamazsa uyarı + kayıt kilidi
 │   │                         #   SettingsMembersSection + MemberCreateDialog: üye tablosu ve ekleme
 │   ├── credentials/        # Giriş fişi: bir kez göster, yazdır. Operatör ve kurum
 │   │                       #   yöneticisi aynı bileşeni kullanır; ikinci kopya yok
@@ -161,7 +164,9 @@ client/src/
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue, documents (ÖLÜ KOD)
 │   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)
 │   ├── cspConnectSrc.ts    # CSP connect-src ↔ VITE_SUPABASE_URL denetleyicisi; `vite.config.ts` çağırır (v1.5-09)
-│   └── pagedRead.ts        # Sayfa sayfa okuma: READ_PAGE_SIZE 500, `*_TOTAL_CAP` tavanları (#435)
+│   ├── pagedRead.ts        # Sayfa sayfa okuma: READ_PAGE_SIZE 500, `*_TOTAL_CAP` tavanları (#435)
+│   ├── tabSessionKey.ts    # Sekmeye özgü oturum anahtarı — bir sekmedeki giriş öbürünü düşürmez (#451)
+│   └── userFacingError.ts  # Kullanıcıya gösterilecek hata metni: ağ → Türkçe, veritabanı uyarısı aynen (#453)
 └── pages/
     ├── Home.tsx            # Giriş yönlendirici; önce kilit, sonra operatör → /platform
     ├── Platform.tsx        # Platform paneli rotası
