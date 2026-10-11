@@ -25,7 +25,13 @@ export type EducationTable =
   | "branches"
   | "subjects"
   | "class_teachers"
-  | "daily_feed_posts";
+  | "daily_feed_posts"
+  | "exam_absences"
+  | "exam_sections"
+  | "exam_section_results"
+  | "substitute_assignments"
+  | "schedule_templates"
+  | "schedule_template_slots";
 
 /**
  * Toplu tetikleyici veya içe aktarma sırasındaki mesajları birleştirme süresi (ms).
@@ -214,6 +220,32 @@ export function getAffectedQueryKeys(
     case "daily_feed_posts":
       // Günlük akış duyurusu eklenince, güncellenince veya arşivlenince pano sorgusu etkilenir (#288)
       return [educationKeys.feed(organizationId)];
+
+    // 2026-10-11: göç 20261026000000 bu altı tabloya yayın tetikleyicisi ekledi.
+    case "exam_absences":
+    case "exam_sections":
+    case "exam_section_results":
+      // Sınav listesindeki sonuç durumu ("Sonuç gir · 2/4"), ortalama ve
+      // öğrencinin son sınav puanı. Sınav detayı kendi verisini açılışta okur.
+      return [
+        educationKeys.exam(organizationId),
+        ["education", "examList"] as const,
+        educationKeys.students(organizationId),
+      ];
+
+    case "substitute_assignments":
+      // Vekil listesi ve vekilin bugünkü dersleri / Genel Bakış sayıları
+      return [
+        educationKeys.substitutes(organizationId),
+        educationKeys.todayLessons(organizationId),
+        educationKeys.myLessonsToday(organizationId),
+        educationKeys.teacherOverview(organizationId),
+        educationKeys.classes(organizationId),
+      ];
+
+    case "schedule_templates":
+    case "schedule_template_slots":
+      return [educationKeys.scheduleTemplates(organizationId)];
 
     default:
       // Bilinmeyen veya dinlenmeyen tablolar sessizce yoksayılır

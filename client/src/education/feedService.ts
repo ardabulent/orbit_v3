@@ -5,12 +5,14 @@ import { supabase } from "@/lib/supabaseClient";
  * öğrenciler. Uygulayan veritabanı (kısıtlayıcı politika); ekran yalnız
  * seçtirir ve gösterir.
  */
-export type FeedAudience = "all" | "guardians" | "students";
+export type FeedAudience = "all" | "guardians" | "students" | "staff";
 
 export const FEED_AUDIENCE_LABELS: Record<FeedAudience, string> = {
   all: "Herkes",
   guardians: "Yalnız veliler",
   students: "Yalnız öğrenciler",
+  // Öğretmenler ve yöneticiler; öğrenci ve veli görmez (RLS, 2026-10-11).
+  staff: "Yalnız öğretmenler ve yönetim",
 };
 
 /**
@@ -164,7 +166,9 @@ function mapFeedPostRow(
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
     audience:
-      row.audience === "guardians" || row.audience === "students"
+      row.audience === "guardians" ||
+      row.audience === "students" ||
+      row.audience === "staff"
         ? row.audience
         : "all",
     pinned: row.pinned === true,

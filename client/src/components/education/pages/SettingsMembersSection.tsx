@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { isDemoMode } from "@/auth/runtime";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/auth/useAuth";
@@ -128,7 +129,8 @@ export function SettingsMembersSection() {
       return;
     }
 
-    if (demoMode) {
+    // Derleme sabitiyle: üretimde demo dalı ve demo şifresi elenir (B12).
+    if (isDemoMode && demoMode) {
       if (!resetTarget.loginNumber) {
         return;
       }

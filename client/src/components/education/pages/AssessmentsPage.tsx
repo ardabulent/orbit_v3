@@ -75,7 +75,7 @@ export function AssessmentsPage(props: AssessmentsPageProps) {
       <PageHeader
         eyebrow="Ölçme ve değerlendirme"
         title="Sınavlar ve başarı"
-        description="Yaklaşan ve geçmiş sınavlar; sonuçlar ders ders net ya da tek puan olarak girilir."
+        description="Önce sınav kaydını açın, sonra listedeki sınava tıklayıp öğrencilerin sonuçlarını girin (ders ders net ya da tek puan). Sınav duyurusu İletişim sekmesinden yapılır."
         action="Yeni sınav"
         onAction={() => setCreateOpen(true)}
       />

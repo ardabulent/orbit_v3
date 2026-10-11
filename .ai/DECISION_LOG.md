@@ -149,6 +149,7 @@
 - Ders programı bir şablon olarak çizilir ve sınıflara kopyalanır
 - İçe aktarma Excel'i ve kurumun kendi düzenini kabul eder; yeni paket `read-excel-file`
 - Testler üretime istek atmaz; şifre izi uygulamadan da yazılır; "Giriş hesabı" terimleri
+- Tarama turu düzeltmeleri: sekmeye özgü oturum, çevrimdışı hata, sekme belleği, "yalnız öğretmenler" duyurusu, paket bölme
 
 ---
 
@@ -3946,3 +3947,25 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
    - Tetikleyici yerinde kalır, çünkü kendi sunucumuzda gerekebilir; aynı olay iki kez yazılmaz.
    - **Bilinen zayıflık:** uygulamayı atlayıp GoTrue'yu doğrudan çağıran biri bu izi atlayabilir.
 3. **Terimler:** ekranda "Giriş hesabı ata / ayır" ve "Giriş hesabı yok" kullanılır. Seçilebilir hesaplar yalnız hiçbir kayda bağlı olmayanlardır (`organization/linkableMembers.ts`).
+
+### Karar: Tarama turu düzeltmeleri: sekmeye özgü oturum, çevrimdışı hata, sekme belleği, "yalnız öğretmenler" duyurusu, paket bölme
+
+**Durum:** Kabul edildi · uygulandı (#451, #453 ve bu kararı taşıyan PR)
+**Tarih:** 2026-10-07…11
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** 2026-10-07 tarama turu (16 açı, yakınsadı) 27 bulgu verdi; kullanıcı düzeltmelerin "tek seferde" yapılmasını ve iki eksiği istedi.
+
+**Kararlar:**
+
+1. **Her sekmenin kendi oturum anahtarı** (#451, B17). auth-js giriş/çıkış olayını, adı oturum anahtarı olan bir `BroadcastChannel`'dan bütün sekmelere duyuruyor; ortak anahtar, ikinci sekmedeki girişin ilk sekmeyi giriş ekranına düşürmesi demekti (tarayıcıda üretildi). Anahtar `orbit-oturum-<sekme kimliği>`; kimlik sekme belleğinde, yenilemede aynı kalır. Bilinen sınır: "sekmeyi çoğalt" kimliği kopyalar.
+2. **React Query `networkMode: "always"`** (#453). Varsayılan kipte çevrimdışı sorgu duraklıyor, duraklayan sorgu ne yükleniyor ne hata sayılıyor ve ekranlar onu "veri yok" diye çiziyordu: Raporlar "Hiçbir öğrenci dört koşuldan birine takılmıyor" diyordu. Artık hata "Sunucuya ulaşılamadı" olarak görünür; bağlantı gelince yenilenir.
+3. **Kullanıcıya gösterilen hata metni kuralı** (#453, B6): ağ hatası → sabit Türkçe metin; Türkçe harf içeren veritabanı uyarısı (74 `raise exception`) aynen; geri kalanı çevirmenin genel mesajına düşer (`lib/userFacingError.ts`).
+4. **Açık sekme sekme belleğinde, adres çubuğunda değil** (C-01). Adresin `#` kısmını Supabase'in giriş ve kurtarma bağlantıları okuyor; çakışma riski alınmadı. Anahtar kullanıcıya özel; rolün menüsünde olmayan sekme saklıysa Genel Bakış.
+5. **"Yalnız öğretmenler ve yönetim" duyurusu** (kullanıcı geri bildirimi, 2026-10-11). `audience` dördüncü değer `staff`. Yeni politika gerekmedi: `daily_feed_posts_audience` yönetici ve öğretmene her duyuruyu, öğrenci ve veliye yalnız kendi kitlesini gösteriyor. pgTAP: öğretmen ve yönetici görür, öğrenci ve veli görmez; tarayıcıda da üç rolün jetonuyla doğrulandı.
+6. **Sınav sonucu girişi görünür** (kullanıcı geri bildirimi: _"sınav sonucu girme ekranı yok"_). Ekran vardı; giriş yeri listede soluk bir rozetti ve sayfada sınava tıklanacağı yazmıyordu. Rozet düğmeye çevrildi, sayfa açıklaması akışı ve sınav duyurusunun İletişim'de yapıldığını söylüyor.
+7. **Paket bölme**: rota (platform, şifre ekranları), dershane paneli ve her sekme ayrı parça; `/assets/*` bir yıl `immutable`. Ana parça 1.365 → 329 KB.
+8. **Öğrenci arşivi sınıf kaydını kapatır** (B19): tetikleyici, kapanışı öğrencinin damgasıyla yapar; geri almada yalnız o damgalı kayıtlar açılır, arada aynı sınıfa yeniden kayıt varsa açılmaz.
+9. **Hız sınırları** (B9): hesap değiştirme 120, rol değiştirme ve üye çıkarma 60 / saat; tanınmayan işlem hâlâ 10.
+
+**Ertelenenler (gerekçeli):** B20 arşivdekileri listeleme (ekran işi, ayrı dilim); personelin girişte bütün listeleri okuması (sekmeler arası anında geçiş bilinçli tercih; `v1.5-24` ile birlikte ölçülerek bakılacak); öğretmen/yönetici adlarının dört serviste ayrı okunması (küçük, ayrı); sınav detayının canlı güncellemesi (detay verisini sorgu değil efektle okuyor; liste güncelleniyor).

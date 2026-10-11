@@ -1190,7 +1190,7 @@ describe("EducationPlatform yoklama ayrılma koruması (v1.4-03 R1 & R2 Regresyo
     capturedAlertActionProps = {};
   });
 
-  it("kirli durumdayken bölüm değiştirme doğrudan geçmez, AlertDialog onay penceresi açılır", () => {
+  it("kirli durumdayken bölüm değiştirme doğrudan geçmez, AlertDialog onay penceresi açılır", async () => {
     const queryClient = new QueryClient();
     const container = mockDoc.createElement("div");
     mockDoc.body.appendChild(container);
@@ -1242,9 +1242,16 @@ describe("EducationPlatform yoklama ayrılma koruması (v1.4-03 R1 & R2 Regresyo
 
     // 1. AdminDashboard üzerinden Yoklama bölümüne geçilir
     expect(capturedAdminDashboardProps.onNavigate).toBeDefined();
-    React.act(() => {
+    // Sekmeler ihtiyaç anında yükleniyor (2026-10-11, `lazyPages.ts`):
+    // geçiş beklenebilir yapılır ve parça gelene kadar sıra boşaltılır.
+    await React.act(async () => {
       capturedAdminDashboardProps.onNavigate?.("Yoklama");
     });
+    for (let i = 0; i < 20 && capturedAttendanceProps === null; i++) {
+      await React.act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      });
+    }
 
     // 2. Yoklama sayfası ekrana gelir ve prop'ları yakalanır
     expect(capturedAttendanceProps).not.toBeNull();

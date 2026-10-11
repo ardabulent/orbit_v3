@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isDemoMode } from "@/auth/runtime";
 import type { FormEvent } from "react";
 import { OrbitMark } from "@/components/OrbitMark";
 import { Link } from "wouter";
@@ -26,7 +27,12 @@ export function EducationLoginScreen({
 }) {
   const [selectedRole, setSelectedRole] = useState<Role>("admin");
   const [identifier, setIdentifier] = useState(demoMode ? roleEmail.admin : "");
-  const [password, setPassword] = useState(demoMode ? "demo123" : "");
+  // `isDemoMode` derleme sabiti: üretimde `false`a katlanır ve demo şifresi
+  // pakete girmez (B12, 2026-10-11). `demoMode` tek başına çalışma anında
+  // gelen bir değer olduğu için dalı elemeye yetmiyordu.
+  const [password, setPassword] = useState(
+    isDemoMode && demoMode ? "demo123" : ""
+  );
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const selectRole = (role: Role) => {
@@ -201,7 +207,7 @@ export function EducationLoginScreen({
                 <ChevronRight className="h-4 w-4" />
               </button>
             </form>
-            {demoMode ? (
+            {isDemoMode && demoMode ? (
               <p className="mt-5 text-[10px] leading-5 text-slate-400">
                 Demo şifresi:{" "}
                 <strong className="font-bold text-slate-600">demo123</strong>.

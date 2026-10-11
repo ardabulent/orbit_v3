@@ -1,5 +1,21 @@
+import {
+  AssessmentsPage,
+  AttendancePage,
+  ClassesPage,
+  CommunicationsPage,
+  DayPlanPage,
+  HomeworkPage,
+  PaymentsPage,
+  AuditLogPage,
+  ReportsPage,
+  SchedulePage,
+  SettingsPage,
+  StudentsPage,
+} from "./lazyPages";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { readActiveSection, writeActiveSection } from "./activeSectionMemory";
 import { shouldLoadForTab } from "./familyTabLoading";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { OrbitMark } from "@/components/OrbitMark";
 import { LogOut, Menu, PanelLeft, ShieldCheck, X } from "lucide-react";
 import { Link } from "wouter";
@@ -110,19 +126,7 @@ import { SCHEDULE_TOTAL_CAP } from "@/education/scheduleService";
 import { PAYMENT_TOTAL_CAP } from "@/education/paymentService";
 import { allNav } from "./navigation";
 import { roleMeta } from "./roleMeta";
-import { AssessmentsPage } from "./pages/AssessmentsPage";
-import { AttendancePage } from "./pages/AttendancePage";
-import { ClassesPage } from "./pages/ClassesPage";
-import { CommunicationsPage } from "./pages/CommunicationsPage";
-import { DayPlanPage } from "./pages/DayPlanPage";
-import { HomeworkPage } from "./pages/HomeworkPage";
-import { PaymentsPage } from "./pages/PaymentsPage";
 import { linkableMembers } from "@/organization/linkableMembers";
-import { AuditLogPage } from "./pages/AuditLogPage";
-import { ReportsPage } from "./pages/ReportsPage";
-import { SchedulePage } from "./pages/SchedulePage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { StudentsPage } from "./pages/StudentsPage";
 import { ChildSwitcher } from "./guardianChild/ChildSwitcher";
 import {
   GuardianChildContext,
@@ -174,7 +178,18 @@ export function EducationPlatform({
   canAccessPlatform?: boolean;
 }) {
   const [role, setRole] = useState<Role>(initialRole);
-  const [active, setActive] = useState<Section>("Genel Bakış");
+  const { identity } = useAuth();
+  // Açık sekme sayfa yenilemede korunur (C-01, 2026-10-11).
+  const tabMemory =
+    typeof window !== "undefined" && !isDemoMode
+      ? window.sessionStorage
+      : undefined;
+  const [active, setActive] = useState<Section>(() =>
+    readActiveSection(tabMemory, identity?.userId, initialRole)
+  );
+  useEffect(() => {
+    writeActiveSection(tabMemory, identity?.userId, active);
+  }, [tabMemory, identity?.userId, active]);
   const [mobileNav, setMobileNav] = useState(false);
   // Masaüstünde menüyü simge şeridine indirir. Mobilde anlamı yok; orada menü
   // zaten çekmece olarak açılıp kapanıyor.
@@ -206,7 +221,6 @@ export function EducationPlatform({
     availableEducationSections(role).includes(item.label)
   );
 
-  const { identity } = useAuth();
   const organizationId = identity?.membership?.organizationId ?? "";
   // Velinin seçili çocuğu: üst çubukta seçilir, bütün veli sekmeleri okur
   // (karar 2026-09-27, uygulama 2026-10-02).
@@ -1526,7 +1540,21 @@ export function EducationPlatform({
               <ChildSwitcher variant="compact" />
             </div>
             <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-              {renderPage()}
+              {/* Sekme değişince sınır sıfırlanır; çökme yalnız o sekmeyi kapatır. */}
+              <ErrorBoundary key={active} variant="section">
+                <Suspense
+                  fallback={
+                    <div
+                      role="status"
+                      className="mx-auto mt-16 text-center text-[12px] font-semibold text-slate-400"
+                    >
+                      Yükleniyor…
+                    </div>
+                  }
+                >
+                  {renderPage()}
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </main>
         </div>

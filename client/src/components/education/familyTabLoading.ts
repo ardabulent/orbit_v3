@@ -1,3 +1,4 @@
+import { availableEducationSections } from "@/components/educationAccess";
 import type { Role, Section } from "./types";
 
 /**
@@ -19,6 +20,11 @@ export function shouldLoadForTab(
   active: Section,
   tabs: readonly Section[]
 ): boolean {
+  // Listeyi gösteren sekmelerin hiçbiri bu rolün menüsünde yoksa okunmaz
+  // (2026-10-11): öğretmende "Kayıt ve Ödemeler" yok, ama ödeme listesi ve
+  // ödeme özeti her öğretmen girişinde okunuyordu.
+  const menu = availableEducationSections(role) as Section[];
+  if (!tabs.some(tab => menu.includes(tab))) return false;
   if (role !== "student" && role !== "parent") return true;
   return tabs.includes(active);
 }

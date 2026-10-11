@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { isDemoMode } from "@/auth/runtime";
 import {
   Dialog,
   DialogContent,
@@ -160,21 +161,23 @@ export function MemberCreateDialog({
     }
 
     try {
-      const result = demoMode
-        ? {
-            loginNumber: "demo-" + Date.now().toString().slice(-4),
-            temporaryPassword: DEMO_TEMPORARY_PASSWORD,
-            passwordLockSet: true,
-            auditWritten: true,
-          }
-        : await createMember(
-            {
-              fullName: fullName.trim(),
-              role,
-              branchId: resolvedBranchId,
-            },
-            idempotencyKeyRef.current ?? undefined
-          );
+      // Derleme sabitiyle: üretimde demo dalı ve demo şifresi elenir (B12).
+      const result =
+        isDemoMode && demoMode
+          ? {
+              loginNumber: "demo-" + Date.now().toString().slice(-4),
+              temporaryPassword: DEMO_TEMPORARY_PASSWORD,
+              passwordLockSet: true,
+              auditWritten: true,
+            }
+          : await createMember(
+              {
+                fullName: fullName.trim(),
+                role,
+                branchId: resolvedBranchId,
+              },
+              idempotencyKeyRef.current ?? undefined
+            );
 
       // İş bitti; sıradaki üye gerçekten yeni bir istektir.
       idempotencyKeyRef.current = null;

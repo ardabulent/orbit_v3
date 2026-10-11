@@ -34,6 +34,36 @@ eval "$(supabase status -o env)" 2>/dev/null || fail "supabase status okunamadı
 
 # Yerel config minimum 8 karakter ve küçük+büyük harf+rakam istiyor.
 readonly PASSWORD="Orbit2026Test"
+
+# 2026-10-11 (#448): test arkasını temizler ve Windows'ta (Git Bash) da koşar.
+#   * Geçici dosyalar `mktemp` ile; JSON Node'a yol değil standart girdi olarak
+#     verilir — Git Bash'in `/tmp`'si ile Node'un gördüğü `/tmp` farklıydı.
+#   * Başta sabit adresli eski kullanıcı (yarıda kalmış koşu) silinir, sonda
+#     açılan kullanıcı silinir; aksi halde sonraki koşu 422 `email_exists`
+#     alıp yanlış teşhis koyuyordu.
+#   * Profil kontrolü `psql` yerine REST'ten (service_role) yapılır.
+GECICI="$(mktemp -d)"
+user_id=""
+
+kullanici_sil() {
+  curl -s -o /dev/null -X DELETE "${API_URL}/auth/v1/admin/users/$1" \
+    -H "apikey: ${SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SERVICE_ROLE_KEY}"
+}
+
+temizle() {
+  [ -n "$user_id" ] && kullanici_sil "$user_id"
+  rm -rf "$GECICI"
+}
+trap temizle EXIT
+
+eski_id=$(curl -s "${API_URL}/auth/v1/admin/users?per_page=1000" \
+  -H "apikey: ${SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" |
+  node -e "
+    const r = JSON.parse(require('fs').readFileSync(0, 'utf8') || '{}');
+    const u = (r.users || []).find(x => x.email === process.argv[1]);
+    process.stdout.write(u ? u.id : '');
+  " "${SYNTHETIC_EMAIL}")
+[ -n "$eski_id" ] && kullanici_sil "$eski_id"
 readonly LOGIN_NUMBER="10421137"
 readonly SYNTHETIC_EMAIL="${LOGIN_NUMBER}@orbit.invalid"
 
@@ -43,7 +73,7 @@ echo
 
 # --- 1) Sentetik adresle kullanıcı oluşturulabiliyor mu? ---------------------
 
-create_response=$(curl -s -o /tmp/create_body -w '%{http_code}' \
+create_response=$(curl -s -o "$GECICI/create_body" -w '%{http_code}' \
   -X POST "${API_URL}/auth/v1/admin/users" \
   -H "apikey: ${SERVICE_ROLE_KEY}" \
   -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
@@ -52,21 +82,21 @@ create_response=$(curl -s -o /tmp/create_body -w '%{http_code}' \
 
 if [ "$create_response" != "200" ] && [ "$create_response" != "201" ]; then
   echo "--- yanıt ---"
-  cat /tmp/create_body
+  cat "$GECICI/create_body"
   echo
   fail "sentetik adresle kullanıcı oluşturulamadı (HTTP ${create_response}).
 Supabase teslim edilemez alan adlarını reddediyorsa ADR'deki kimlik mimarisi
 geçersizdir ve giriş için Edge Function'lı tasarıma dönülmelidir."
 fi
 
-user_id=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/tmp/create_body','utf8')).id||'')")
+user_id=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).id||'')" < "$GECICI/create_body")
 [ -n "$user_id" ] || fail "kullanıcı oluşturuldu ama id dönmedi"
 
 echo "1/5 kullanıcı oluşturuldu (HTTP ${create_response}, id ${user_id})"
 
 # --- 2) Bu kullanıcı e-posta/şifre ile giriş yapabiliyor mu? -----------------
 
-signin_response=$(curl -s -o /tmp/signin_body -w '%{http_code}' \
+signin_response=$(curl -s -o "$GECICI/signin_body" -w '%{http_code}' \
   -X POST "${API_URL}/auth/v1/token?grant_type=password" \
   -H "apikey: ${ANON_KEY}" \
   -H "Content-Type: application/json" \
@@ -74,12 +104,12 @@ signin_response=$(curl -s -o /tmp/signin_body -w '%{http_code}' \
 
 if [ "$signin_response" != "200" ]; then
   echo "--- yanıt ---"
-  cat /tmp/signin_body
+  cat "$GECICI/signin_body"
   echo
   fail "sentetik adresle giriş yapılamadı (HTTP ${signin_response})"
 fi
 
-access_token=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/tmp/signin_body','utf8')).access_token||'')")
+access_token=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).access_token||'')" < "$GECICI/signin_body")
 [ -n "$access_token" ] || fail "giriş başarılı görünüyor ama access_token dönmedi"
 
 echo "2/5 giriş başarılı, geçerli oturum alındı"
@@ -90,8 +120,9 @@ echo "2/5 giriş başarılı, geçerli oturum alındı"
 # Sentetik adresli kullanıcı bu akışın dışında kalırsa kimlik çözümlemesi
 # sessizce kırılırdı.
 
-profile_count=$(psql "${DB_URL}" -tAc \
-  "select count(*) from public.profiles where id = '${user_id}'::uuid" 2>/dev/null)
+profile_count=$(curl -s "${API_URL}/rest/v1/profiles?id=eq.${user_id}&select=id" \
+  -H "apikey: ${SERVICE_ROLE_KEY}" -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" |
+  node -e "const r = JSON.parse(require('fs').readFileSync(0, 'utf8') || '[]'); process.stdout.write(String(Array.isArray(r) ? r.length : 0))")
 
 [ "$profile_count" = "1" ] ||
   fail "sentetik kullanıcı için profil oluşmadı (bulunan: ${profile_count:-yok})"
@@ -121,11 +152,11 @@ echo "4/5 yanlış şifre reddedildi"
 # Bu adım, yerel yapılandırmanın doğru kombinasyonda olduğunu sabitler:
 # sağlayıcı açık, yeni kayıt kapalı.
 
-signup_response=$(curl -s -o /tmp/signup_body -w '%{http_code}'   -X POST "${API_URL}/auth/v1/signup"   -H "apikey: ${ANON_KEY}"   -H "Content-Type: application/json"   -d '{"email":"yeni-kayit-kontrol@orbit.invalid","password":"Orbit2026Test"}')
+signup_response=$(curl -s -o "$GECICI/signup_body" -w '%{http_code}'   -X POST "${API_URL}/auth/v1/signup"   -H "apikey: ${ANON_KEY}"   -H "Content-Type: application/json"   -d '{"email":"yeni-kayit-kontrol@orbit.invalid","password":"Orbit2026Test"}')
 
-if ! grep -q "signup_disabled" /tmp/signup_body; then
+if ! grep -q "signup_disabled" "$GECICI/signup_body"; then
   echo "--- yanıt ---"
-  cat /tmp/signup_body
+  cat "$GECICI/signup_body"
   echo
   fail "yeni kayıt kapalı olmalıydı (HTTP ${signup_response}).
 email_provider_disabled dönüyorsa sağlayıcı da kapalıdır ve 2. adım zaten

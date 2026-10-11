@@ -59,6 +59,12 @@ export type StudentListResult = {
 export type LoadStudentsOptions = {
   limit?: number;
   search?: string;
+  /**
+   * Öğrenci başına ödeme durumu okunsun mu. Öğretmen ve öğrencinin ödeme
+   * ekranı yok; onlarda bu çağrı boş dönüyordu ama her girişte gidiyordu
+   * (2026-10-11). Varsayılan `true`: davranış yalnız açıkça kapatılınca değişir.
+   */
+  includePayments?: boolean;
 };
 
 type RawStudentRow = {
@@ -310,7 +316,9 @@ export async function loadStudents(
     await Promise.all([
       loadStudentAttendancePercentages(studentIds),
       loadStudentLatestExamScores(studentIds),
-      loadStudentPaymentStatuses(studentIds),
+      options?.includePayments === false
+        ? Promise.resolve(new Map<string, "Güncel" | "Takip gerekli">())
+        : loadStudentPaymentStatuses(studentIds),
       loadStudentHomeworkRatios(studentIds),
     ]);
 

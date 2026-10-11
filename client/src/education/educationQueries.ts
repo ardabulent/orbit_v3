@@ -392,6 +392,10 @@ export function useStudents(options?: UseStudentsOptions) {
       loadStudents(organizationId ?? "", {
         limit,
         search: debouncedSearch,
+        // Ödeme ekranı yalnız yönetici ve velide var.
+        includePayments:
+          identity?.membership?.role === "admin" ||
+          identity?.membership?.role === "parent",
       }),
     enabled: isEnabled,
   });
