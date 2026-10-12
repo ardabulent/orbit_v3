@@ -34,8 +34,8 @@ export function SettingsDataManagementSection({
       </h2>
       <p className="mt-1 text-[11px] text-slate-500">
         {isDemoMode
-          ? "Arşiv, dışa aktarma ve demo verilerini sıfırlama."
-          : "Arşiv ve dışa aktarma."}
+          ? "Dışa aktarma ve demo verilerini sıfırlama."
+          : "Dışa aktarma. Arşivlenen kayıtlar Ayarlar → Arşiv'de."}
       </p>
       <div
         className={`mt-5 grid gap-4 ${isDemoMode ? "md:grid-cols-2" : "max-w-xl"}`}

@@ -117,6 +117,7 @@ import {
 } from "./overviewService";
 
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import { loadArchive, type ArchiveListing } from "./archiveService";
 
 /**
  * Eğitim alanı sorgu anahtarları (v1.3-01 · A, B, C, D ve E parçaları, **K-19** / mimari kararlar).
@@ -263,6 +264,8 @@ export const educationKeys = {
       ? (["education", "classTeachers", { organizationId, classId }] as const)
       : (["education", "classTeachers", { organizationId }] as const);
   },
+  archive: (organizationId: string) =>
+    ["education", "archive", { organizationId }] as const,
   guardians: (organizationId: string, search?: string) => {
     const trimmed = search?.trim();
     return trimmed
@@ -1417,4 +1420,20 @@ export function useStudentOverdueInstallments(
     loadStudentOverdueInstallments,
     options
   );
+}
+
+/**
+ * Arşivdeki öğrenci, sınıf, veli ve sınavlar (2026-10-12, B20). Yalnız
+ * Ayarlar → Arşiv açıkken okunur.
+ */
+export function useArchive(options?: { enabled?: boolean }) {
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<ArchiveListing, Error>({
+    queryKey: educationKeys.archive(organizationId ?? ""),
+    queryFn: () => loadArchive(organizationId as string),
+    enabled: isEnabled,
+  });
 }

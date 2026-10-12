@@ -91,6 +91,8 @@ export function getAffectedQueryKeys(
         educationKeys.students(organizationId),
         educationKeys.attendance(organizationId),
         educationKeys.payments(organizationId),
+        // Arşivleme ve geri alma Ayarlar → Arşiv'i de değiştirir (B20).
+        educationKeys.archive(organizationId),
       ];
 
     case "classes":
@@ -101,6 +103,7 @@ export function getAffectedQueryKeys(
         educationKeys.classes(organizationId),
         educationKeys.students(organizationId),
         educationKeys.schedule(organizationId),
+        educationKeys.archive(organizationId),
       ];
 
     case "class_enrollments":
@@ -135,6 +138,8 @@ export function getAffectedQueryKeys(
         educationKeys.exam(organizationId),
         educationKeys.students(organizationId),
         ["education", "examSheet"] as const,
+        ["education", "examList"] as const,
+        educationKeys.archive(organizationId),
       ];
 
     case "exam_results":
@@ -185,6 +190,7 @@ export function getAffectedQueryKeys(
       return [
         educationKeys.guardians(organizationId),
         educationKeys.students(organizationId),
+        educationKeys.archive(organizationId),
       ];
 
     case "student_guardians":

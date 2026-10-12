@@ -1,4 +1,5 @@
 import {
+  Archive,
   Bell,
   Lock,
   Palette,
@@ -22,6 +23,7 @@ export type SettingsCategoryId =
   | "sistem"
   | "guvenlik"
   | "tema"
+  | "arsiv"
   | "veri-yonetimi"
   | "veri-ice-aktarma";
 
@@ -103,11 +105,19 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     roles: ALL_ROLES,
   },
   {
+    id: "arsiv",
+    title: "Arşiv",
+    subtitle: "Arşivlenen kayıtları geri alın",
+    icon: Archive,
+    eyebrow: "Arşivlenen kayıtlar",
+    roles: ADMIN_ONLY,
+  },
+  {
     id: "veri-yonetimi",
     title: "Veri Yönetimi",
     subtitle: "Dışa aktarma ve sıfırlama",
     icon: RotateCcw,
-    eyebrow: "Arşiv, dışa aktarma ve sıfırlama",
+    eyebrow: "Dışa aktarma ve sıfırlama",
     roles: ADMIN_ONLY,
   },
   {

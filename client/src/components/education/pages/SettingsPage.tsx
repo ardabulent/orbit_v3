@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PageHeader } from "../shared";
 import type { Role } from "../types";
 import { SettingsAccessMatrix } from "./SettingsAccessMatrix";
+import { SettingsArchiveSection } from "./SettingsArchiveSection";
 import { SettingsCategoryList } from "./SettingsCategoryList";
 import { SettingsDataImportSection } from "./SettingsDataImportSection";
 import { SettingsDataManagementSection } from "./SettingsDataManagementSection";
@@ -56,6 +57,8 @@ export function SettingsPage({
         return <SettingsSecuritySection />;
       case "tema":
         return <SettingsThemeSection />;
+      case "arsiv":
+        return <SettingsArchiveSection />;
       case "veri-yonetimi":
         return (
           <SettingsDataManagementSection onResetDemoData={onResetDemoData} />
