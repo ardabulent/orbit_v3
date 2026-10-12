@@ -150,6 +150,7 @@
 - İçe aktarma Excel'i ve kurumun kendi düzenini kabul eder; yeni paket `read-excel-file`
 - Testler üretime istek atmaz; şifre izi uygulamadan da yazılır; "Giriş hesabı" terimleri
 - Tarama turu düzeltmeleri: sekmeye özgü oturum, çevrimdışı hata, sekme belleği, "yalnız öğretmenler" duyurusu, paket bölme
+- Liste okuması sorgu başına yetkilendirilir; eşdeğerlik ölçülerek gösterilir
 
 ---
 
@@ -3969,3 +3970,29 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 9. **Hız sınırları** (B9): hesap değiştirme 120, rol değiştirme ve üye çıkarma 60 / saat; tanınmayan işlem hâlâ 10.
 
 **Ertelenenler (gerekçeli):** B20 arşivdekileri listeleme (ekran işi, ayrı dilim); personelin girişte bütün listeleri okuması (sekmeler arası anında geçiş bilinçli tercih; `v1.5-24` ile birlikte ölçülerek bakılacak); öğretmen/yönetici adlarının dört serviste ayrı okunması (küçük, ayrı); sınav detayının canlı güncellemesi (detay verisini sorgu değil efektle okuyor; liste güncelleniyor).
+
+### Karar: Liste okuması sorgu başına yetkilendirilir; eşdeğerlik ölçülerek gösterilir
+
+**Durum:** Kabul edildi · uygulandı (teknik borç PR'ı, göç `20261027000000`)
+**Tarih:** 2026-10-12
+**Onaylayan:** Arda Bülent (teknik borcun önce kapatılması kararı)
+
+**Bağlam:** `v1.5-24` öğrencinin ödev listesini 691 ms ölçmüştü. Tohumlu kurumda (400 öğrenci) yeniden ölçünce sebep on iki tabloda aynı çıktı: rol başına ayrı `permissive` okuma kuralı vardı (yönetici, öğretmen, öğrenci, veli). Postgres bunları VEYA'lıyor ve **her satır için** ayrı yetki fonksiyonu çağırıyor. Kurum geneli yoklama okuması bu yüzden ~47 saniye sürüyordu.
+
+**Karar:**
+
+1. Her tabloda tek okuma kuralı. Kullanıcının görebileceği sınıflar, öğrenciler, kurumlar ve ödeme planları `security definer` fonksiyonlarla **sorgu başına bir kez** dizi olarak hesaplanır, satır diziyle karşılaştırılır (`col = any((select f())::uuid[])`). Bu, kiracı ön süzgecinin (`current_user_scope_org_ids`, `v1.5-19`) kalıbıdır.
+2. Diziler, satır başına çağrılan eski fonksiyonların **kendileriyle** kurulur (ör. `current_user_teaches_class`); mantık iki yerde yazılmaz. Yönetici dalının şube koşulu üç diziyle birebir karşılanır.
+3. Eski fonksiyonlar silinmez: yazma kuralları ve RPC'ler onları kullanıyor. Yalnız okuma kuralları değişti.
+4. **Yetki kuralı değişikliği eşdeğerlik ölçümü olmadan birleşmez.** Bu turda yöntem: göçten önce ve sonra örnek kullanıcıların (200 kişi, dört rol, tohumlu ve tohumsuz kurumlar) her tabloda gördüğü satır kimliklerinin parmak izi alınır, birebir aynı olmalı. Büyük tablolarda sabit bir örneklem (tohum dışı kurumların tamamı + tohumdan 2.000 satır) yeterli. En ince dallar ayrıca pgTAP'te kilitlenir.
+
+**Sonuç:** öğrenci ödev listesi 418 → 8 ms, yoklama ~47 sn → 2–14 ms; 1.400 karşılaştırmada fark 0.
+
+**Alternatifler:** Ekran başına `security definer` RPC (`v1.5-17`'deki gibi) — her yeni ekran yeni RPC demek ve PostgREST'in süzme/sayfalama yeteneğini kaybettirir; elendi. Kuralları olduğu gibi bırakıp indeks eklemek — maliyet indekste değil fonksiyon çağrısında; ölçümle elendi.
+
+**Aynı PR'daki küçük kararlar:**
+
+- Kullanılmayan `workspace_documents` tablosu `v1.6-01`'i beklemeden kaldırıldı (#148); göç tabloda satır bulursa durur.
+- Canlı güncelleme düzenleyenin yazdıklarını ezmez: veri gelirken kullanıcı yazıyorsa yazdıkları korunur ve uyarı çıkar; kendi kaydının yankısı uyarı sayılmaz (sınav detayı).
+- Çalışma süresi ve kota alarmı yeni sağlayıcı olmadan GitHub Actions'ta; alarm kanalı GitHub'ın başarısız zamanlanmış iş e-postası.
+- Personelin girişte listeleri birlikte okuması **değiştirilmedi**: ölçüldü, her liste artık ≤15 ms; ertelemek her sekmeye bekleme ekler. Kalan maliyet yıllık iki toplam, `v1.5-27`.

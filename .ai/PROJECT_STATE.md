@@ -115,6 +115,7 @@ client/src/
 ├── education/              # Eğitim alanının veri katmanı (v1.3-01) — bileşen değil
 │   ├── studentService.ts   # Öğrenci listesi; Student nesnesinin kurulduğu TEK yer (K-06)
 │   ├── classService.ts / scheduleService.ts / attendanceService.ts
+│   ├── classStaffNames.ts  # Öğretmen/vekil adları (`class_staff_names`); dört servisin ortak kaynağı (2026-10-12)
 │   ├── examService.ts / paymentService.ts / reportService.ts
 │   ├── homeworkService.ts / homeworkSubmission (v1.4-05, v1.4-15)
 │   ├── guardianService.ts  # Veli kaydı ve öğrenci–veli bağı (v1.4-10)
@@ -137,7 +138,9 @@ client/src/
 │   └── auditQueries.ts     # useInfiniteQuery
 ├── realtime/               # Kurum kanalı aboneliği (v1.3-05)
 │   ├── useOrganizationChannel.ts  # `org:<id>` özel kanalı; tek abonelik, tek yer
-│   └── realtimeMapping.ts  # Tablo → sorgu anahtarı eşlemesi (K-06)
+│   ├── realtimeMapping.ts  # Tablo → sorgu anahtarı eşlemesi (K-06)
+│   ├── connectionNotice.ts # Kopma uyarısının metni ve kuralı (v1.5-12, 2026-10-12)
+│   └── ConnectionBanner.tsx # İnternet/canlı kanal kopunca üstteki uyarı
 ├── settings/               # Ayar ekranlarının sorgu katmanı
 │   └── settingsQueries.ts  # Üyeler, şubeler, kişi iletişim bilgisi
 ├── organization/           # Dershane tarafının veri katmanı — kurum yöneticisinin gördüğü
@@ -161,7 +164,7 @@ client/src/
 │   └── installErrorReporting.ts # `error` + `unhandledrejection` dinleyicileri; demo modunda kapalı
 ├── contexts/               # ThemeProvider
 ├── hooks/                  # useComposition
-├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue, documents (ÖLÜ KOD)
+├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue
 │   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)
 │   ├── cspConnectSrc.ts    # CSP connect-src ↔ VITE_SUPABASE_URL denetleyicisi; `vite.config.ts` çağırır (v1.5-09)
 │   ├── pagedRead.ts        # Sayfa sayfa okuma: READ_PAGE_SIZE 500, `*_TOTAL_CAP` tavanları (#435)
@@ -175,7 +178,7 @@ client/src/
     └── NotFound.tsx        # 404 sayfası
 ```
 
-**Repo kökünde, istemci dışında (2026-10-07):** `ops/yedek/` — gece yedeğinin anahtar üretme ve geri yükleme betikleri ile tarifi (`README.md`); görev `.github/workflows/gece-yedegi.yml`. Gizli anahtar repoda **değil** (`AGENTS.md` kısıt 4).
+**Repo kökünde, istemci dışında (2026-10-07):** `ops/yedek/` — gece yedeğinin anahtar üretme ve geri yükleme betikleri ile tarifi (`README.md`); görev `.github/workflows/gece-yedegi.yml`. Gizli anahtar repoda **değil** (`AGENTS.md` kısıt 4). **2026-10-12:** `.github/workflows/saglik-kontrolu.yml` — yarım saatte bir site, Supabase API, veritabanı boyutu ve hata kaydı sayısı (`v1.5-06`); aynı sırla salt okunur.
 
 **Bağlayıcı kural — taşınabilirlik:** `components/` ve `pages/` altındaki dosyalar Supabase istemcisini **doğrudan import edemez**; veri erişimi yukarıdaki servis modüllerinden geçer. Kural ESLint ile zorlanır (`eslint.config.js`). Gerekçe: `DECISION_LOG.md` — "Taşınabilirlik sınırı".
 
@@ -189,7 +192,7 @@ Aynı sebeple dosya `analyze;` ile bitiyor — o satır atlanırsa planlayıcı 
 
 **Eşzamanlılık takımı — `supabase/perf/k6/` (eklendi 2026-09-19):** tohumun ürettiği **veri**nin üzerine bir dershane-saati **yük** bindiren k6 senaryosu ve hesap fabrikası. Tohum giriş yapabilen hesap üretmediği (şifre alanı geçerli bir hash değil) ve 683 jetonu şifreyle almak GoTrue'nun 30/5 dk/IP sınırına takıldığı için jetonlar **testin dışında**, yerel `JWT_SECRET` ile basılıyor. 🔴 **Yalnız yerel; üretime yük basılmaz** ve üretimde bu yol zaten yoktur (`JWT_SECRET` bilinmez). Basılan `jetonlar.json` git'e girmez. Ölçümleri ve yorumlanabilirlik sınırı: klasörün kendi `README.md`'si ve `ROADMAP` §4.23.
 
-**`lib/documents.ts` ölü koddur** — hiçbir yerden çağrılmıyor ve dayandığı `workspace_documents` tablosunda hiç policy yok. "Belgeler" özelliği v1.6'da yeniden ele alınana kadar bu şekilde kalır; bkz. `PLATFORM_SETTINGS.md` kabul edilmiş açıklar. **Bu satır artık bir kapının dayanağı (2026-09-13):** `client/src/lib/deadServiceExports.test.ts` "çağıranı olmayan servis kalamaz" kuralını zorluyor ve `lib/documents.ts` oradaki **tek muafiyet**, gerekçesi olarak buraya işaret ediyor. Muafiyetin kendisi de sınanıyor — dosya kullanılmaya başlandığı gün test kırmızıya döner ve satırın silinmesini ister.
+**Sonradan düzeltme (2026-10-12): dosya ve tablo kaldırıldı (#148, göç `20261028000000`); `deadServiceExports.test.ts`'in muafiyet listesi artık boş.** Eski kayıt: **`lib/documents.ts` ölü koddur** — hiçbir yerden çağrılmıyor ve dayandığı `workspace_documents` tablosunda hiç policy yok. "Belgeler" özelliği v1.6'da yeniden ele alınana kadar bu şekilde kalır; bkz. `PLATFORM_SETTINGS.md` kabul edilmiş açıklar. **Bu satır artık bir kapının dayanağı (2026-09-13):** `client/src/lib/deadServiceExports.test.ts` "çağıranı olmayan servis kalamaz" kuralını zorluyor ve `lib/documents.ts` oradaki **tek muafiyet**, gerekçesi olarak buraya işaret ediyor. Muafiyetin kendisi de sınanıyor — dosya kullanılmaya başlandığı gün test kırmızıya döner ve satırın silinmesini ister.
 
 ---
 
@@ -289,17 +292,17 @@ Bu, aşağıdaki bağlantı matrisinin okunuşunu değiştirir: **tablo, RLS ve 
 
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 
-| Varlık                                                        | Tablo  |  Servis  | Ekran |    Yazma     |
-| ------------------------------------------------------------- | :----: | :------: | :---: | :----------: |
-| Kurum · Şube · Üyelik · Profil · Operatör · Platform denetimi |   ✅   |    ✅    |  ✅   |  ✅ / kısmi  |
-| Kurum denetim kaydı                                           |   ✅   |    ❌    |  ❌   | ✅ yazılıyor |
-| Öğrenci · Sınıf · Yoklama · Sınav · Ödev · Ödeme              |   ✅   |    ✅    |  ✅   |      ✅      |
-| Program                                                       |   ✅   | ✅ okuma |  ✅   |      ❌      |
-| Mesaj · Gün planı                                             |   ✅   |    ❌    |  ✅   |      ❌      |
-| Otomasyon                                                     |   ❌   |    ❌    |  ✅   |      ❌      |
-| Veli · Veli–öğrenci bağı                                      |   ✅   |    ✅    |  ✅   |      ✅      |
-| Öğretmen–sınıf ataması                                        |   ✅   |    ❌    |  ❌   |      ❌      |
-| Belge (`workspace_documents`)                                 | ☠️ ölü |  ☠️ ölü  |  ❌   |      ❌      |
+| Varlık                                                          | Tablo  |  Servis  | Ekran |    Yazma     |
+| --------------------------------------------------------------- | :----: | :------: | :---: | :----------: |
+| Kurum · Şube · Üyelik · Profil · Operatör · Platform denetimi   |   ✅   |    ✅    |  ✅   |  ✅ / kısmi  |
+| Kurum denetim kaydı                                             |   ✅   |    ❌    |  ❌   | ✅ yazılıyor |
+| Öğrenci · Sınıf · Yoklama · Sınav · Ödev · Ödeme                |   ✅   |    ✅    |  ✅   |      ✅      |
+| Program                                                         |   ✅   | ✅ okuma |  ✅   |      ❌      |
+| Mesaj · Gün planı                                               |   ✅   |    ❌    |  ✅   |      ❌      |
+| Otomasyon                                                       |   ❌   |    ❌    |  ✅   |      ❌      |
+| Veli · Veli–öğrenci bağı                                        |   ✅   |    ✅    |  ✅   |      ✅      |
+| Öğretmen–sınıf ataması                                          |   ✅   |    ❌    |  ❌   |      ❌      |
+| Belge (`workspace_documents`) — **kaldırıldı 2026-10-12, #148** | ☠️ ölü |  ☠️ ölü  |  ❌   |      ❌      |
 
 **On üçüncü düzeltme (2026-09-11, v1.4-01 … v1.4-04):** Yukarıdaki matris **v1.4 boyunca dört kez eskidi ve bu turda toplu olarak düzeltildi.** Eskiden tek bir satır on varlığı birden "❌ ❌ ✅ ❌" diye anlatıyordu; bugün o on varlık **dört farklı durumda** ve tek satırda tutmak K-06'nın tam olarak uyardığı şeydi.
 
