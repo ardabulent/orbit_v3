@@ -12,7 +12,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { educationKeys, useSubjects } from "@/education/educationQueries";
+import {
+  educationKeys,
+  useRooms,
+  useSubjects,
+} from "@/education/educationQueries";
 import { useSettingsMembers } from "@/settings/settingsQueries";
 import {
   createScheduleEntry,
@@ -61,7 +65,7 @@ export function ScheduleEntryFormDialog({
   const [subjectId, setSubjectId] = useState("");
   const [title, setTitle] = useState("");
   const [membershipId, setMembershipId] = useState("");
-  const [room, setRoom] = useState("");
+  const [roomId, setRoomId] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +84,14 @@ export function ScheduleEntryFormDialog({
     enabled: open,
   });
   const eligibleMembers = eligibleTeachers(membersQuery.data ?? []);
+
+  // Derslikler (v1.5-15): serbest metin yerine kurumun derslik kaydı.
+  // Kapatılmış bir dersliği kullanan eski satır düzenlenirken o derslik de
+  // listede görünür, yoksa seçim sessizce boşalırdı.
+  const roomsQuery = useRooms({ includeArchived: true, enabled: open });
+  const rooms = (roomsQuery.data ?? []).filter(
+    r => !r.archivedAt || r.id === entry?.roomId
+  );
 
   useEffect(() => {
     if (!open) {
@@ -108,7 +120,7 @@ export function ScheduleEntryFormDialog({
         setTitle(entry.title || "");
       }
       setMembershipId(entry.membershipId || "");
-      setRoom(entry.room || "");
+      setRoomId(entry.roomId || "");
     } else {
       setClassId(
         (defaultClassId && classes.some(c => c.id === defaultClassId)
@@ -122,7 +134,7 @@ export function ScheduleEntryFormDialog({
       setSubjectId(subjects[0]?.id || "");
       setTitle("");
       setMembershipId("");
-      setRoom("");
+      setRoomId("");
     }
     setError(null);
   }, [
@@ -170,7 +182,7 @@ export function ScheduleEntryFormDialog({
           subjectId: subjectMode === "subject" ? subjectId : null,
           title: subjectMode === "title" ? title.trim() : null,
           membershipId: membershipId ? membershipId : null,
-          room: room.trim() ? room.trim() : null,
+          roomId: roomId || null,
         });
 
         toast.success("Ders programı güncellendi", {
@@ -186,7 +198,7 @@ export function ScheduleEntryFormDialog({
           subjectId: subjectMode === "subject" ? subjectId : null,
           title: subjectMode === "title" ? title.trim() : null,
           membershipId: membershipId ? membershipId : null,
-          room: room.trim() ? room.trim() : null,
+          roomId: roomId || null,
         });
 
         toast.success("Ders programı eklendi", {
@@ -379,13 +391,28 @@ export function ScheduleEntryFormDialog({
                 <Label htmlFor="schedule-room" className="text-[11px]">
                   Derslik (Opsiyonel)
                 </Label>
-                <Input
+                <select
                   id="schedule-room"
-                  value={room}
-                  onChange={e => setRoom(e.target.value)}
-                  placeholder="Örn: A-101, Lab-1"
-                  disabled={loading}
-                />
+                  value={roomId}
+                  onChange={e => setRoomId(e.target.value)}
+                  disabled={loading || roomsQuery.isLoading}
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-[12px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Dersliksiz</option>
+                  {rooms.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                      {r.shareable ? " (paylaşılabilir)" : ""}
+                      {r.archivedAt ? " (kapatılmış)" : ""}
+                    </option>
+                  ))}
+                </select>
+                {roomsQuery.data && rooms.length === 0 ? (
+                  <span className="text-[10px] text-slate-400">
+                    Henüz derslik yok; Ders Programı → Derslikler sekmesinden
+                    ekleyin.
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -403,6 +430,12 @@ export function ScheduleEntryFormDialog({
             <QueryLoadAlert
               what="Ders listesi"
               onRetry={() => void subjectsQuery.refetch()}
+            />
+          ) : null}
+          {roomsQuery.isError ? (
+            <QueryLoadAlert
+              what="Derslik listesi"
+              onRetry={() => void roomsQuery.refetch()}
             />
           ) : null}
           {membersQuery.isError ? (
@@ -423,7 +456,10 @@ export function ScheduleEntryFormDialog({
             <button
               type="submit"
               disabled={
-                loading || subjectsQuery.isError || membersQuery.isError
+                loading ||
+                subjectsQuery.isError ||
+                membersQuery.isError ||
+                roomsQuery.isError
               }
               className="inline-flex h-9 items-center justify-center rounded-lg bg-blue-600 px-4 text-[12px] font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
             >

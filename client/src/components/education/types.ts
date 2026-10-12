@@ -63,6 +63,8 @@ export type ScheduleItem = {
   group?: string | null;
   teacher?: string | null;
   room?: string | null;
+  /** Derslik kimliği (v1.5-15). */
+  roomId?: string | null;
   duration?: string | null;
   tone?: string;
   classId?: string;
