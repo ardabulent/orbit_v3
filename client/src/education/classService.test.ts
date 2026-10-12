@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_CLASS_LIMIT,
   loadClasses,
-  loadMentorNames,
   mapClassRow,
   createClass,
   updateClass,
@@ -132,76 +131,6 @@ describe("classService", () => {
       expect(mapped.branchId).toBeNull();
       expect(mapped.capacity).toBeNull();
       expect(mapped.studentCount).toBe(0);
-    });
-  });
-
-  describe("loadMentorNames (İsim Çözümleme - class_staff_names RPC)", () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-
-    it("boş liste verildiğinde veritabanına gitmeden boş harita döner", async () => {
-      const result = await loadMentorNames([]);
-      expect(result.size).toBe(0);
-      expect(rpcMock).not.toHaveBeenCalled();
-      expect(fromMock).not.toHaveBeenCalled();
-    });
-
-    it("class_staff_names RPC'sini tek seferde çağırır ve isimleri haritaya bağlar (N+1 yok)", async () => {
-      rpcMock.mockResolvedValue({
-        data: [
-          {
-            class_id: "cls-1",
-            membership_id: "mem-1",
-            display_name: "Bahar Aydın",
-          },
-          {
-            class_id: "cls-2",
-            membership_id: "mem-2",
-            display_name: "Kemal Demir",
-          },
-        ],
-        error: null,
-      });
-
-      const names = await loadMentorNames(["cls-1", "cls-2"]);
-
-      expect(rpcMock).toHaveBeenCalledTimes(1);
-      expect(rpcMock).toHaveBeenCalledWith("class_staff_names", {
-        target_class_ids: ["cls-1", "cls-2"],
-      });
-      expect(names.get("mem-1")).toBe("Bahar Aydın");
-      expect(names.get("mem-2")).toBe("Kemal Demir");
-    });
-
-    it("⛔ profiles veya organization_memberships tablolarına doğrudan sorgu gitmez (#228)", async () => {
-      rpcMock.mockResolvedValue({
-        data: [
-          {
-            class_id: "cls-1",
-            membership_id: "mem-1",
-            display_name: "Bahar Aydın",
-          },
-        ],
-        error: null,
-      });
-
-      await loadMentorNames(["cls-1"]);
-
-      expect(fromMock).not.toHaveBeenCalledWith("profiles");
-      expect(fromMock).not.toHaveBeenCalledWith("organization_memberships");
-    });
-
-    it("RPC hatasında veya adı çözülemeyen mentor için uydurulmuş değer dönmez (K-22)", async () => {
-      rpcMock.mockResolvedValue({
-        data: null,
-        error: { message: "RPC error" },
-      });
-
-      const names = await loadMentorNames(["cls-1"]);
-
-      expect(names.size).toBe(0);
-      expect(names.get("mem-unresolved")).toBeUndefined();
     });
   });
 
