@@ -1,0 +1,110 @@
+name: Sağlık Kontrolü
+
+# Üretimin çalışıp çalışmadığını ve ücretsiz plan sınırlarına ne kadar
+# yaklaştığını yarım saatte bir ölçer (2026-10-12, ROADMAP v1.5-06'nın kalanı:
+# çalışma süresi izleme ve bütçe alarmı).
+#
+# Yeni bir sağlayıcı eklenmedi (AGENTS.md kısıt 6): ölçüm GitHub Actions'ta,
+# sır olarak gece yedeğinin SUPABASE_DB_URL'i kullanılıyor.
+#
+# ALARM NASIL GELİR: bir ölçüm sınırı aşarsa koşu kırmızı biter. GitHub,
+# zamanlanmış bir iş akışı başarısız olunca, dosyadaki zamanlamayı en son
+# değiştiren kişiye e-posta atar. Bu iş akışı başka hiçbir şey yazmaz, açmaz
+# ya da göndermez; veritabanına salt okunur bağlanır.
+#
+# Sınırlar (ücretsiz plan, 2026-10-12):
+#   - Veritabanı boyutu: plan sınırı 500 MB, alarm 350 MB'ta (%70) —
+#     yükseltme kararı için zaman kalsın.
+#   - Son bir saatteki istemci hata kaydı: 25'i geçerse alarm. Pilotta saatte
+#     birkaç kayıt olağan; 25 bir şeyin topluca kırıldığı anlamına gelir.
+
+on:
+  schedule:
+    # Her yarım saatte, :07 ve :37'de. Tam saatler GitHub'da kalabalık.
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saglik-kontrolu
+  cancel-in-progress: true
+
+env:
+  SITE_URL: https://orbit-v3-kappa.vercel.app
+  SUPABASE_URL: https://vlduktyygzfjpjdzuhxy.supabase.co
+  DB_SINIRI_MB: 350
+  SAATLIK_HATA_SINIRI: 25
+
+jobs:
+  olc:
+    # Çatallarda koşmaz: sırrı yoktur.
+    if: github.repository == 'ardabulent/orbit_v3'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Kısa bir aksaklık alarm sayılmasın: üç deneme, aralarında 20 saniye.
+      - name: Site açılıyor mu
+        run: |
+          for deneme in 1 2 3; do
+            kod=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$SITE_URL/" || echo 000)
+            echo "deneme $deneme: HTTP $kod"
+            [ "$kod" = "200" ] && exit 0
+            [ "$deneme" -lt 3 ] && sleep 20
+          done
+          echo "::error::Site üç denemede de açılmadı ($SITE_URL, son yanıt HTTP $kod)."
+          exit 1
+
+      # Anahtarsız istek ağ geçidinden 401 döner: bu, Supabase'in ayakta
+      # olduğunu söyler. 5xx ya da yanıt yoksa ayakta değildir.
+      - name: Supabase API ayakta mı
+        run: |
+          for deneme in 1 2 3; do
+            kod=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$SUPABASE_URL/rest/v1/" || echo 000)
+            echo "deneme $deneme: HTTP $kod"
+            case "$kod" in 2??|401) exit 0 ;; esac
+            [ "$deneme" -lt 3 ] && sleep 20
+          done
+          echo "::error::Supabase API üç denemede de yanıt vermedi (son yanıt HTTP $kod)."
+          exit 1
+
+      - name: Veritabanı boyutu ve hata kayıtları
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL sırrı tanımlı değil (ops/yedek/README.md, 2. adım)."
+            exit 1
+          fi
+          # Salt okunur işlem: bu adım hiçbir şey yazamaz.
+          satir=$(psql "$DB_URL" -tA -F ' ' -v ON_ERROR_STOP=1 <<'SQL'
+          begin read only;
+          select (pg_database_size(current_database()) / 1024 / 1024)::bigint,
+                 (select count(*) from public.client_error_reports
+                   where created_at > now() - interval '1 hour');
+          commit;
+          SQL
+          )
+          satir=$(echo "$satir" | grep -E '^[0-9]+ [0-9]+$')
+          boyut_mb=${satir% *}
+          hata=${satir#* }
+          echo "Veritabanı: ${boyut_mb} MB (alarm ${DB_SINIRI_MB} MB, plan sınırı 500 MB)"
+          echo "Son bir saatteki hata kaydı: ${hata} (alarm ${SAATLIK_HATA_SINIRI})"
+          {
+            echo "| Ölçüm | Değer | Alarm |"
+            echo "| --- | --- | --- |"
+            echo "| Veritabanı boyutu | ${boyut_mb} MB | ${DB_SINIRI_MB} MB |"
+            echo "| Son 1 saatte hata kaydı | ${hata} | ${SAATLIK_HATA_SINIRI} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          sorun=0
+          if [ "$boyut_mb" -ge "$DB_SINIRI_MB" ]; then
+            echo "::error::Veritabanı ${boyut_mb} MB — alarm eşiği ${DB_SINIRI_MB} MB aşıldı (ücretsiz plan sınırı 500 MB). Yükseltme ya da temizlik kararı gerekiyor."
+            sorun=1
+          fi
+          if [ "$hata" -gt "$SAATLIK_HATA_SINIRI" ]; then
+            echo "::error::Son bir saatte ${hata} hata kaydı var. Platform panelindeki Hata Kayıtları'na bakın."
+            sorun=1
+          fi
+          exit $sorun
