@@ -1,7 +1,8 @@
 -- Issue #18 — Fonksiyon ve tablo yetkilerinin doğrulanması.
 --
 -- Negatif testler: anon ve authenticated rolleri ayrıcalıklı fonksiyonları
--- çağıramaz ve workspace_documents'a erişemez.
+-- çağıramaz. (workspace_documents denetimleri tablo düşürülünce kaldırıldı,
+-- göç 20261028000000, #148.)
 -- Pozitif testler: RLS'in bağımlı olduğu yardımcı fonksiyon ve auth trigger'ı
 -- revoke sonrasında çalışmaya devam eder.
 --
@@ -20,7 +21,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(8);
 
 -- Kurulum sahibi rolüyle yapılır. Bu insert `on_auth_user_created` trigger'ını
 -- tetikler; trigger revoke sonrasında da profil oluşturmalıdır.
@@ -80,13 +81,6 @@ select throws_ok(
   'anon cannot execute current_user_has_membership'
 );
 
-select throws_ok(
-  $$select count(*) from public.workspace_documents$$,
-  '42501',
-  null,
-  'anon cannot read workspace_documents'
-);
-
 reset role;
 
 -- authenticated rolü ---------------------------------------------------------
@@ -109,13 +103,6 @@ select throws_ok(
   '42501',
   null,
   'authenticated cannot execute internal_bootstrap_organization'
-);
-
-select throws_ok(
-  $$select count(*) from public.workspace_documents$$,
-  '42501',
-  null,
-  'authenticated cannot read workspace_documents'
 );
 
 -- RLS politikaları bu fonksiyonu çağıran rolün ayrıcalıklarıyla değerlendirir;

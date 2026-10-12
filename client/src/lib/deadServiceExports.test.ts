@@ -77,14 +77,8 @@ function kaynakDosyalar(kok: string): string[] {
  * kayıtlı olduğunu ve kimin sahiplendiğini yazmadan ekleme.
  */
 const KABUL_EDILMIS_OLU = new Map<string, string>([
-  [
-    "lib/documents.ts",
-    // `PROJECT_STATE.md` §"lib/documents.ts ölü koddur": dayandığı
-    // `workspace_documents` tablosunda hiç policy yok ve tablo yetkileri
-    // 20260822221832'de kaldırıldı. "Belgeler" özelliği v1.6-01'de yeniden
-    // ele alınana kadar bu şekilde kalır — sahibi ve kontrol noktası var.
-    "PROJECT_STATE.md'de kayıtlı, v1.6-01'e ertelendi (#148)",
-  ],
+  // 2026-10-12: tek satır olan `lib/documents.ts` silindi, tablosu da göç
+  // 20261028000000 ile düşürüldü (#148). Liste boş; boş kalması hedeftir.
 ]);
 
 /**
