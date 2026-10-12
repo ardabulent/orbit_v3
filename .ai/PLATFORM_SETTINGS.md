@@ -642,6 +642,8 @@ Yukarıdaki tablodaki "açık rıza, taahhütname veya yeterlilik kararı" ifade
 >
 > 📌 **`v1.5-18`'in on `as restrictive` politikası `multiple_permissive_policies`'i BÜYÜTMEDİ** ve bu beklenen sonuçtu: kısıtlayıcı politikalar izin veren politikalarla aynı listede sayılmıyor. Yani kiracı ön süzgeci eklenirken advisor tabanı bozulmadı — ölçüm bunu doğruladı.
 >
+> 📌 **Beklenen değişim (2026-10-12, mesajlaşma PR'ı, göç `20261031000000`) — merge sonrası ölçülecek:** `authenticated_security_definer_function_executable` **7** artar: `internal_my_membership_id` ve altı mesaj/bildirim fonksiyonu (`list_message_contacts`, `list_conversations`, `start_conversation`, `send_message`, `mark_conversation_read`, `mark_notifications_read`); her biri kendi içinde çağıranı denetler, `anon` çağıramaz. `realtime.messages`'a ikinci okuma kuralı eklendi: **"kullanici kendi kanalini dinler"** (`user:<auth.uid()>`); kurum kanalı kuralı aynen.
+>
 > 📌 **Beklenen değişim (2026-10-12, teknik borç PR'ı) — merge sonrası ölçülecek:** `rls_enabled_no_policy` bir azalır (`workspace_documents` düştü). `authenticated_security_definer_function_executable` **12** artar: okuma kurallarının sorgu başına hesapladığı on iki yeni `current_user_*_ids()` dizisi (göç `20261027000000`). Bunlar `current_user_scope_org_ids` ile aynı türdendir — yetki kararı vermez, kullanıcının kendi kapsamını döndürür; `anon` çağıramaz (pgTAP `list_authorized_once`). `multiple_permissive_policies` **düşmeli**: on iki tabloda rol başına kurallar teke indi.
 >
 > 📌 **`rls_enabled_no_policy` üçünün üçü de tasarım gereği:** üçü de yalnız `service_role` veya `definer` fonksiyon üzerinden okunuyor, `authenticated` hiç politika almıyor. Politika eklemek, bugün kapalı olan bir yolu açmak olurdu.

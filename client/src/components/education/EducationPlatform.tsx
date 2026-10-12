@@ -117,6 +117,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useOrganizationChannel } from "@/realtime/useOrganizationChannel";
 import { ConnectionBanner } from "@/realtime/ConnectionBanner";
+import { useUserChannel } from "@/realtime/useUserChannel";
+import { NotificationBell } from "./NotificationBell";
 import { STUDENT_TOTAL_CAP } from "@/education/studentService";
 import {
   archiveClass,
@@ -649,6 +651,8 @@ export function EducationPlatform({
   // Aktif kurumun Realtime kanalına tekil abonelik (v1.3-05).
   // Demo modunda devre dışıdır; canlı modda arka plandaki veri değişikliklerini dinler.
   const organizationChannel = useOrganizationChannel();
+  // Kişiye özel bildirim ve mesaj kanalı (2026-10-12).
+  useUserChannel();
 
   const activeStudents = useMemo(() => {
     if (isDemoMode) {
@@ -1480,11 +1484,11 @@ export function EducationPlatform({
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
-                {/* Zil kaldırıldı (v1.5-22): noktası her zaman yanıyordu ve her
-                  kullanıcıya aynı sabit cümleyi gösteriyordu ("2 otomasyon, 1
-                  yoklama ve 3 iletişim bildirimi var"). Bildirim altyapısı yok;
-                  olmayan bir şeyi sayı olarak göstermek K-03. Altyapı kurulunca
-                  geri gelir. */}
+                {/* Zil (2026-10-12): v1.5-22'de sahte olduğu için kaldırılmıştı;
+                  artık gerçek bildirimleri sayıyor. Demoda yok. */}
+                {!isDemoMode ? (
+                  <NotificationBell onNavigate={navigate} />
+                ) : null}
                 <div className="hidden sm:block">
                   <ChildSwitcher />
                 </div>

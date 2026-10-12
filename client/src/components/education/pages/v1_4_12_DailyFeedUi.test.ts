@@ -641,9 +641,10 @@ describe("v1.4-12 Günlük Akış Duyuru Panosu UI ve K-23 Testleri", () => {
         { role: "admin" }
       );
 
-      // 2026-09-29: birebir mesajlaşma yok; üretimde sekme ve mesaj kutusu
-      // çizilmez (gönderemeyen bir kutu sunulmaz).
-      expect(html).not.toContain("Birebir Mesajlar");
+      // 2026-09-29: birebir mesajlaşma yoktu, sekme gizliydi.
+      // 2026-10-12: mesajlaşma geldi; sekme görünür, ama açılış sekmesi hâlâ
+      // duyurular ve demonun gönderemeyen kutusu üretimde çizilmez.
+      expect(html).toContain("Birebir Mesajlar");
       expect(html).not.toContain("Mesajı gönder");
       expect(html).toContain("Günlük Akış Duyuru Panosu");
     });
