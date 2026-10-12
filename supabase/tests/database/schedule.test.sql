@@ -196,7 +196,9 @@ select throws_ok(
       (organization_id, class_id, title, day_of_week, starts_at)
     values ('3a000000-0000-0000-0000-00000000003a', 'a1000000-0000-0000-0000-0000000000a1',
             'Çakışan Saat', 1, time '09:00')$sql$,
-  '23505',
+  -- 2026-10-12: aynı başlangıcı indeks de yakalar (23505), ama süre
+  -- kesişmesi tetikleyicisi önce çalışıp sebebi söyler (göç 20261030000000).
+  'ORB07',
   null,
   'a class cannot be in two places at the same time'
 );
@@ -207,7 +209,9 @@ select throws_ok(
       (organization_id, class_id, title, membership_id, day_of_week, starts_at)
     values ('3a000000-0000-0000-0000-00000000003a', 'a2000000-0000-0000-0000-0000000000a2',
             'Aynı Anda İkinci Sınıf', 'e2200000-0000-0000-0000-0000000022e2', 1, time '09:00')$sql$,
-  '23505',
+  -- 2026-10-12: aynı başlangıcı indeks de yakalar (23505), ama süre
+  -- kesişmesi tetikleyicisi önce çalışıp sebebi söyler (göç 20261030000000).
+  'ORB07',
   null,
   'a teacher cannot be booked into two classes at the same hour'
 );
