@@ -116,6 +116,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useOrganizationChannel } from "@/realtime/useOrganizationChannel";
+import { ConnectionBanner } from "@/realtime/ConnectionBanner";
 import { STUDENT_TOTAL_CAP } from "@/education/studentService";
 import {
   archiveClass,
@@ -647,7 +648,7 @@ export function EducationPlatform({
 
   // Aktif kurumun Realtime kanalına tekil abonelik (v1.3-05).
   // Demo modunda devre dışıdır; canlı modda arka plandaki veri değişikliklerini dinler.
-  useOrganizationChannel();
+  const organizationChannel = useOrganizationChannel();
 
   const activeStudents = useMemo(() => {
     if (isDemoMode) {
@@ -1437,6 +1438,7 @@ export function EducationPlatform({
             />
           ) : null}
           <main className="min-w-0 flex-1">
+            <ConnectionBanner channelStatus={organizationChannel.status} />
             <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-[#f6f8fc]/90 px-4 backdrop-blur sm:px-6 lg:px-8">
               <div className="flex items-center gap-3">
                 <button
