@@ -129,7 +129,8 @@ export function NetResultsGrid({
       setAbsences(netQuery.data.absences);
       setAverages(netQuery.data.averages);
       if (!isDirty) applyLoadedCells(netQuery.data.cells);
-      else if (!sameValues(netQuery.data.cells, initial)) setRemoteChanged(true);
+      else if (!sameValues(netQuery.data.cells, initial))
+        setRemoteChanged(true);
     }
   }
 

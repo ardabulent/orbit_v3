@@ -3,7 +3,11 @@ import { connectionNotice } from "./connectionNotice";
 
 describe("connectionNotice (v1.5-12)", () => {
   it("internet yoksa kanal durumundan bağımsız olarak söyler", () => {
-    for (const channelStatus of ["SUBSCRIBED", "CONNECTING", "CLOSED"] as const) {
+    for (const channelStatus of [
+      "SUBSCRIBED",
+      "CONNECTING",
+      "CLOSED",
+    ] as const) {
       expect(connectionNotice({ online: false, channelStatus })?.kind).toBe(
         "offline"
       );

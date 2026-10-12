@@ -28,8 +28,16 @@ describe("loadClassStaffNames (class_staff_names RPC, #228/#231)", () => {
   it("RPC'yi tek seferde, tekilleştirilmiş kimliklerle çağırır (N+1 yok)", async () => {
     rpcMock.mockResolvedValue({
       data: [
-        { class_id: "cls-1", membership_id: "mem-1", display_name: "Bahar Aydın" },
-        { class_id: "cls-2", membership_id: "mem-2", display_name: "Kemal Demir" },
+        {
+          class_id: "cls-1",
+          membership_id: "mem-1",
+          display_name: "Bahar Aydın",
+        },
+        {
+          class_id: "cls-2",
+          membership_id: "mem-2",
+          display_name: "Kemal Demir",
+        },
         {
           class_id: "cls-1",
           membership_id: "mem-3",
@@ -52,7 +60,13 @@ describe("loadClassStaffNames (class_staff_names RPC, #228/#231)", () => {
 
   it("⛔ profiles veya organization_memberships tablolarına doğrudan sorgu gitmez (#228)", async () => {
     rpcMock.mockResolvedValue({
-      data: [{ class_id: "cls-1", membership_id: "mem-1", display_name: "Bahar Aydın" }],
+      data: [
+        {
+          class_id: "cls-1",
+          membership_id: "mem-1",
+          display_name: "Bahar Aydın",
+        },
+      ],
       error: null,
     });
 
