@@ -152,6 +152,7 @@
 - Tarama turu düzeltmeleri: sekmeye özgü oturum, çevrimdışı hata, sekme belleği, "yalnız öğretmenler" duyurusu, paket bölme
 - Liste okuması sorgu başına yetkilendirilir; eşdeğerlik ölçülerek gösterilir
 - Arşiv tek ekranda toplanır: Ayarlar → Arşiv
+- Deneme sonucu dosyadan tabloya dolar; kaydı kullanıcı yapar
 
 ---
 
@@ -4011,3 +4012,21 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 - Geri alma veritabanında yeni yetki açmaz; mevcut güncelleme kuralları kullanılır (öğrenci, sınıf, veli yönetici; sınav yönetici ve sınıfın öğretmeni).
 - Etkin kayıtlarda tekil olan ad (sınıf; sınav adı + tarihi) arşivdeyken başkasına verilmişse geri alma durur ve kullanıcıya önce ötekinin adını değiştirmesi söylenir; otomatik yeniden adlandırma yapılmaz.
 - Her türde en son arşivlenen 200 kayıt; sayfalama ihtiyaç doğunca.
+
+### Karar: Deneme sonucu dosyadan tabloya dolar; kaydı kullanıcı yapar
+
+**Durum:** Kabul edildi · uygulandı (v1.5-16 PR'ı)
+**Tarih:** 2026-10-12
+**Onaylayan:** Arda Bülent (sıra kararı: arşivden sonra deneme sonuçları)
+
+**Bağlam:** Kurum denemeyi kendi optik okuyucusuyla ya da yayınevinin sistemiyle okur (OMR kapsam dışı, 2026-09-16); elinde öğrenci başına satır, ders başına D/Y/N sütunlu bir Excel olur. Ders bazında saklama 2026-09-28'den beri var; eksik olan aktarmaydı.
+
+**Karar:**
+
+1. **Aktarma kaydetmez.** Dosyadaki değerler netli sınavın tablosuna dolar; kullanıcı bakar ve "Netleri kaydet"e basar. Doğrulama (soru sayısı, tam sayı), "kaydedilmiş sonuç silinemez" kuralı ve yazma mevcut yoldan geçer; ikinci bir yazma yolu açılmaz.
+2. **Eşleşme öğrenci numarasıyla**, isimle değil. Baştaki sıfır ve boşluk önemsiz. Sınavın öğrencileri arasında olmayan numara atlanır ve satır numarasıyla listelenir.
+3. **Dosyadaki boş hücre mevcut değeri silmez**; sorunlu ders atlanır, aynı satırın geçerli dersleri alınır. "Sınava girmedi" işaretli öğrenci atlanır.
+4. **Sütun tahmini kullanıcıya düzeltilir halde sunulur:** iki satırlı yayınevi başlığı birleştirilir ("TÜRKÇE" + "D"), ders adındaki genel kelimeler ("Temel", "Bilimleri") atlanır. Net sütunu okunmaz; net ORBIT'te hesaplanır.
+5. Dosya sunucuya gitmez; tarayıcıda okunur (öğrenci aktarımının okuyucusu, 300 KB .xlsx sınırı dahil).
+
+**Alternatifler:** Doğrudan kaydetmek — hızlı ama yanlış eşlenmiş bir sütun 100 öğrencinin sonucunu sessizce yazardı; kayıt öncesi tablo bunu görünür kılıyor. Yayınevi biçimlerine özel ayrıştırıcılar — biçim sayısı belirsiz, eşleme ekranı hepsini karşılıyor.

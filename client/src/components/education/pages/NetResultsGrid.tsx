@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Save } from "lucide-react";
+import { FileSpreadsheet, Save } from "lucide-react";
 import { toast } from "sonner";
 import {
   loadExamAverages,
@@ -20,6 +20,7 @@ import { ExamSectionsQuickStart } from "./ExamSectionsQuickStart";
 import { clearedSavedCells, sameValues, type ResultCell } from "./examSections";
 import { ExamAbsenceControl } from "./ExamAbsenceControl";
 import { RemoteChangeNotice } from "./RemoteChangeNotice";
+import { NetImportDialog } from "./NetImportDialog";
 import { educationKeys } from "@/education/educationQueries";
 import {
   loadExamAbsences,
@@ -71,6 +72,9 @@ export function NetResultsGrid({
   const [isSaving, setIsSaving] = useState(false);
   // Düzenleme sürerken gelen canlı güncelleme (2026-10-12).
   const [remoteChanged, setRemoteChanged] = useState(false);
+  // Deneme sonucunu dosyadan aktarma (v1.5-16, 2026-10-12).
+  const [importOpen, setImportOpen] = useState(false);
+  const absentIds = useMemo(() => new Set(absences.keys()), [absences]);
 
   // Sorgu olarak okunur ki ders sonucu, "girmedi" ve ders listesi
   // değişiklikleri (realtimeMapping → examSheet) bu tabloyu da yenilesin.
@@ -258,6 +262,25 @@ export function NetResultsGrid({
 
   return (
     <div>
+      {canEdit ? (
+        <NetImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          sections={sections}
+          students={students}
+          absentStudentIds={absentIds}
+          onApply={(imported, studentCount) => {
+            setCells(prev => ({ ...prev, ...imported }));
+            toast.success(
+              `${studentCount} öğrencinin sonucu tabloya aktarıldı`,
+              {
+                description:
+                  "Henüz kaydedilmedi. Tabloyu kontrol edip “Netleri kaydet”e basın.",
+              }
+            );
+          }}
+        />
+      ) : null}
       {remoteChanged && isDirty ? (
         <RemoteChangeNotice
           onDiscard={() => {
@@ -271,17 +294,28 @@ export function NetResultsGrid({
           bırakılan ders girilmemiş sayılır
         </p>
         {canEdit ? (
-          <button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={!isDirty || isSaving}
-            className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-1.5 text-white transition hover:bg-slate-800 disabled:opacity-50"
-          >
-            <Save className="h-3.5 w-3.5" />
-            <span className="text-xs font-bold">
-              {isSaving ? "Kaydediliyor…" : "Netleri kaydet"}
-            </span>
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              disabled={isSaving}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden />
+              <span className="text-xs font-bold">Dosyadan aktar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={!isDirty || isSaving}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-1.5 text-white transition hover:bg-slate-800 disabled:opacity-50"
+            >
+              <Save className="h-3.5 w-3.5" />
+              <span className="text-xs font-bold">
+                {isSaving ? "Kaydediliyor…" : "Netleri kaydet"}
+              </span>
+            </button>
+          </div>
         ) : null}
       </div>
       <div className="overflow-x-auto">
