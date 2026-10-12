@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -16,8 +17,10 @@ import { translateExamError } from "@/education/examService";
 import type { ExamSheetStudent } from "@/education/examService";
 import { CardSkeleton, ErrorState } from "../shared";
 import { ExamSectionsQuickStart } from "./ExamSectionsQuickStart";
-import { clearedSavedCells, type ResultCell } from "./examSections";
+import { clearedSavedCells, sameValues, type ResultCell } from "./examSections";
 import { ExamAbsenceControl } from "./ExamAbsenceControl";
+import { RemoteChangeNotice } from "./RemoteChangeNotice";
+import { educationKeys } from "@/education/educationQueries";
 import {
   loadExamAbsences,
   type ExamAbsence,
@@ -65,42 +68,46 @@ export function NetResultsGrid({
   const [cells, setCells] = useState<Record<string, Cell>>({});
   const [initial, setInitial] = useState<Record<string, Cell>>({});
   const [averages, setAverages] = useState<Map<string, ExamAverage>>(new Map());
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  // Düzenleme sürerken gelen canlı güncelleme (2026-10-12).
+  const [remoteChanged, setRemoteChanged] = useState(false);
 
-  useEffect(() => {
-    let ignore = false;
-    (async () => {
-      try {
-        const [loadedSections, results, avg, loadedAbsences] =
-          await Promise.all([
-            loadExamSections(examId),
-            loadSectionResults(examId),
-            loadExamAverages([examId]),
-            loadExamAbsences(organizationId ?? "", examId),
-          ]);
-        if (ignore) return;
-        setAbsences(loadedAbsences);
-        const map: Record<string, Cell> = {};
-        for (const r of results) {
-          map[key(r.studentId, r.sectionId)] = {
-            correct: String(r.correct),
-            wrong: String(r.wrong),
-          };
-        }
-        setSections(loadedSections);
-        setCells(map);
-        setInitial(map);
-        setAverages(avg.get(examId)?.sections ?? new Map());
-      } catch (err: unknown) {
-        if (!ignore) setLoadError(translateExamError(err));
+  // Sorgu olarak okunur ki ders sonucu, "girmedi" ve ders listesi
+  // değişiklikleri (realtimeMapping → examSheet) bu tabloyu da yenilesin.
+  const netQuery = useQuery({
+    queryKey: [
+      ...educationKeys.examSheet(organizationId ?? "", examId),
+      "net",
+    ] as const,
+    queryFn: async () => {
+      const [loadedSections, results, avg, loadedAbsences] = await Promise.all([
+        loadExamSections(examId),
+        loadSectionResults(examId),
+        loadExamAverages([examId]),
+        loadExamAbsences(organizationId ?? "", examId),
+      ]);
+      const map: Record<string, Cell> = {};
+      for (const r of results) {
+        map[key(r.studentId, r.sectionId)] = {
+          correct: String(r.correct),
+          wrong: String(r.wrong),
+        };
       }
-    })();
-    return () => {
-      ignore = true;
-    };
-  }, [examId, organizationId, reloadKey]);
+      return {
+        sections: loadedSections,
+        cells: map,
+        absences: loadedAbsences,
+        averages: avg.get(examId)?.sections ?? new Map<string, ExamAverage>(),
+      };
+    },
+  });
+  const loadError = netQuery.error ? translateExamError(netQuery.error) : null;
+
+  const applyLoadedCells = (loadedCells: Record<string, Cell>) => {
+    setCells(loadedCells);
+    setInitial(loadedCells);
+    setRemoteChanged(false);
+  };
 
   const isDirty = useMemo(
     () =>
@@ -111,6 +118,20 @@ export function NetResultsGrid({
       ),
     [cells, initial]
   );
+
+  // Gelen veri render sırasında eşitlenir; düzenleme sürüyorsa hücreler
+  // ezilmez, yalnız haber verilir.
+  const [seenNetData, setSeenNetData] = useState(netQuery.data);
+  if (netQuery.data !== seenNetData) {
+    setSeenNetData(netQuery.data);
+    if (netQuery.data) {
+      setSections(netQuery.data.sections);
+      setAbsences(netQuery.data.absences);
+      setAverages(netQuery.data.averages);
+      if (!isDirty) applyLoadedCells(netQuery.data.cells);
+      else if (!sameValues(netQuery.data.cells, initial)) setRemoteChanged(true);
+    }
+  }
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -188,7 +209,7 @@ export function NetResultsGrid({
       setInitial({ ...cells });
       onDirtyChange?.(false);
       await onSaved?.();
-      setReloadKey(k => k + 1);
+      await netQuery.refetch();
     } catch (err: unknown) {
       toast.error("Netler kaydedilemedi", {
         description: translateExamError(err),
@@ -204,10 +225,7 @@ export function NetResultsGrid({
         <ErrorState
           title="Ders sonuçları yüklenemedi"
           message={loadError}
-          onRetry={() => {
-            setLoadError(null);
-            setReloadKey(k => k + 1);
-          }}
+          onRetry={() => void netQuery.refetch()}
         />
       </div>
     );
@@ -231,7 +249,7 @@ export function NetResultsGrid({
               []
             );
             setSections(null);
-            setReloadKey(k => k + 1);
+            await netQuery.refetch();
           }}
         />
       </div>
@@ -239,6 +257,13 @@ export function NetResultsGrid({
 
   return (
     <div>
+      {remoteChanged && isDirty ? (
+        <RemoteChangeNotice
+          onDiscard={() => {
+            if (netQuery.data) applyLoadedCells(netQuery.data.cells);
+          }}
+        />
+      ) : null}
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
         <p className="text-[11px] text-slate-500">
           D: doğru · Y: yanlış · {netPenalty} yanlış 1 doğruyu götürür · boş
@@ -304,7 +329,7 @@ export function NetResultsGrid({
                           null
                       )}
                       onChanged={async () => {
-                        setReloadKey(k => k + 1);
+                        await netQuery.refetch();
                         await onSaved?.();
                       }}
                     />

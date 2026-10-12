@@ -129,17 +129,21 @@ export function getAffectedQueryKeys(
       ];
 
     case "exams":
-      // En son sınav oturumu ve öğrencinin son sınav puanı (Student.score)
+      // En son sınav oturumu, öğrencinin son sınav puanı (Student.score) ve
+      // açık sınav detayı (examSheet, 2026-10-12)
       return [
         educationKeys.exam(organizationId),
         educationKeys.students(organizationId),
+        ["education", "examSheet"] as const,
       ];
 
     case "exam_results":
-      // Sınav katılımcı sayısı ve öğrencinin son sınav puanı (Student.score)
+      // Sınav katılımcı sayısı, öğrencinin son sınav puanı (Student.score) ve
+      // açık sınav detayındaki puanlar (examSheet, 2026-10-12)
       return [
         educationKeys.exam(organizationId),
         educationKeys.students(organizationId),
+        ["education", "examSheet"] as const,
       ];
 
     case "payment_plans":
@@ -225,12 +229,14 @@ export function getAffectedQueryKeys(
     case "exam_absences":
     case "exam_sections":
     case "exam_section_results":
-      // Sınav listesindeki sonuç durumu ("Sonuç gir · 2/4"), ortalama ve
-      // öğrencinin son sınav puanı. Sınav detayı kendi verisini açılışta okur.
+      // Sınav listesindeki sonuç durumu ("Sonuç gir · 2/4"), ortalama,
+      // öğrencinin son sınav puanı ve açık sınav detayı (2026-10-12'ye kadar
+      // detay kendi verisini yalnız açılışta okuyordu).
       return [
         educationKeys.exam(organizationId),
         ["education", "examList"] as const,
         educationKeys.students(organizationId),
+        ["education", "examSheet"] as const,
       ];
 
     case "substitute_assignments":
