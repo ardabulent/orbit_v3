@@ -1,3 +1,4 @@
+-- ALLOW-DESTRUCTIVE: göç hiçbir şey silmez; "delete from" yalnız mark_notifications_read fonksiyonunun gövdesinde, kullanıcının KENDİ 90 günden eski OKUNMUŞ bildirimlerini temizleyen satırdır (KVKK: veri en az).
 -- Uygulama içi mesajlaşma ve bildirimler (2026-10-12, kullanıcı kararları).
 --
 -- Kararlar (bu oturumda soruldu ve cevaplandı):
