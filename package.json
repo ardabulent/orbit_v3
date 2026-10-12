@@ -42,7 +42,6 @@
   "devDependencies": {
     "@builder.io/vite-plugin-jsx-loc": "^0.1.1",
     "@eslint/js": "^10.0.1",
-    "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "@types/google.maps": "^3.66.4",
     "@types/node": "^24.7.0",
@@ -73,7 +72,8 @@
       "lodash": ">=4.18.1",
       "lodash-es": ">=4.18.1",
       "rollup": ">=4.59.0",
-      "@babel/core": ">=7.29.6"
+      "@babel/core": ">=7.29.6",
+      "source-map-js": ">=1.2.2"
     }
   }
 }
