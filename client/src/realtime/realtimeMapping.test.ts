@@ -31,7 +31,8 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
   // ekranı eski adı göstermeye devam eder — sessiz bayatlık.
   it("1. students: öğrenci, yoklama ve ödeme sorgularını tazeler (ad gömülü okunuyor)", () => {
     const keys = getAffectedQueryKeys("students", orgId);
-    expect(keys).toHaveLength(3);
+    expect(keys).toHaveLength(4);
+    expect(keys).toContainEqual(educationKeys.archive(orgId));
     expect(keys).toContainEqual(educationKeys.students(orgId));
     expect(keys).toContainEqual(educationKeys.attendance(orgId));
     expect(keys).toContainEqual(educationKeys.payments(orgId));
@@ -42,7 +43,8 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
   // ⛔ Sınıf adı `scheduleService`'in `select`'inde de gömülü okunuyor.
   it("2. classes: sınıf, öğrenci ve ders programı sorgularını tazeler (sınıf adı gömülü)", () => {
     const keys = getAffectedQueryKeys("classes", orgId);
-    expect(keys).toHaveLength(3);
+    expect(keys).toHaveLength(4);
+    expect(keys).toContainEqual(educationKeys.archive(orgId));
     expect(keys).toContainEqual(educationKeys.classes(orgId));
     expect(keys).toContainEqual(educationKeys.students(orgId));
     expect(keys).toContainEqual(educationKeys.schedule(orgId));
@@ -77,7 +79,9 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
 
   it("7. exams: hem sınav hem öğrenci (Student.score) sorgusunu ve açık sınav detayını tazeler", () => {
     const keys = getAffectedQueryKeys("exams", orgId);
-    expect(keys).toHaveLength(3);
+    expect(keys).toHaveLength(5);
+    expect(keys).toContainEqual(educationKeys.archive(orgId));
+    expect(keys).toContainEqual(["education", "examList"]);
     expect(keys).toContainEqual(["education", "examSheet"]);
     expect(keys).toContainEqual(educationKeys.exam(orgId));
     expect(keys).toContainEqual(educationKeys.students(orgId));
@@ -124,7 +128,8 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
 
   it("13. guardians: hem veli hem öğrenci (veli adı gömülü) sorgusunu tazeler (v1.4-10 #275)", () => {
     const keys = getAffectedQueryKeys("guardians", orgId);
-    expect(keys).toHaveLength(2);
+    expect(keys).toHaveLength(3);
+    expect(keys).toContainEqual(educationKeys.archive(orgId));
     expect(keys).toContainEqual(educationKeys.guardians(orgId));
     expect(keys).toContainEqual(educationKeys.students(orgId));
   });

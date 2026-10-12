@@ -116,6 +116,7 @@ client/src/
 │   ├── studentService.ts   # Öğrenci listesi; Student nesnesinin kurulduğu TEK yer (K-06)
 │   ├── classService.ts / scheduleService.ts / attendanceService.ts
 │   ├── classStaffNames.ts  # Öğretmen/vekil adları (`class_staff_names`); dört servisin ortak kaynağı (2026-10-12)
+│   ├── archiveService.ts   # Arşivdeki öğrenci/sınıf/veli/sınav listesi ve geri alma (B20, 2026-10-12); ekranı `pages/SettingsArchiveSection.tsx`
 │   ├── examService.ts / paymentService.ts / reportService.ts
 │   ├── homeworkService.ts / homeworkSubmission (v1.4-05, v1.4-15)
 │   ├── guardianService.ts  # Veli kaydı ve öğrenci–veli bağı (v1.4-10)

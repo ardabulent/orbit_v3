@@ -12,7 +12,7 @@ function visibleCategoryIds(role: Role): SettingsCategoryId[] {
 }
 
 describe("settingsCategories role visibility", () => {
-  it("admin rolü için 10 kategorinin hepsini görünür kılar", () => {
+  it("admin rolü için 11 kategorinin hepsini görünür kılar", () => {
     const adminCategories = visibleCategoryIds("admin");
 
     expect(adminCategories).toEqual([
@@ -24,10 +24,11 @@ describe("settingsCategories role visibility", () => {
       "sistem",
       "guvenlik",
       "tema",
+      "arsiv",
       "veri-yonetimi",
       "veri-ice-aktarma",
     ]);
-    expect(adminCategories).toHaveLength(10);
+    expect(adminCategories).toHaveLength(11);
   });
 
   it("teacher rolü için tam olarak 4 kişisel kategoriyi gösterir (yönetim kategorileri gizli)", () => {
@@ -44,6 +45,7 @@ describe("settingsCategories role visibility", () => {
     expect(teacherCategories).not.toContain("roller");
     expect(teacherCategories).not.toContain("sistem");
     expect(teacherCategories).not.toContain("veri-yonetimi");
+    expect(teacherCategories).not.toContain("arsiv");
     expect(teacherCategories).not.toContain("veri-ice-aktarma");
   });
 

@@ -151,6 +151,7 @@
 - Testler üretime istek atmaz; şifre izi uygulamadan da yazılır; "Giriş hesabı" terimleri
 - Tarama turu düzeltmeleri: sekmeye özgü oturum, çevrimdışı hata, sekme belleği, "yalnız öğretmenler" duyurusu, paket bölme
 - Liste okuması sorgu başına yetkilendirilir; eşdeğerlik ölçülerek gösterilir
+- Arşiv tek ekranda toplanır: Ayarlar → Arşiv
 
 ---
 
@@ -3996,3 +3997,17 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 - Canlı güncelleme düzenleyenin yazdıklarını ezmez: veri gelirken kullanıcı yazıyorsa yazdıkları korunur ve uyarı çıkar; kendi kaydının yankısı uyarı sayılmaz (sınav detayı).
 - Çalışma süresi ve kota alarmı yeni sağlayıcı olmadan GitHub Actions'ta; alarm kanalı GitHub'ın başarısız zamanlanmış iş e-postası.
 - Personelin girişte listeleri birlikte okuması **değiştirilmedi**: ölçüldü, her liste artık ≤15 ms; ertelemek her sekmeye bekleme ekler. Kalan maliyet yıllık iki toplam, `v1.5-27`.
+
+### Karar: Arşiv tek ekranda toplanır: Ayarlar → Arşiv
+
+**Durum:** Kabul edildi · uygulandı (arşiv ekranı PR'ı)
+**Tarih:** 2026-10-12
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** B20 — öğrenci, sınıf ve veli arşivlenince geri almanın tek yolu birkaç saniyelik tosttu; sınav arşivlenince hiç yolu yoktu. Ders, şube ve duyuruda her listenin kendi "kapatılanları göster" düğmesi var.
+
+**Karar:** Dört tür için her listeye ayrı düğme yerine **tek bir Arşiv ekranı** (Ayarlar altında, yalnız yönetici). Gerekçe: arşivden geri alma seyrek bir iş; kullanıcı "nereye gitti" diye bir yere bakmalı, dört listeyi ayrı ayrı değil. Var olan üç "kapatılanları göster" düğmesi yerinde kalır.
+
+- Geri alma veritabanında yeni yetki açmaz; mevcut güncelleme kuralları kullanılır (öğrenci, sınıf, veli yönetici; sınav yönetici ve sınıfın öğretmeni).
+- Etkin kayıtlarda tekil olan ad (sınıf; sınav adı + tarihi) arşivdeyken başkasına verilmişse geri alma durur ve kullanıcıya önce ötekinin adını değiştirmesi söylenir; otomatik yeniden adlandırma yapılmaz.
+- Her türde en son arşivlenen 200 kayıt; sayfalama ihtiyaç doğunca.
