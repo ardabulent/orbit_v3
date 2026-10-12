@@ -3412,6 +3412,8 @@ Açtığı yol, kararın kapattığını söylediği yolun **tam kendisi**: yön
 - ✅ **Öğretmen ve sınıf çakışması şemada ZATEN engelli** — `schedule_entries_teacher_slot_idx` ve `schedule_entries_class_slot_idx`, ikisi de kısmi tekil indeks. Açık olan **yalnız derslikti**; yani bu dilim eksik üçüncü bacağı tamamlıyor.
 - ✅ **`schedule_entries` üretimde 0 satır** — serbest metinden kimliğe geçişte **veri göçü yok.** Bu dilimin bugün yapılmasının en ucuz olduğu an; ilk gerçek program girildikten sonra aynı iş bir göç işi olur.
 
+**Uygulama (2026-10-12, göç `20261029000000`):** karar uygulandı, iki eklemeyle — çakışma aynı başlangıca değil **süre kesişmesine** bakar (indeks yerine tetikleyici + dersliğe kilit), ve serbest metin sütunu **genişlet–daralt** ile kaldırılır: bu göçte yalnız okunur bir kopya olarak kalır, ayrı bir göçte düşer. Gerekçe: göç merge anında uygulanıyor, açık sekmeler eski uygulamayla o sütunu okumaya devam ediyor.
+
 ⚠️ **K-22 uyarısı yönü değişiyor.** Eski karar _"ekran engelliyormuş gibi görünmemeli"_ diyordu. Artık gerçekten engelliyor — dolayısıyla yeni yükümlülük tersi: **engellendiğinde sebebi söylenmeli** ("A-101 bu saatte 11-A dersinde"), yoksa kullanıcı neyin çakıştığını bilmez.
 
 ---

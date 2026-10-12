@@ -518,12 +518,15 @@ describe("scheduleService", () => {
         subjectId: "sub-1",
         title: "Ders Başlığı Uydurma",
         membershipId: "mem-1",
-        room: "A-101",
+        roomId: "room-1",
       });
 
       expect(fromMock).toHaveBeenCalledWith("schedule_entries");
       // ⛔ Yüke asla `id` konmaz
       expect(capturedPayload).not.toHaveProperty("id");
+      // Derslik kimlikle yazılır; eski metin sütunu yazılamaz (v1.5-15).
+      expect(capturedPayload).toHaveProperty("room_id", "room-1");
+      expect(capturedPayload).not.toHaveProperty("room");
       // ⛔ subject_id doluyken ad dersten okunur — title'ı ona yazma kuralı
       expect((capturedPayload as { title: unknown }).title).toBeNull();
       expect((capturedPayload as { subject_id: unknown }).subject_id).toBe(
@@ -590,7 +593,7 @@ describe("scheduleService", () => {
         dayOfWeek: 3,
         startsAt: "10:00",
         endsAt: "11:00",
-        room: "B-202",
+        roomId: "room-2",
       });
 
       expect(mockEqOrg).toHaveBeenCalledWith("organization_id", "org-1");
@@ -600,6 +603,8 @@ describe("scheduleService", () => {
       expect(capturedPayload).not.toHaveProperty("id");
       expect(capturedPayload).not.toHaveProperty("organization_id");
       expect(capturedPayload).not.toHaveProperty("class_id");
+      expect(capturedPayload).toHaveProperty("room_id", "room-2");
+      expect(capturedPayload).not.toHaveProperty("room");
     });
 
     it("K-14: Sıfır satır etkilendiğinde hata fırlatır", async () => {

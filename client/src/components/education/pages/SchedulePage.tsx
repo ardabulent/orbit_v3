@@ -25,6 +25,7 @@ import {
 } from "./scheduleGrid";
 import { ScheduleTemplatesTab } from "./ScheduleTemplatesTab";
 import { SubstitutesTab } from "./SubstitutesTab";
+import { RoomsTab } from "./RoomsTab";
 import { ScheduleWeekGrid } from "./ScheduleWeekGrid";
 
 /**
@@ -66,14 +67,15 @@ export function SchedulePage({
 }) {
   const today = getTodayWeekDay();
   const canWrite = role === "admin" && !isDemoMode;
-  const [tab, setTab] = useState<"program" | "templates" | "substitutes">(
-    "program"
-  );
+  const [tab, setTab] = useState<
+    "program" | "templates" | "substitutes" | "rooms"
+  >("program");
   const [substituteAddOpen, setSubstituteAddOpen] = useState(false);
   const [templateAddOpen, setTemplateAddOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
   const onSubstitutes = canWrite && tab === "substitutes";
   const onTemplates = canWrite && tab === "templates";
+  const onRooms = canWrite && tab === "rooms";
 
   const [filter, setFilter] = useState<ScheduleFilter>({
     classId: ALL,
@@ -132,23 +134,27 @@ export function SchedulePage({
         title={
           onSubstitutes
             ? "Vekiller"
-            : onTemplates
-              ? "Program şablonları"
-              : role === "student"
-                ? "Ders programım"
-                : role === "parent"
-                  ? "Öğrenci ders programı"
-                  : "Ders programı"
+            : onRooms
+              ? "Derslikler"
+              : onTemplates
+                ? "Program şablonları"
+                : role === "student"
+                  ? "Ders programım"
+                  : role === "parent"
+                    ? "Öğrenci ders programı"
+                    : "Ders programı"
         }
         description={
           onSubstitutes
             ? "İzinli öğretmenin yerine bakacak vekili tarih aralığıyla atayın."
-            : onTemplates
-              ? "Haftalık programı bir kez çizin, birden çok sınıfa atayın."
-              : "Haftanın derslerini, öğretmenlerini ve saatlerini tek tabloda izleyin."
+            : onRooms
+              ? "Dersliklerin hangi gün hangi saatte dolu olduğunu görün; aynı saatte iki derse verilemez."
+              : onTemplates
+                ? "Haftalık programı bir kez çizin, birden çok sınıfa atayın."
+                : "Haftanın derslerini, öğretmenlerini ve saatlerini tek tabloda izleyin."
         }
         action={
-          canWrite
+          canWrite && !onRooms
             ? onSubstitutes
               ? "Yeni vekil"
               : onTemplates
@@ -157,7 +163,7 @@ export function SchedulePage({
             : undefined
         }
         onAction={
-          canWrite
+          canWrite && !onRooms
             ? onSubstitutes
               ? () => setSubstituteAddOpen(true)
               : onTemplates
@@ -183,9 +189,14 @@ export function SchedulePage({
           >
             Vekiller
           </SubTab>
+          <SubTab active={tab === "rooms"} onClick={() => setTab("rooms")}>
+            Derslikler
+          </SubTab>
         </div>
       ) : null}
-      {onSubstitutes ? (
+      {onRooms ? (
+        <RoomsTab schedule={roleFiltered} />
+      ) : onSubstitutes ? (
         <SubstitutesTab
           organizationId={organizationId}
           schedule={roleFiltered}

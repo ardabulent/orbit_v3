@@ -26,6 +26,7 @@ export type EducationTable =
   | "subjects"
   | "class_teachers"
   | "daily_feed_posts"
+  | "rooms"
   | "exam_absences"
   | "exam_sections"
   | "exam_section_results"
@@ -243,6 +244,14 @@ export function getAffectedQueryKeys(
         ["education", "examList"] as const,
         educationKeys.students(organizationId),
         ["education", "examSheet"] as const,
+      ];
+
+    case "rooms":
+      // Derslik listesi ve programdaki derslik adı (ad değişince programdaki
+      // satırlar da değişir; tetikleyici onları ayrıca yayınlar).
+      return [
+        ["education", "rooms"] as const,
+        educationKeys.schedule(organizationId),
       ];
 
     case "substitute_assignments":

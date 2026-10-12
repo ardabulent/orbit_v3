@@ -56,6 +56,7 @@ export type RawScheduleRow = {
   ends_at?: string | null;
   title?: string | null;
   room?: string | null;
+  room_id?: string | null;
   class_id: string;
   subject_id?: string | null;
   membership_id?: string | null;
@@ -181,6 +182,7 @@ export function mapScheduleRow(
     group,
     teacher,
     room,
+    roomId: row.room_id ?? null,
     duration,
     classId: row.class_id,
     subjectId: row.subject_id ?? null,
@@ -247,6 +249,7 @@ async function loadSchedulePage(
       ends_at,
       title,
       room,
+      room_id,
       class_id,
       subject_id,
       membership_id,
@@ -277,7 +280,8 @@ export type CreateScheduleEntryInput = {
   subjectId?: string | null;
   title?: string | null;
   membershipId?: string | null;
-  room?: string | null;
+  /** Derslik kimliği (v1.5-15); derslik metni artık yazılmaz. */
+  roomId?: string | null;
 };
 
 export type UpdateScheduleEntryInput = {
@@ -287,7 +291,8 @@ export type UpdateScheduleEntryInput = {
   subjectId?: string | null;
   title?: string | null;
   membershipId?: string | null;
-  room?: string | null;
+  /** Derslik kimliği (v1.5-15); derslik metni artık yazılmaz. */
+  roomId?: string | null;
 };
 
 /**
@@ -308,7 +313,7 @@ export async function createScheduleEntry(
     subject_id?: string | null;
     title?: string | null;
     membership_id?: string | null;
-    room?: string | null;
+    room_id?: string | null;
   } = {
     organization_id: input.organizationId,
     class_id: input.classId,
@@ -319,8 +324,8 @@ export async function createScheduleEntry(
   if (input.endsAt !== undefined) {
     payload.ends_at = input.endsAt || null;
   }
-  if (input.room !== undefined) {
-    payload.room = input.room?.trim() || null;
+  if (input.roomId !== undefined) {
+    payload.room_id = input.roomId || null;
   }
   if (input.membershipId !== undefined) {
     payload.membership_id = input.membershipId || null;
@@ -367,7 +372,7 @@ export async function updateScheduleEntry(
     subject_id?: string | null;
     title?: string | null;
     membership_id?: string | null;
-    room?: string | null;
+    room_id?: string | null;
   } = {};
 
   if (input.dayOfWeek !== undefined) {
@@ -379,8 +384,8 @@ export async function updateScheduleEntry(
   if (input.endsAt !== undefined) {
     payload.ends_at = input.endsAt || null;
   }
-  if (input.room !== undefined) {
-    payload.room = input.room?.trim() || null;
+  if (input.roomId !== undefined) {
+    payload.room_id = input.roomId || null;
   }
   if (input.membershipId !== undefined) {
     payload.membership_id = input.membershipId || null;
@@ -529,6 +534,12 @@ export function translateScheduleError(error: unknown): string {
 
   if (code === "42501") {
     return "Bu işlem için kurum yöneticisi yetkisi gerekiyor.";
+  }
+
+  // Derslik dolu (ORB07, v1.5-15): veritabanı hangi dersin orada olduğunu
+  // Türkçe söylüyor ("A-101 bu saatte dolu: …").
+  if (code === "ORB07" && message) {
+    return message;
   }
 
   return "Ders programı işlemi gerçekleştirilemedi. Lütfen tekrar deneyin.";

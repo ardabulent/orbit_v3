@@ -118,6 +118,7 @@ import {
 
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { loadArchive, type ArchiveListing } from "./archiveService";
+import { loadRooms, type Room } from "./roomService";
 
 /**
  * Eğitim alanı sorgu anahtarları (v1.3-01 · A, B, C, D ve E parçaları, **K-19** / mimari kararlar).
@@ -264,6 +265,10 @@ export const educationKeys = {
       ? (["education", "classTeachers", { organizationId, classId }] as const)
       : (["education", "classTeachers", { organizationId }] as const);
   },
+  rooms: (organizationId: string, includeArchived = false) =>
+    includeArchived
+      ? (["education", "rooms", { organizationId, includeArchived }] as const)
+      : (["education", "rooms", { organizationId }] as const),
   archive: (organizationId: string) =>
     ["education", "archive", { organizationId }] as const,
   guardians: (organizationId: string, search?: string) => {
@@ -1434,6 +1439,23 @@ export function useArchive(options?: { enabled?: boolean }) {
   return useQuery<ArchiveListing, Error>({
     queryKey: educationKeys.archive(organizationId ?? ""),
     queryFn: () => loadArchive(organizationId as string),
+    enabled: isEnabled,
+  });
+}
+
+/** Kurumun derslikleri (2026-10-12, v1.5-15). */
+export function useRooms(options?: {
+  includeArchived?: boolean;
+  enabled?: boolean;
+}) {
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId;
+  const includeArchived = options?.includeArchived ?? false;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<Room[], Error>({
+    queryKey: educationKeys.rooms(organizationId ?? "", includeArchived),
+    queryFn: () => loadRooms(organizationId as string, { includeArchived }),
     enabled: isEnabled,
   });
 }
