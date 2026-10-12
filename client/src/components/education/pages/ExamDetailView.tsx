@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BarChart3, Save } from "lucide-react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
@@ -26,7 +27,9 @@ import type { ClassGroup, Role, Section } from "../types";
 import { ExamFormDialog } from "./ExamFormDialog";
 import { NetResultsGrid } from "./NetResultsGrid";
 import { ExamAbsenceControl } from "./ExamAbsenceControl";
-import { clearedSavedScores } from "./examSections";
+import { clearedSavedScores, sameValues } from "./examSections";
+import { RemoteChangeNotice } from "./RemoteChangeNotice";
+import { educationKeys } from "@/education/educationQueries";
 import {
   loadExamAbsences,
   type ExamAbsence,
@@ -141,8 +144,6 @@ export function ExamDetailView({
     }
     return null;
   });
-  const [isSheetLoading, setIsSheetLoading] = useState(false);
-  const [sheetError, setSheetError] = useState<Error | null>(null);
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (initialSheet) {
       const initial: Record<string, string> = {};
@@ -184,9 +185,9 @@ export function ExamDetailView({
     }
   );
   const [isSaving, setIsSaving] = useState(false);
-  // "Sınava girmedi" sonrası çizelge yeniden okunur (2026-10-05).
-  const [sheetReload, setSheetReload] = useState(0);
   const [absences, setAbsences] = useState<Map<string, ExamAbsence>>(new Map());
+  // Düzenleme sürerken gelen canlı güncelleme (2026-10-12).
+  const [remoteChanged, setRemoteChanged] = useState(false);
 
   useEffect(() => {
     if (exam && !activeExam) {
@@ -194,46 +195,43 @@ export function ExamDetailView({
     }
   }, [exam, activeExam]);
 
-  // Canlı modda sınav çizelgesi ve öğrencileri yükle
-  useEffect(() => {
-    if (!activeDemo && organizationId && activeExam?.id) {
-      let cancelled = false;
-      setIsSheetLoading(true);
-      setSheetError(null);
+  // Canlı modda sınav çizelgesi ve "girmedi" işaretleri. Sorgu olarak
+  // okunur ki sınav tablolarındaki değişiklik (realtimeMapping) bu ekranı da
+  // yenilesin — 2026-10-12'ye kadar açılışta bir kez okunuyordu.
+  const sheetQuery = useQuery({
+    queryKey: educationKeys.examSheet(organizationId, activeExam?.id ?? ""),
+    queryFn: async () => {
+      const examId = activeExam?.id ?? "";
+      const [loadedSheet, loadedAbsences] = await Promise.all([
+        loadExamSheet(organizationId, examId),
+        loadExamAbsences(organizationId, examId),
+      ]);
+      return { sheet: loadedSheet, absences: loadedAbsences };
+    },
+    enabled: !activeDemo && Boolean(organizationId) && Boolean(activeExam?.id),
+  });
+  const isSheetLoading = sheetQuery.isLoading;
+  const sheetError = sheetQuery.error
+    ? new Error(translateExamError(sheetQuery.error))
+    : null;
 
-      Promise.all([
-        loadExamSheet(organizationId, activeExam.id),
-        loadExamAbsences(organizationId, activeExam.id),
-      ])
-        .then(([loadedSheet, loadedAbsences]) => {
-          if (cancelled) return;
-          setSheet(loadedSheet);
-          setAbsences(loadedAbsences);
-          const initial: Record<string, string> = {};
-          for (const st of loadedSheet.students) {
-            // Puanı olmayan öğrenci BOŞTUR (0 uydurulmaz - K-03)
-            initial[st.studentId] =
-              st.score !== null && st.score !== undefined
-                ? String(st.score)
-                : "";
-          }
-          setScores(initial);
-          setInitialScores(initial);
-        })
-        .catch((err: unknown) => {
-          if (cancelled) return;
-          setSheetError(new Error(translateExamError(err)));
-        })
-        .finally(() => {
-          if (cancelled) return;
-          setIsSheetLoading(false);
-        });
-
-      return () => {
-        cancelled = true;
-      };
+  // Gelen veri ekrana yazılır; öğretmen o sırada puan yazıyorsa yazdıkları
+  // ezilmez, yalnız haber verilir (RemoteChangeNotice).
+  const scoresOf = (loadedSheet: ExamSheet) => {
+    const initial: Record<string, string> = {};
+    for (const st of loadedSheet.students) {
+      // Puanı olmayan öğrenci BOŞTUR (0 uydurulmaz - K-03)
+      initial[st.studentId] =
+        st.score !== null && st.score !== undefined ? String(st.score) : "";
     }
-  }, [activeDemo, organizationId, activeExam?.id, sheetReload]);
+    return initial;
+  };
+  const applyLoadedScores = (loadedSheet: ExamSheet) => {
+    const initial = scoresOf(loadedSheet);
+    setScores(initial);
+    setInitialScores(initial);
+    setRemoteChanged(false);
+  };
 
   // Demo modunda örnek öğrenci listesi
   useEffect(() => {
@@ -275,6 +273,22 @@ export function ExamDetailView({
         (scores[studentId] ?? "") !== (initialScores[studentId] ?? "")
     );
   }, [scores, initialScores]);
+
+  // Gelen veri render sırasında eşitlenir (OrganizationProfileDialog kalıbı;
+  // effect içinde durum yazmak zincirleme render demek).
+  const [seenSheetData, setSeenSheetData] = useState(sheetQuery.data);
+  if (sheetQuery.data !== seenSheetData) {
+    setSeenSheetData(sheetQuery.data);
+    if (sheetQuery.data) {
+      setSheet(sheetQuery.data.sheet);
+      setAbsences(sheetQuery.data.absences);
+      // Kendi kaydımızın geri dönen yankısı uyarı sayılmaz: yalnız kayıtlı
+      // değerler gerçekten değiştiyse haber verilir.
+      if (!isDirty) applyLoadedScores(sheetQuery.data.sheet);
+      else if (!sameValues(scoresOf(sheetQuery.data.sheet), initialScores))
+        setRemoteChanged(true);
+    }
+  }
 
   useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -572,6 +586,13 @@ export function ExamDetailView({
               ) : null}
             </div>
 
+            {remoteChanged && isDirty && !activeExam.netPenalty ? (
+              <RemoteChangeNotice
+                onDiscard={() => {
+                  if (sheetQuery.data) applyLoadedScores(sheetQuery.data.sheet);
+                }}
+              />
+            ) : null}
             {isSheetLoading ? (
               <div className="p-5">
                 <CardSkeleton />
@@ -581,6 +602,7 @@ export function ExamDetailView({
                 <ErrorState
                   title="Öğrenci listesi yüklenemedi"
                   message={sheetError.message}
+                  onRetry={() => void sheetQuery.refetch()}
                 />
               </div>
             ) : (sheet?.students ?? []).length === 0 ? (
@@ -639,7 +661,7 @@ export function ExamDetailView({
                                   ).trim() !== ""
                                 }
                                 onChanged={async () => {
-                                  setSheetReload(n => n + 1);
+                                  await sheetQuery.refetch();
                                   await onSaved?.();
                                 }}
                               />

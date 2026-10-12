@@ -398,13 +398,16 @@ select md5('feed:' || k || ':' || f)::uuid,
 from generate_series(0, 19) as g(k),
      generate_series(0, case when k = 0 then 599 when k <= 2 then 199 else 39 end) as fd(f);
 
-insert into public.tasks (id, organization_id, owner_membership_id, title, detail, due_on, completed_at, created_at)
+-- `status` 2026-09-27'den beri tamamlanmayla uyuşmak zorunda
+-- (`tasks_status_matches_completion_check`); 2026-10-12'de eklendi.
+insert into public.tasks (id, organization_id, owner_membership_id, title, detail, due_on, completed_at, status, created_at)
 select md5('task:' || k || ':' || t)::uuid,
        md5('org:' || k)::uuid,
        md5('staffmem:' || k || ':' || (t % (case when k = 0 then 33 else 7 end)))::uuid,
        'Görev ' || t, 'Ölçüm görevi ayrıntısı.',
        date '2025-09-20' + (t % 250),
        case when t % 3 = 0 then timestamptz '2025-11-01 12:00+03' else null end,
+       case when t % 3 = 0 then 'done' else 'planned' end,
        timestamptz '2025-09-15 09:00+03' + (t * interval '7 hours')
 from generate_series(0, 19) as g(k),
      generate_series(0, case when k = 0 then 199 when k <= 2 then 99 else 19 end) as tk(t);

@@ -182,6 +182,12 @@ vi.mock("@/auth/useAuth", () => ({
   }),
 }));
 
+// Kaydedici gerçek Supabase istemcisine bağlı; burada yalnız çağrı sayılır.
+const reportErrorMock = vi.fn();
+vi.mock("@/errorReporting/installErrorReporting", () => ({
+  reportError: (...args: unknown[]) => reportErrorMock(...args),
+}));
+
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
     channel: (topic: string, opts: unknown) => createMockChannel(topic, opts),
@@ -582,6 +588,24 @@ describe("useOrganizationChannel (v1.3-05 Realtime Aboneliği ve Invalidation)",
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: educationKeys.all,
     });
+
+    await unmount();
+  });
+
+  it("13. Oturum okunamazsa hata yutulmaz: durum hatayı taşır ve kaydediciye gider", async () => {
+    const { supabase } = await import("@/lib/supabaseClient");
+    vi.mocked(supabase.auth.getSession).mockRejectedValueOnce(
+      new Error("ağ yok")
+    );
+    reportErrorMock.mockClear();
+
+    const { render, unmount } = renderHook({ organizationId: "org-oturum" });
+    await render();
+
+    expect(seenState.current?.error?.message).toBe("ağ yok");
+    expect(reportErrorMock).toHaveBeenCalledTimes(1);
+    // Jeton verilemedi; kanal yine de kapalı tarafta kalır (fail-closed).
+    expect(setAuthCalls).toHaveLength(0);
 
     await unmount();
   });

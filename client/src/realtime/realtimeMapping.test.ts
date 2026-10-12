@@ -75,16 +75,18 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys).toContainEqual(educationKeys.students(orgId));
   });
 
-  it("7. exams: hem sınav hem öğrenci (Student.score) sorgusunu tazeler", () => {
+  it("7. exams: hem sınav hem öğrenci (Student.score) sorgusunu ve açık sınav detayını tazeler", () => {
     const keys = getAffectedQueryKeys("exams", orgId);
-    expect(keys).toHaveLength(2);
+    expect(keys).toHaveLength(3);
+    expect(keys).toContainEqual(["education", "examSheet"]);
     expect(keys).toContainEqual(educationKeys.exam(orgId));
     expect(keys).toContainEqual(educationKeys.students(orgId));
   });
 
-  it("8. exam_results: hem sınav (katılımcı sayısı) hem öğrenci (Student.score) sorgusunu tazeler", () => {
+  it("8. exam_results: hem sınav (katılımcı sayısı) hem öğrenci (Student.score) sorgusunu ve açık sınav detayını tazeler", () => {
     const keys = getAffectedQueryKeys("exam_results", orgId);
-    expect(keys).toHaveLength(2);
+    expect(keys).toHaveLength(3);
+    expect(keys).toContainEqual(["education", "examSheet"]);
     expect(keys).toContainEqual(educationKeys.exam(orgId));
     expect(keys).toContainEqual(educationKeys.students(orgId));
   });
@@ -197,6 +199,21 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     for (const tbl of tables) {
       const keys = getAffectedQueryKeys(tbl, orgId);
       expect(keys).not.toContainEqual(educationKeys.all);
+    }
+  });
+
+  it("açık sınav detayı beş sınav tablosunun her değişikliğinde tazelenir (2026-10-12)", () => {
+    for (const tbl of [
+      "exams",
+      "exam_results",
+      "exam_absences",
+      "exam_sections",
+      "exam_section_results",
+    ] as const) {
+      expect(getAffectedQueryKeys(tbl, "org-1")).toContainEqual([
+        "education",
+        "examSheet",
+      ]);
     }
   });
 

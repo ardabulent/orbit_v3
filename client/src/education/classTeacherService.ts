@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { loadClassStaffNames } from "./classStaffNames";
 
 export type ClassTeacherItem = {
   id: string;
@@ -54,35 +55,6 @@ function extractSubjectName(subjects: unknown): string | null {
 }
 
 /**
- * Belirtilen sınıfın öğretmen/vekil adlarını çözer (`class_staff_names` RPC).
- */
-async function loadStaffNamesForClass(
-  classId: string
-): Promise<Map<string, string>> {
-  if (!classId) return new Map();
-
-  const { data, error } = await supabase.rpc("class_staff_names", {
-    target_class_ids: [classId],
-  });
-
-  if (error || !data) {
-    return new Map();
-  }
-
-  const result = new Map<string, string>();
-  for (const row of data as {
-    class_id: string;
-    membership_id: string;
-    display_name: string;
-  }[]) {
-    if (row.membership_id && row.display_name) {
-      result.set(row.membership_id, row.display_name);
-    }
-  }
-  return result;
-}
-
-/**
  * Bir sınıfın öğretmen atamalarını listeler.
  *
  * - Açık `organization_id` süzgeci taşır (K-19 / multi-tenant izolasyonu).
@@ -129,7 +101,7 @@ export async function loadClassTeachers(
   }
 
   const rawRows = (data ?? []) as RawClassTeacherRow[];
-  const staffNames = await loadStaffNamesForClass(classId);
+  const staffNames = await loadClassStaffNames([classId]);
 
   const rows: ClassTeacherItem[] = rawRows.map(row => ({
     id: row.id,

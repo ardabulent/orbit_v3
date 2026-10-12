@@ -14,7 +14,6 @@ import {
   extractSubjectName,
   loadHomework,
   loadHomeworkSubmissions,
-  loadStaffNames,
   loadStudentHomeworkRatios,
   mapHomeworkRow,
   markSubmission,
@@ -208,26 +207,7 @@ describe("homeworkService (v1.4-05 · #273 Ödev Akışı)", () => {
     });
   });
 
-  describe("Ödevi Kimin Verdiği (loadStaffNames & K-22)", () => {
-    it("class_staff_names RPC çağrısı ile üyelik adlarını toplar", async () => {
-      rpcMock.mockResolvedValueOnce({
-        data: [
-          {
-            class_id: "cls-1",
-            membership_id: "mem-1",
-            display_name: "Ali Öğretmen",
-          },
-        ],
-        error: null,
-      });
-
-      const map = await loadStaffNames(["cls-1"]);
-      expect(rpcMock).toHaveBeenCalledWith("class_staff_names", {
-        target_class_ids: ["cls-1"],
-      });
-      expect(map.get("mem-1")).toBe("Ali Öğretmen");
-    });
-
+  describe("Ödevi Kimin Verdiği (K-22)", () => {
     it("adı çözülemeyen atayan için isim uydurulmaz — null kalır (K-22)", () => {
       const rawRow: RawHomeworkRow = {
         id: "hw-1",

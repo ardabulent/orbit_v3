@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { ScheduleItem } from "@/components/education/types";
 import { isoToWeekDay } from "./weekDays";
 import { readAllPages } from "@/lib/pagedRead";
+import { loadClassStaffNames } from "./classStaffNames";
 
 /**
  * Ders programı servis katmanı (v1.3-01 · B parçası).
@@ -156,42 +157,6 @@ export function calculateDuration(
   return `${diffMinutes} dk`;
 }
 
-/**
- * Görüntülenen sınıfların öğretmen/vekil adlarını tek seferde çözer (v1.3-01b · 2.B.3).
- *
- * `profiles` tablosuna doğrudan sorgu gitmez; `class_staff_names` RPC kullanılır (#231).
- */
-export async function loadStaffNames(
-  classIds: string[]
-): Promise<Map<string, string>> {
-  const unique = classIds.filter(
-    (id, index) => Boolean(id) && classIds.indexOf(id) === index
-  );
-  if (unique.length === 0) {
-    return new Map();
-  }
-
-  const { data, error } = await supabase.rpc("class_staff_names", {
-    target_class_ids: unique,
-  });
-
-  if (error || !data) {
-    return new Map();
-  }
-
-  const result = new Map<string, string>();
-  for (const row of data as {
-    class_id: string;
-    membership_id: string;
-    display_name: string;
-  }[]) {
-    if (row.membership_id && row.display_name) {
-      result.set(row.membership_id, row.display_name);
-    }
-  }
-  return result;
-}
-
 export function mapScheduleRow(
   row: RawScheduleRow,
   staffNames: Map<string, string>
@@ -251,7 +216,7 @@ export async function loadSchedule(
     new Set(rawRows.map(r => r.class_id).filter(Boolean))
   );
 
-  const staffNames = await loadStaffNames(classIds);
+  const staffNames = await loadClassStaffNames(classIds);
   const rows = rawRows
     .map(r => mapScheduleRow(r, staffNames))
     .filter((item): item is ScheduleItem => item !== null);

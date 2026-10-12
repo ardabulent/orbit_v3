@@ -21,6 +21,17 @@ import {
   type LatestExamDetail,
 } from "./examService";
 import { ExamDetailView as AssessmentsPage } from "@/components/education/pages/ExamDetailView";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Sınav detayı çizelgeyi sorgu olarak okur (2026-10-12, canlı güncelleme);
+// sunucu tarafı çizimde sorgu koşmaz, ekran verilen `initialSheet`'le çizilir.
+function sinavSayfasi(props: React.ComponentProps<typeof AssessmentsPage>) {
+  return createElement(
+    QueryClientProvider,
+    { client: new QueryClient() },
+    createElement(AssessmentsPage, props)
+  );
+}
 
 const fromMock = vi.fn();
 const rpcMock = vi.fn();
@@ -712,7 +723,7 @@ describe("examService", () => {
       };
 
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "teacher",
           onNavigate: vi.fn(),
           initialSheet: sheet,
@@ -753,7 +764,7 @@ describe("examService", () => {
       };
 
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "teacher",
           onNavigate: vi.fn(),
           initialSheet: sheetWithoutMax,
@@ -778,7 +789,7 @@ describe("examService", () => {
       };
 
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "admin",
           onNavigate: vi.fn(),
           exam,
@@ -824,7 +835,7 @@ describe("examService", () => {
       };
 
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "teacher",
           onNavigate: vi.fn(),
           initialSheet: sheet,
@@ -859,7 +870,7 @@ describe("examService", () => {
 
       // Öğretmen için render
       const teacherHtml = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "teacher",
           onNavigate: vi.fn(),
           initialSheet: sheet,
@@ -872,7 +883,7 @@ describe("examService", () => {
 
       // Yönetici için render
       const adminHtml = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "admin",
           onNavigate: vi.fn(),
           initialSheet: sheet,
@@ -886,7 +897,7 @@ describe("examService", () => {
 
     it("üretimde sınav kaydı yoksa 'Henüz sınav kaydı yok' boş durumunu gösterir (K-03)", () => {
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "admin",
           onNavigate: vi.fn(),
           exam: null,
@@ -900,7 +911,7 @@ describe("examService", () => {
 
     it("demo modunda örnek sınav ve verilerle çizilir", () => {
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "admin",
           onNavigate: vi.fn(),
           isDemo: true,
@@ -956,7 +967,7 @@ describe("examService", () => {
 
     it("yönetkili rolde 'Düzenle' ve 'Arşivle' eylemleri çizilir", () => {
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "teacher",
           onNavigate: vi.fn(),
           initialSheet: aktifSinav,
@@ -970,7 +981,7 @@ describe("examService", () => {
 
     it("öğrenci rolünde bu eylemler KESİNLİKLE çizilmez", () => {
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "student",
           onNavigate: vi.fn(),
           initialSheet: aktifSinav,
@@ -990,7 +1001,7 @@ describe("examService", () => {
     // Burada gözlenebilen şey, ekranın sınavın GERÇEK adını göstermesi.
     it("ekran sınavın gerçek adını gösterir, yer tutucu bir ad değil", () => {
       const html = renderToStaticMarkup(
-        createElement(AssessmentsPage, {
+        sinavSayfasi({
           role: "teacher",
           onNavigate: vi.fn(),
           initialSheet: aktifSinav,

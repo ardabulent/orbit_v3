@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { Homework, HomeworkStatus } from "@/components/education/types";
 import { formatTrDate, getOrbitToday } from "./trDate";
 import { readAllPages, PagedReadError } from "@/lib/pagedRead";
+import { loadClassStaffNames } from "./classStaffNames";
 
 /**
  * Ödev servis katmanı (v1.4-05 · #273).
@@ -226,37 +227,6 @@ export function extractSubjectName(subjects: unknown): string | null {
   return sub.name?.trim() || null;
 }
 
-export async function loadStaffNames(
-  classIds: string[]
-): Promise<Map<string, string>> {
-  const unique = classIds.filter(
-    (id, index) => Boolean(id) && classIds.indexOf(id) === index
-  );
-  if (unique.length === 0) {
-    return new Map();
-  }
-
-  const { data, error } = await supabase.rpc("class_staff_names", {
-    target_class_ids: unique,
-  });
-
-  if (error || !data) {
-    return new Map();
-  }
-
-  const result = new Map<string, string>();
-  for (const row of data as {
-    class_id: string;
-    membership_id: string;
-    display_name: string;
-  }[]) {
-    if (row.membership_id && row.display_name) {
-      result.set(row.membership_id, row.display_name);
-    }
-  }
-  return result;
-}
-
 /**
  * Ödev başına teslim eden ve payda (2026-10-05, v1.5-24).
  *
@@ -429,7 +399,7 @@ export async function loadHomework(
   const today = getOrbitToday();
 
   const [staffNames, completion] = await Promise.all([
-    loadStaffNames(classIds),
+    loadClassStaffNames(classIds),
     loadHomeworkCompletionCounts(homeworkIds),
   ]);
 

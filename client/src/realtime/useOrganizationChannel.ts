@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
 import { isDemoMode } from "@/auth/runtime";
 import { supabase } from "@/lib/supabaseClient";
+import { reportError } from "@/errorReporting/installErrorReporting";
 import { educationKeys } from "@/education/educationQueries";
 import {
   getAffectedQueryKeys,
@@ -101,8 +102,15 @@ export function useOrganizationChannel(
           supabase.realtime.setAuth(data.session.access_token);
         }
       })
-      .catch(() => {
-        // Oturum okuma hatası sessizce yutulmaz; fail-closed kalır
+      .catch((err: unknown) => {
+        // Jeton verilemezse özel kanal açılamaz (fail-closed); bu sessiz
+        // kalmaz — durum hatayı taşır ve kaydediciye gider (2026-10-12'ye
+        // kadar boş bir catch'ti).
+        if (!active) return;
+        const failure =
+          err instanceof Error ? err : new Error("Oturum okunamadı");
+        setError(failure);
+        reportError("error", failure);
       });
 
     // 2. Jeton yenilendiğinde Realtime bağlantısına yeni jetonu ilet

@@ -8,7 +8,6 @@ import {
   extractSubjectName,
   formatTime,
   loadSchedule,
-  loadStaffNames,
   mapScheduleRow,
   resolveLessonTitle,
   translateScheduleError,
@@ -189,69 +188,6 @@ describe("scheduleService", () => {
     it("geçersiz veya mantıksız zamanlarda null döner", () => {
       expect(calculateDuration("10:00:00", "09:00:00")).toBeNull();
       expect(calculateDuration("geçersiz", "10:00:00")).toBeNull();
-    });
-  });
-
-  describe("loadStaffNames (class_staff_names RPC & #228/#231)", () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
-
-    it("boş sınıf listesinde veritabanına gitmeden boş harita döner", async () => {
-      const result = await loadStaffNames([]);
-      expect(result.size).toBe(0);
-      expect(rpcMock).not.toHaveBeenCalled();
-      expect(fromMock).not.toHaveBeenCalled();
-    });
-
-    it("class_staff_names RPC'sini çağırır ve membership_id -> display_name eşlemesi kurar", async () => {
-      rpcMock.mockResolvedValue({
-        data: [
-          {
-            class_id: "cls-1",
-            membership_id: "mem-1",
-            display_name: "Ayşe Kaya",
-          },
-          {
-            class_id: "cls-1",
-            membership_id: "mem-2",
-            display_name: "Mehmet Demir (Vekil)",
-          },
-        ],
-        error: null,
-      });
-
-      const map = await loadStaffNames(["cls-1"]);
-
-      expect(rpcMock).toHaveBeenCalledWith("class_staff_names", {
-        target_class_ids: ["cls-1"],
-      });
-      expect(map.get("mem-1")).toBe("Ayşe Kaya");
-      expect(map.get("mem-2")).toBe("Mehmet Demir (Vekil)");
-    });
-
-    it("⛔ profiles veya organization_memberships tablolarına doğrudan sorgu gitmez (#228)", async () => {
-      rpcMock.mockResolvedValue({
-        data: [
-          {
-            class_id: "cls-1",
-            membership_id: "mem-1",
-            display_name: "Ayşe Kaya",
-          },
-        ],
-        error: null,
-      });
-
-      await loadStaffNames(["cls-1"]);
-
-      expect(fromMock).not.toHaveBeenCalledWith("profiles");
-      expect(fromMock).not.toHaveBeenCalledWith("organization_memberships");
-    });
-
-    it("RPC hatasında boş harita döner", async () => {
-      rpcMock.mockResolvedValue({ data: null, error: { message: "timeout" } });
-      const map = await loadStaffNames(["cls-1"]);
-      expect(map.size).toBe(0);
     });
   });
 

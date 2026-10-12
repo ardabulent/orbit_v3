@@ -111,3 +111,30 @@ export function clearedSavedScores(
     id => initial[id].trim() !== "" && (scores[id] ?? "").trim() === ""
   );
 }
+
+/**
+ * İki kayıt kümesi aynı değerleri mi taşıyor (2026-10-12)? Canlı güncellemeyle
+ * gelen veri, kaydedilmiş değerlerle aynıysa düzenleyene uyarı gösterilmez —
+ * kendi kaydının yankısıdır. Boş dize, alanları boş hücre ve hiç olmayan
+ * anahtar aynı sayılır (ekranda üçü de "girilmedi").
+ */
+export function sameValues<T>(
+  a: Record<string, T>,
+  b: Record<string, T>
+): boolean {
+  const flat = (value: T | undefined): string => {
+    if (value === undefined || value === null) return "";
+    if (typeof value === "object") {
+      const fields = Object.values(value as Record<string, unknown>);
+      return fields.every(field => field === "" || field === undefined)
+        ? ""
+        : JSON.stringify(value);
+    }
+    return String(value);
+  };
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    if (flat(a[k]) !== flat(b[k])) return false;
+  }
+  return true;
+}

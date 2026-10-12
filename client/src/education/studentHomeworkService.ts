@@ -5,7 +5,7 @@ import { translateHomeworkError } from "./homeworkService";
  * Öğrenci ve velinin ödev görünümü için öğrenciye özgü bağlam
  * (karar 2026-09-29): öğrencinin sınıfları ve öğretmenin teslim aldığı
  * ödevleri. Kapsam RLS'te: öğrenci kendi, veli çocuğunun satırını görür
- * (`homework_submissions_select_student/guardian`).
+ * (`homework_submissions_select`, göç 20261027000000).
  *
  * Ödev listesinin kendisi sayfaya zaten geliyor (`loadHomework`); bu modül
  * yalnız "bu öğrenci için" süzmeye ve durum yazmaya yetecek kadarını okur.
