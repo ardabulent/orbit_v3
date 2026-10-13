@@ -16,7 +16,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(14);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 select ('a' || n || '000000-0000-0000-0000-00000000a' || n || '00')::uuid,
@@ -112,6 +112,16 @@ select is(
   (select title from public.notifications
     where user_id = 'a2000000-0000-0000-0000-00000000a200' and kind = 'message'),
   'Kişi 500 size yazdı', 'the teacher gets a message notification');
+
+-- 6b
+select pg_temp.olarak('a5000000-0000-0000-0000-00000000a500');
+select public.send_message((select id from k), 'İkinci mesaj.');
+reset role;
+select is(
+  (select array_agg(body) from public.notifications
+    where user_id = 'a2000000-0000-0000-0000-00000000a200' and kind = 'message' and read_at is null),
+  array['İkinci mesaj.'],
+  'a second message refreshes the single unread message notification');
 
 -- 7
 select pg_temp.olarak('a1000000-0000-0000-0000-00000000a100');
