@@ -245,7 +245,9 @@ export function translateTemplateError(error: unknown): string {
   }
   // Fonksiyonlar 22023 ile Türkçe ve kullanıcıya gösterilebilir bir sebep
   // yazar (ör. "Aynı gün ve saatte iki ders olamaz").
-  if (code === "22023" && message) {
+  // ORB07 (2026-10-12): sınıf, öğretmen ya da derslik o saatte başka bir
+  // derste; veritabanı hangi dersle çakıştığını Türkçe yazar.
+  if ((code === "22023" || code === "ORB07") && message) {
     return message;
   }
   if (code === "23505") {
