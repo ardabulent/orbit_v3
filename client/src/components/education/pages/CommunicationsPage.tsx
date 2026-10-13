@@ -6,6 +6,8 @@ import { activeConversation, communicationsList } from "../educationData";
 import { EmptyState, MessageListItem, PageHeader } from "../shared";
 import type { Role } from "../types";
 import { DailyFeedSection } from "./DailyFeedSection";
+import { MessagesSection } from "./MessagesSection";
+import { useConversations } from "@/communication/communicationQueries";
 
 export function CommunicationsPage({
   role,
@@ -24,9 +26,13 @@ export function CommunicationsPage({
   isDemo?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<"feed" | "messages">("feed");
-  // Birebir mesajlaşma henüz yok (karar 2026-09-29: ayrı planlanacak).
-  // Üretimde sekme hiç çizilmez; mesaj gönderemeyen bir kutu sunulmaz.
-  const showMessages = isDemoMode && isDemo;
+  // Birebir mesajlaşma (2026-10-12, göç 20261031000000): canlıda gerçek
+  // mesajlar; demoda eski örnek görünüm.
+  const demoMessages = isDemoMode && isDemo;
+  const conversations = useConversations({ enabled: !demoMessages });
+  const unreadConversations = (conversations.data ?? []).filter(
+    c => c.unread
+  ).length;
 
   const submit = () => {
     if (!message.trim()) return toast.error("Mesajınızı yazın");
@@ -37,15 +43,8 @@ export function CommunicationsPage({
     setMessage("");
   };
 
-  const pageDescription = !showMessages
-    ? role === "student"
-      ? "Kurumun ve sınıfınızın duyurularını takip edin."
-      : role === "parent"
-        ? "Kurumun ve öğrencinizin sınıfının duyurularını takip edin."
-        : role === "teacher"
-          ? "Sınıflarınıza duyuru paylaşın."
-          : "Kurum geneline veya sınıflara duyuru yayınlayın."
-    : role === "student"
+  const pageDescription =
+    role === "student"
       ? "Duyuruları takip edin, öğretmenleriniz ve danışmanınızla doğrudan iletişim kurun."
       : role === "parent"
         ? "Duyuruları takip edin, öğrencinizin öğretmenleri ve danışmanıyla iletişim kurun."
@@ -58,17 +57,15 @@ export function CommunicationsPage({
       <PageHeader
         eyebrow="İletişim merkezi"
         title={
-          !showMessages
-            ? "Duyurular"
-            : role === "student"
-              ? "Duyurular ve mesajlarım"
-              : "Duyurular ve iletişim"
+          role === "student"
+            ? "Duyurular ve mesajlarım"
+            : "Duyurular ve iletişim"
         }
         description={pageDescription}
       />
 
-      {/* Sekmeler: Günlük Akış (Duyurular) vs Birebir Mesajlar — yalnız demo */}
-      {showMessages ? (
+      {/* Sekmeler: Günlük Akış (Duyurular) ve Birebir Mesajlar (2026-10-12) */}
+      {
         <div className="mt-6 flex border-b border-slate-200">
           <button
             type="button"
@@ -93,17 +90,24 @@ export function CommunicationsPage({
           >
             <MessageSquare className="h-4 w-4" />
             <span>Birebir Mesajlar</span>
+            {unreadConversations > 0 ? (
+              <span className="rounded-full bg-blue-600 px-1.5 text-[10px] font-bold leading-[18px] text-white">
+                {unreadConversations}
+              </span>
+            ) : null}
           </button>
         </div>
-      ) : null}
+      }
 
       <div className="mt-6">
-        {activeTab === "feed" || !showMessages ? (
+        {activeTab === "feed" ? (
           <DailyFeedSection
             role={role}
             organizationId={organizationId}
             classes={classes}
           />
+        ) : !demoMessages ? (
+          <MessagesSection />
         ) : (
           <div className="grid gap-6 xl:grid-cols-[.82fr_1.18fr]">
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,.025)]">

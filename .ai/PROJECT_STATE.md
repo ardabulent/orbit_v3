@@ -139,9 +139,14 @@ client/src/
 ├── audit/                  # Kurum denetim kaydı
 │   ├── auditService.ts     # İmleçli sayfalama; sıra sütunu `id`, `created_at` DEĞİL
 │   └── auditQueries.ts     # useInfiniteQuery
+├── communication/          # Birebir mesajlaşma ve uygulama içi bildirim (2026-10-12)
+│   ├── messageService.ts   # Kişiler, konuşmalar, mesajlar (yalnız RPC + RLS okuma)
+│   ├── notificationService.ts # Zil: son 30 bildirim, okunmamış sayısı, okundu işaretleme
+│   └── communicationQueries.ts # Kullanıcıya özel anahtarlar (`communication`)
 ├── realtime/               # Kurum kanalı aboneliği (v1.3-05)
 │   ├── useOrganizationChannel.ts  # `org:<id>` özel kanalı; tek abonelik, tek yer
 │   ├── realtimeMapping.ts  # Tablo → sorgu anahtarı eşlemesi (K-06)
+│   ├── useUserChannel.ts   # Kişiye özel `user:<id>` kanalı; dürtünce mesaj/bildirim tazelenir
 │   ├── connectionNotice.ts # Kopma uyarısının metni ve kuralı (v1.5-12, 2026-10-12)
 │   └── ConnectionBanner.tsx # İnternet/canlı kanal kopunca üstteki uyarı
 ├── settings/               # Ayar ekranlarının sorgu katmanı

@@ -153,6 +153,7 @@
 - Liste okuması sorgu başına yetkilendirilir; eşdeğerlik ölçülerek gösterilir
 - Arşiv tek ekranda toplanır: Ayarlar → Arşiv
 - Deneme sonucu dosyadan tabloya dolar; kaydı kullanıcı yapar
+- Uygulama içi iletişim: birebir mesaj, kişiye özel bildirim, yönetici yazışmayı okumaz
 
 ---
 
@@ -4034,3 +4035,24 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 5. Dosya sunucuya gitmez; tarayıcıda okunur (öğrenci aktarımının okuyucusu, 300 KB .xlsx sınırı dahil).
 
 **Alternatifler:** Doğrudan kaydetmek — hızlı ama yanlış eşlenmiş bir sütun 100 öğrencinin sonucunu sessizce yazardı; kayıt öncesi tablo bunu görünür kılıyor. Yayınevi biçimlerine özel ayrıştırıcılar — biçim sayısı belirsiz, eşleme ekranı hepsini karşılıyor.
+
+### Karar: Uygulama içi iletişim: birebir mesaj, kişiye özel bildirim, yönetici yazışmayı okumaz
+
+**Durum:** Kabul edildi · uygulandı (mesajlaşma PR'ı, göç `20261031000000`)
+**Tarih:** 2026-10-12
+**Onaylayan:** Arda Bülent (üç soru bu oturumda soruldu ve cevaplandı)
+
+**Kullanıcının seçimleri:**
+
+1. **Kim kime:** öğrenci ve veli ↔ öğretmen ve yönetim. Öğretmen yalnız **bugün okuttuğu** sınıfların (atama, rehberlik, süren vekillik) öğrencilerine ve velilerine yazar; yönetici herkese; personel kendi arasında. Öğrenci–veli, veli–veli, öğrenci–öğrenci yok.
+2. **Biçim:** kişiyle birebir sohbet; aynı iki üyelik arasında tek konuşma.
+3. **Zil:** yeni mesaj, duyuru, ödev, sınav sonucu, devamsızlık (yalnız veliye).
+
+**Teknik kararlar:**
+
+- **Gizlilik:** konuşmayı yalnız iki tarafı görür; **kurum yöneticisi başkalarının yazışmasını okuyamaz**. Bir öğretmen–veli yazışmasının denetimi gerekirse bu ayrı bir karar olur (ör. kurumun "yazışma kayıtlarını görme" yetkisi ve KVKK aydınlatma metnine eklenmesi).
+- **Yazma yalnız fonksiyonlardan:** tablolarda yazma yetkisi yok; "kim kime" kuralı **her mesajda** yeniden denetlenir — öğretmen sınıftan ayrılınca o velilere yazamaz, eski yazışma okunur kalır.
+- **Bildirimi veritabanı yazar:** olay anında tetikleyiciyle (duyuru, ödev, sınav sonucu, devamsızlık) ve mesaj fonksiyonunda. Arka plan işçisi gerekmedi. Aynı şeyin okunmamış ikinci bildirimi yazılmaz (sınav sonucu yeniden kaydedilince, sohbet akarken).
+- **Kişiye özel kanal:** `user:<kullanıcı>`; yalnız sahibi dinler (realtime kuralı). Kurum kanalı kullanılmadı — her mesaj bütün kurumun ekranını tazelerdi.
+- **Sınırlar:** mesaj en çok 2000 karakter; dakikada en çok 30 mesaj.
+- **Saklama:** okunmuş bildirim 90 gün sonra silinir. **Mesajlar şimdilik süresiz saklanıyor** — KVKK envanterinde (ROADMAP v1.5) saklama süresi kararı bekliyor.
