@@ -837,7 +837,7 @@ Kurum sahibi **A**'yı seçti (kendi Gmail'i, uygulama şifresi) ve ORBIT için 
 
 ORBIT adresine geçerken iki satır da güncellenir; kodda değişiklik yok.
 
-> **Teşhis (2026-10-14):** Edge gönderiminin sonucu fonksiyon kayıtlarında okunur (Supabase → Edge Functions → Logs). Başarı `[mailer] gönderildi` yazar; hata takıldığı adımı taşır: `smtp_timeout_connect` (sunucuya ulaşılamadı), `smtp_535` (kullanıcı adı ya da uygulama şifresi yanlış), `smtp_timeout_greeting` vb. İlk canlı denemede gönderim **hiç kayıt bırakmadan** kaybolmuştu: süre sınırı bağlanma adımını kapsamıyordu.
+> **Teşhis (2026-10-14):** Edge gönderiminin sonucu fonksiyon kayıtlarında okunur (Supabase → Edge Functions → Logs). Başarı `[mailer] gönderildi` yazar; hata takıldığı adımı taşır: `smtp_timeout_connect` (sunucuya ulaşılamadı), `smtp_535` (kullanıcı adı ya da uygulama şifresi yanlış), `smtp_timeout_greeting` vb. İlk canlı denemede (2026-10-14) e-posta gönderilmiş ama **Spam**'e düşmüştü; kayıtta iz yoktu çünkü başarı yazılmıyordu ve bu, gönderimin takıldığı yanlış teşhisine yol açtı. Ayrıca süre sınırı bağlanma adımını kapsamıyordu — bağlanamayan bir gönderim gerçekten iz bırakmadan kaybolurdu.
 
 ### Tavsiye (2026-08-26) — henüz karar değil
 

@@ -128,7 +128,7 @@ export async function sendMail(
 
   let step = "connect";
   let conn: Deno.Conn | null = null;
-  let timer: number | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
   const closeQuietly = () => {
     try {
