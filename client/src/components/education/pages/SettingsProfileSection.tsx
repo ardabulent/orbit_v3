@@ -8,6 +8,7 @@ import { demoRoleNames, roleMeta } from "../roleMeta";
 import { roleEmail } from "../demoData";
 import type { Role } from "../types";
 import { SettingsFormField } from "./SettingsFormField";
+import { RecoveryEmailCard } from "./RecoveryEmailCard";
 
 export function SettingsProfileSection({ role }: { role: Role }) {
   const { identity, demoMode } = useAuth();
@@ -89,18 +90,20 @@ export function SettingsProfileSection({ role }: { role: Role }) {
           value={phone}
           onChange={setUserPhone}
         />
-        <div>
+        <SettingsFormField label="Rol" value={roleMeta[role].label} disabled />
+        {demoMode ? (
           <SettingsFormField
             label="Kurtarma e-postası"
             value={recoveryEmail}
             disabled
             type="email"
           />
-          <p className="mt-1.5 text-[10px] leading-4 text-slate-400">
-            Kurtarma adresi doğrulama ile eklenir; bu özellik yakında gelecek.
-          </p>
-        </div>
-        <SettingsFormField label="Rol" value={roleMeta[role].label} disabled />
+        ) : (
+          <RecoveryEmailCard
+            current={recoveryEmail.trim() || null}
+            disabled={loading || Boolean(loadError)}
+          />
+        )}
       </div>
       {/* `loading` koşulu, veri gelmeden uyarı gösterilmesini engelliyor:
           aksi halde kurtarma adresi OLAN biri de bir an "yöntemin yok"
@@ -109,8 +112,8 @@ export function SettingsProfileSection({ role }: { role: Role }) {
       {!demoMode && !loading && !recoveryEmail.trim() ? (
         <p className="mt-5 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-[11px] leading-5 text-amber-900">
           {role === "admin"
-            ? "Hesabınıza kayıtlı bir kurtarma e-postası bulunmuyor — şifrenizi unutmanız durumunda kendi başınıza sıfırlama yapamazsınız; yeni geçici şifre için platform operatörüne başvurmanız gerekir."
-            : "Hesabınıza kayıtlı bir kurtarma e-postası bulunmuyor — şifrenizi unutmanız durumunda kendi başınıza sıfırlama yapamazsınız; yeni geçici şifre için kurum yöneticinize başvurmanız gerekir."}
+            ? "Hesabınıza kayıtlı bir kurtarma e-postası bulunmuyor. Yukarıdan ekleyin; eklemezseniz şifrenizi unuttuğunuzda yeni geçici şifre için platform operatörüne başvurmanız gerekir."
+            : "Hesabınıza kayıtlı bir kurtarma e-postası bulunmuyor. Yukarıdan ekleyin; eklemezseniz şifrenizi unuttuğunuzda yeni geçici şifre için kurum yöneticinize başvurmanız gerekir."}
         </p>
       ) : null}
     </>

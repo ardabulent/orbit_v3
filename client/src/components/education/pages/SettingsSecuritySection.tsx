@@ -171,8 +171,8 @@ export function SettingsSecuritySection() {
             </p>
             <p className="mt-1 text-amber-800">
               {isAdmin
-                ? "Şifrenizi unutmanız durumunda kendi başınıza sıfırlama yapamazsınız; yeni geçici şifre için platform operatörüne başvurmanız gerekir."
-                : "Şifrenizi unutmanız durumunda kendi başınıza sıfırlama yapamazsınız; yeni geçici şifre için kurum yöneticinize başvurmanız gerekir."}
+                ? "Profil bölümünden kurtarma e-postası ekleyin. Eklemezseniz şifrenizi unuttuğunuzda yeni geçici şifre için platform operatörüne başvurmanız gerekir."
+                : "Profil bölümünden kurtarma e-postası ekleyin. Eklemezseniz şifrenizi unuttuğunuzda yeni geçici şifre için kurum yöneticinize başvurmanız gerekir."}
             </p>
           </div>
         </div>

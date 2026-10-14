@@ -436,6 +436,14 @@ verify_jwt = true
 [functions.switch-account]
 verify_jwt = true
 
+[functions.recovery-email]
+verify_jwt = true
+
+# Şifremi unuttum: oturum yokken çağrılır (2026-10-13, #118). Yanıt hesabın
+# varlığını sızdırmaz; hız sınırı SQL'de (`internal_claim_password_reset`).
+[functions.request-password-reset]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
