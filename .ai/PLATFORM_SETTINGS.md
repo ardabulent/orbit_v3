@@ -837,6 +837,8 @@ Kurum sahibi **A**'yı seçti (kendi Gmail'i, uygulama şifresi) ve ORBIT için 
 
 ORBIT adresine geçerken iki satır da güncellenir; kodda değişiklik yok.
 
+> **Teşhis (2026-10-14):** Edge gönderiminin sonucu fonksiyon kayıtlarında okunur (Supabase → Edge Functions → Logs). Başarı `[mailer] gönderildi` yazar; hata takıldığı adımı taşır: `smtp_timeout_connect` (sunucuya ulaşılamadı), `smtp_535` (kullanıcı adı ya da uygulama şifresi yanlış), `smtp_timeout_greeting` vb. İlk canlı denemede gönderim **hiç kayıt bırakmadan** kaybolmuştu: süre sınırı bağlanma adımını kapsamıyordu.
+
 ### Tavsiye (2026-08-26) — henüz karar değil
 
 **Şimdi kurulmasın.** E4'ün maddelerinin çoğu maili beklemiyor ve mailsiz yarısı zaten yapıldı (#95 · #96 · #97 · #98). Sağlayıcı yalnızca **doğrulama ve kurtarma linkinin gönderimi** için gerekli.
