@@ -3,6 +3,7 @@ import { isDemoMode } from "@/auth/runtime";
 import type { FormEvent } from "react";
 import { Link } from "wouter";
 import { ChevronRight, MailCheck } from "lucide-react";
+import { isRecoveryIdentifier } from "@/auth/recoveryService";
 import {
   AuthField,
   AuthShell,
@@ -14,10 +15,10 @@ export function ForgotPasswordScreen({
   onRequest,
   demoMode,
 }: {
-  onRequest: (email: string) => Promise<void>;
+  onRequest: (identifier: string) => Promise<void>;
   demoMode: boolean;
 }) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,10 +26,16 @@ export function ForgotPasswordScreen({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+
+    if (!isRecoveryIdentifier(identifier)) {
+      setError("Giriş numaranızı (8 hane) ya da e-posta adresinizi yazın.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await onRequest(email);
+      await onRequest(identifier);
       setSent(true);
     } catch (requestError) {
       setError(
@@ -66,7 +73,7 @@ export function ForgotPasswordScreen({
     return (
       <AuthShell
         title="Sıfırlama isteği alındı"
-        description="Girdiğiniz adrese ait kayıtlı ve doğrulanmış bir kurtarma e-postası bulunuyorsa şifre belirleme bağlantısı iletilecektir."
+        description="Hesabınızda doğrulanmış bir kurtarma e-postası varsa şifre belirleme bağlantısı birkaç dakika içinde o adrese gelecek."
         footer={
           <Link href="/" className="font-bold text-blue-600">
             Giriş ekranına dön
@@ -78,10 +85,9 @@ export function ForgotPasswordScreen({
           <div className="text-[12px] leading-5 text-blue-950">
             <p className="font-bold text-blue-900">İstek işleme alındı</p>
             <p className="mt-1 text-blue-800">
-              Şifre sıfırlama bağlantısı yalnızca sistemde kayıtlı ve
-              doğrulanmış kurtarma adresi bulunan hesaplara gönderilir. Giriş
-              numarasıyla oturum açan üyeler yeni geçici şifre için kurum
-              yöneticisine başvurmalıdır.
+              Gelen kutunuzda yoksa Spam klasörüne de bakın. Bağlantı bir saat
+              geçerlidir. Kurtarma e-postası eklemediyseniz e-posta gelmez; yeni
+              geçici şifre için kurum yöneticinize başvurun.
             </p>
           </div>
         </div>
@@ -92,7 +98,7 @@ export function ForgotPasswordScreen({
   return (
     <AuthShell
       title="Şifrenizi mi unuttunuz?"
-      description="Kurum hesabınızın e-posta adresini girin. Şifrenizi belirleyebilmeniz için bir bağlantı gönderelim. Hesabınıza kayıtlı bir e-posta adresi yoksa şifrenizi buradan sıfırlayamazsınız; kurum yöneticinize başvurun."
+      description="Giriş numaranızı ya da e-posta adresinizi yazın. Şifrenizi belirlemeniz için kurtarma e-postanıza bir bağlantı gönderelim. Ayarlar'dan kurtarma e-postası eklemediyseniz yeni geçici şifre için kurum yöneticinize başvurun."
       footer={
         <Link href="/" className="font-bold text-blue-600">
           Giriş ekranına dön
@@ -100,13 +106,13 @@ export function ForgotPasswordScreen({
       }
     >
       <form onSubmit={submit} className="space-y-3">
-        <AuthField label="E-posta adresi">
+        <AuthField label="Giriş numarası veya e-posta">
           <input
-            value={email}
-            onChange={event => setEmail(event.target.value)}
-            type="email"
+            value={identifier}
+            onChange={event => setIdentifier(event.target.value)}
+            type="text"
             required
-            autoComplete="email"
+            autoComplete="username"
             className={authInputClassName}
           />
         </AuthField>

@@ -99,6 +99,7 @@ client/src/
 │   ├── AuthContext.ts / useAuth.ts  # Context tanımı ve tüketici hook'u
 │   ├── authService.ts      # loadMembershipIdentity / loadPlatformOperatorIdentity
 │   ├── accountLinkService.ts # Kişi kaydı, bağlama kodu üretme/bağlama, kardeş hesaplar, geçiş
+│   ├── recoveryService.ts # Kurtarma adresi (kod gönder/doğrula/kaldır) ve numarayla şifremi unuttum (2026-10-13)
 │   ├── types.ts            # AuthIdentity — üyelik ve platform operatörlüğü iki bağımsız eksen
 │   ├── loginIdentifier.ts  # Giriş numarası ↔ sentetik adres; giriş ekranına bağlı (E3)
 │   ├── passwordPolicy.ts   # Şifre kuralları, Türkçe harflerle uyumlu
@@ -190,7 +191,7 @@ client/src/
 
 **Bağlayıcı kural — taşınabilirlik:** `components/` ve `pages/` altındaki dosyalar Supabase istemcisini **doğrudan import edemez**; veri erişimi yukarıdaki servis modüllerinden geçer. Kural ESLint ile zorlanır (`eslint.config.js`). Gerekçe: `DECISION_LOG.md` — "Taşınabilirlik sınırı".
 
-**Edge Function'ların ortak katmanı:** `supabase/functions/_shared/` — `http.ts` (origin listesi, CORS, JSON yanıtı), `temporaryPassword.ts` (ömür sabiti ve üretici), `syntheticEmail.ts` (giriş adresi alan adı). Alt çizgiyle başladığı için ayrı bir fonksiyon olarak deploy edilmez. `syntheticEmail.ts`'in istemci tarafında derleyicinin göremediği bir ikizi var: `client/src/auth/loginIdentifier.ts` giriş numarasını bu adresten çözer, dolayısıyla ikisi birlikte değişir.
+**Edge Function'ların ortak katmanı:** `supabase/functions/_shared/` — `http.ts` (origin listesi, CORS, JSON yanıtı), `temporaryPassword.ts` (ömür sabiti ve üretici), `syntheticEmail.ts` (giriş adresi alan adı). `mailer.ts` + `mailMessage.ts` (2026-10-13): paketsiz SMTP istemcisi ve ileti biçimi; ayarları `SMTP_*` gizli değerlerinden okur, Edge'den yalnız 465 açık. Alt çizgiyle başladığı için ayrı bir fonksiyon olarak deploy edilmez. `syntheticEmail.ts`'in istemci tarafında derleyicinin göremediği bir ikizi var: `client/src/auth/loginIdentifier.ts` giriş numarasını bu adresten çözer, dolayısıyla ikisi birlikte değişir.
 
 **Ölçüm tohumu — `supabase/perf/seed_olcum.sql` (eklendi 2026-09-17):** bir dershane-yılı sentetik veri (20 kurum, ~520 bin satır, 205 MB) üreten tek dosya. Kimlikleri `md5(anahtar)::uuid` ile ürettiği için **tekrarlanabilir**: iki koşu aynı kimlikleri verir ve iki `EXPLAIN ANALYZE` çıktısı karşılaştırılabilir kalır. Ölçümleri `ROADMAP` §4.17'de.
 

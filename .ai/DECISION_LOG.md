@@ -154,6 +154,7 @@
 - Arşiv tek ekranda toplanır: Ayarlar → Arşiv
 - Deneme sonucu dosyadan tabloya dolar; kaydı kullanıcı yapar
 - Uygulama içi iletişim: birebir mesaj, kişiye özel bildirim, yönetici yazışmayı okumaz
+- E-posta Edge fonksiyonlarından SMTP ile gider; şimdilik kurum sahibinin Gmail'i, numarayla girenin şifresi kurtarma adresine sıfırlanır
 
 ---
 
@@ -4056,3 +4057,30 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 - **Kişiye özel kanal:** `user:<kullanıcı>`; yalnız sahibi dinler (realtime kuralı). Kurum kanalı kullanılmadı — her mesaj bütün kurumun ekranını tazelerdi.
 - **Sınırlar:** mesaj en çok 2000 karakter; dakikada en çok 30 mesaj.
 - **Saklama:** okunmuş bildirim 90 gün sonra silinir. **Mesajlar şimdilik süresiz saklanıyor** — KVKK envanterinde (ROADMAP v1.5) saklama süresi kararı bekliyor.
+
+---
+
+### Karar: E-posta Edge fonksiyonlarından SMTP ile gider; şimdilik kurum sahibinin Gmail'i, numarayla girenin şifresi kurtarma adresine sıfırlanır
+
+**Durum:** Kabul edildi · uygulandı (şifre kurtarma PR'ı, göç `20261102000000`, #118'in ikinci yarısı)
+**Tarih:** 2026-10-13
+**Onaylayan:** Arda Bülent (_"mail şimdilik kendi mailimi giricem ileride orbit için mail aldığım onu yer değiştiririz"_; _"numara ile giriş yapanlar nasıl yapacak — ayarlardan burayı bağlayalım"_)
+
+**Bağlam:** "Auth e-postası hiç değişmez; kurtarma linkini biz üretir, biz göndeririz" kararı (2026-08-24) gönderim yolunu bekliyordu. Numarayla açılan hesapların giriş adresi `<numara>@orbit.invalid` posta almaz; "Şifremi unuttum" yalnız gerçek adresli yönetici ve operatör hesaplarında işe yarıyordu.
+
+**Karar:**
+
+1. **Gönderen, PLATFORM_SETTINGS §7 seçenek A** (kişisel Gmail + uygulama şifresi). 2026-08-26 tavsiyesi B idi; kurum sahibi bugün A'yı seçti ve ORBIT adresi alınınca değiştirilecek. A'nın riskleri (§7) kayıtlı ve kabul edildi.
+2. **Gönderimi Edge fonksiyonu yapar, GoTrue değil.** Supabase panelindeki özel SMTP ayarı yalnız GoTrue'nun kendi e-postalarını taşır (yöneticinin gerçek adresine giden sıfırlama). Kurtarma adresine giden bağlantıyı biz ürettiğimiz için (`admin.generateLink`, posta göndermez) gönderim de bizde: `_shared/mailer.ts`.
+3. **Paket yok, standart SMTP.** Gereken beş komut (EHLO, AUTH, MAIL, RCPT, DATA) kırk satır; bir kütüphane `deps.ts`'e yeni pin ve zincir getirirdi. Sağlayıcı değişince yalnız `SMTP_*` gizli değerleri değişir (AGENTS.md kısıt 6).
+4. **Port 465.** Supabase Edge fonksiyonlarından 25 ve 587'ye çıkış kapalı (ölçüldü: docs `functions/limits`). Gmail 465'te doğrudan TLS konuşur.
+5. **Kurtarma adresi kodla doğrulanır** (Ayarlar → Profil): 6 hane, 15 dakika, 5 deneme, hash'li saklanır. `recovery_email` sütununa doğrudan yazma yetkisi yine yok.
+6. **Şifremi unuttum numarayı da kabul eder.** Hedef: doğrulanmış kurtarma adresi; yoksa gerçek giriş adresi; ikisi de yoksa hiçbir şey. Yanıt her durumda aynı ve gönderim yanıttan sonra yapılır — süreye bakarak hangi numaranın gerçek olduğu anlaşılamaz (yerelde ölçüldü: dört durumda 8–27 ms). Kişi başına saatte 3, sistemde saatte 100 gönderim.
+
+**Reddedilen:**
+
+- _Kurtarma adresini GoTrue'nun giriş adresi yapmak_ — 2026-08-24 kararını bozar; giriş numarasının kimlik olması biter.
+- _SMS ile kod_ — ücretli sağlayıcı ister ve telefon doğrulanmıyor (`profiles.phone` iletişim bilgisidir).
+- _Yöneticinin velinin adresini kendi girmesi_ — adres doğrulanmadan kaydedilirdi; yanlış yazılan adres, başkasına sıfırlama bağlantısı demek.
+
+**Açık kalan:** gönderen adresi kişisel Gmail; dershane yöneticisine şifre bağlantısının kişisel bir adresten gelmesi oltalamaya güvenmeyi öğretir (§7 tavsiyesinin asıl gerekçesi). **İlk gerçek kurumdan önce ORBIT adresine geçilir**; geçiş yalnız `SMTP_*` değerleri ve panel SMTP ayarıdır.

@@ -18,6 +18,7 @@ import { isDemoMode } from "./runtime";
 import { revokeParkedSession } from "./accountLinkService";
 import type { AuthIdentity, AuthProviderProps, LoginInput } from "./types";
 import { recordOwnPasswordChange } from "./passwordChange";
+import { requestPasswordResetLink } from "./recoveryService";
 
 function createDemoIdentity(role: EducationRole): AuthIdentity {
   return {
@@ -45,11 +46,6 @@ function createDemoIdentity(role: EducationRole): AuthIdentity {
     // sunumu içindir ve kurum kurma yetkisi taşımaz.
     platformOperator: null,
   };
-}
-
-/** Şifre sıfırlama bağlantısının kullanıcıyı döndüreceği adres. */
-function passwordRecoveryRedirectUrl(): string {
-  return `${window.location.origin}/sifre-belirle`;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -425,7 +421,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIdentity(createDemoIdentity(role));
   }, []);
 
-  const requestPasswordReset = useCallback(async (email: string) => {
+  const requestPasswordReset = useCallback(async (identifier: string) => {
     if (isDemoMode) {
       throw new Error(
         "Şifre sıfırlama yalnızca canlı ortamda kullanılabilir. Demo şifresi giriş ekranında yazılıdır."
@@ -438,17 +434,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       );
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: passwordRecoveryRedirectUrl(),
-    });
-
-    // Hesabın var olup olmadığı sızdırılmaz; yalnızca gerçek servis hataları
-    // yukarı taşınır. Çağıran taraf her durumda aynı mesajı gösterir.
-    if (error && error.status && error.status >= 500) {
-      throw new Error(
-        "Şifre sıfırlama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin."
-      );
-    }
+    // Bağlantıyı GoTrue değil `request-password-reset` üretir ve kişinin
+    // doğrulanmış kurtarma adresine gönderir (2026-10-13, #118): giriş
+    // numarasıyla açılan hesapların adresi (`…@orbit.invalid`) posta almaz.
+    // Hesabın var olup olmadığı yanıttan anlaşılmaz; yalnız servis hataları
+    // yukarı taşınır.
+    await requestPasswordResetLink(identifier);
   }, []);
 
   const completePasswordReset = useCallback(

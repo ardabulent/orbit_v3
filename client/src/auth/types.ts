@@ -97,8 +97,12 @@ export type AuthContextValue = {
   signIn: (input: LoginInput) => Promise<void>;
   signOut: () => Promise<void>;
   switchDemoRole: (role: EducationRole) => void;
-  /** Şifre sıfırlama bağlantısı gönderir. E-postanın kayıtlı olup olmadığını sızdırmaz. */
-  requestPasswordReset: (email: string) => Promise<void>;
+  /**
+   * Giriş numarası ya da e-posta için şifre sıfırlama bağlantısı ister.
+   * Bağlantı doğrulanmış kurtarma adresine gider; hesabın kayıtlı olup
+   * olmadığını sızdırmaz.
+   */
+  requestPasswordReset: (identifier: string) => Promise<void>;
   /** Yeni şifreyi kaydeder ve oturumu kapatır; kullanıcı yeni şifresiyle giriş yapar. */
   completePasswordReset: (newPassword: string) => Promise<void>;
   /** Şifre belirlemeden vazgeçildiğinde kurtarma oturumunu kapatır. */

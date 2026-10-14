@@ -171,17 +171,20 @@ Olayın tamamı üç göçte saklı — `20260928000000` varsayım, `20260929000
 
 ### 3.3 Supabase — Edge Functions
 
-| Öğe                      | Değer                               | Doğrulama                                                        |
-| ------------------------ | ----------------------------------- | ---------------------------------------------------------------- |
-| `bootstrap-organization` | ACTIVE, `verify_jwt = true`         | API (2026-08-23)                                                 |
-| `change-member-role`     | `verify_jwt = true`                 | v1.4-07'de eklendi (#280); bildirim kapısı mutasyonla doğrulandı |
-| `remove-member`          | `verify_jwt = true`                 | v1.4-07'de eklendi (#280); bildirim kapısı mutasyonla doğrulandı |
-| `reset-admin-password`   | ACTIVE, `verify_jwt = true`         | Issue #61 — `config.toml`'a kaydedildikten sonra deploy oldu     |
-| `delete-organization`    | ACTIVE, `verify_jwt = true`         | Issue #63                                                        |
-| `create-member`          | ACTIVE, `verify_jwt = true`         | Depoya 2026-08-26'da girdi (`da04ea1`); API (2026-09-19)         |
-| `reset-member-password`  | ACTIVE, `verify_jwt = true`         | Depoya 2026-08-25'te girdi (`3287dde`); API (2026-09-19)         |
-| `switch-account`         | ACTIVE, `verify_jwt = true`         | Depoya 2026-09-14'te girdi (`9db69af`); API (2026-09-19)         |
-| `ALLOWED_ORIGINS` secret | `https://orbit-v3-kappa.vercel.app` | Origin sondası: yalnızca bu origin geçiyor                       |
+| Öğe                      | Değer                                                                                                                                   | Doğrulama                                                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `bootstrap-organization` | ACTIVE, `verify_jwt = true`                                                                                                             | API (2026-08-23)                                                                                                |
+| `change-member-role`     | `verify_jwt = true`                                                                                                                     | v1.4-07'de eklendi (#280); bildirim kapısı mutasyonla doğrulandı                                                |
+| `remove-member`          | `verify_jwt = true`                                                                                                                     | v1.4-07'de eklendi (#280); bildirim kapısı mutasyonla doğrulandı                                                |
+| `reset-admin-password`   | ACTIVE, `verify_jwt = true`                                                                                                             | Issue #61 — `config.toml`'a kaydedildikten sonra deploy oldu                                                    |
+| `delete-organization`    | ACTIVE, `verify_jwt = true`                                                                                                             | Issue #63                                                                                                       |
+| `create-member`          | ACTIVE, `verify_jwt = true`                                                                                                             | Depoya 2026-08-26'da girdi (`da04ea1`); API (2026-09-19)                                                        |
+| `reset-member-password`  | ACTIVE, `verify_jwt = true`                                                                                                             | Depoya 2026-08-25'te girdi (`3287dde`); API (2026-09-19)                                                        |
+| `switch-account`         | ACTIVE, `verify_jwt = true`                                                                                                             | Depoya 2026-09-14'te girdi (`9db69af`); API (2026-09-19)                                                        |
+| `recovery-email`         | `verify_jwt = true`                                                                                                                     | Depoya 2026-10-13'te girdi (#118); kurtarma adresine kod gönderir                                               |
+| `request-password-reset` | **`verify_jwt = false`** (bilinçli)                                                                                                     | Depoya 2026-10-13'te girdi (#118); oturumsuz "Şifremi unuttum". Yanıt hesabın varlığını sızdırmaz, sınır SQL'de |
+| `SMTP_*` secret'ları     | `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER`, `SMTP_PASSWORD` (Gmail uygulama şifresi), `SMTP_FROM`, `SMTP_FROM_NAME=ORBIT` | **Kurum sahibi panelden girer**; ajan görmez. Yoksa iki fonksiyon `503 email_unavailable` döner                 |
+| `ALLOWED_ORIGINS` secret | `https://orbit-v3-kappa.vercel.app`                                                                                                     | Origin sondası: yalnızca bu origin geçiyor                                                                      |
 
 > **Sonradan düzeltme (2026-08-25):** Bu tablo uzun süre yalnızca `bootstrap-organization`'ı listeledi; diğer iki fonksiyon 2026-08-24'te canlıya çıktı ve tabloya işlenmedi. Yani bu dosya, tam olarak önlemek için var olduğu hatayı kendisi yaptı — bkz. bölüm 1. Issue #77 belge denetiminde yakalandı.
 >
@@ -822,6 +825,17 @@ Brevo veya Mailjet gibi servisler, alan adı sahibi olmadan **doğrulanmış bir
 A ve B, pilot öncesi geçici çözümlerdir; ikisi de gönderen adresi sorununu çözmez. C, ticarileşme kapısıyla (`ROADMAP.md` v2.0) birlikte ele alınmalıdır.
 
 **Hangisi seçilirse seçilsin, Supabase'in yerleşik SMTP'si ilk gerçek kurum davetinden önce terk edilmelidir.**
+
+### Karar (2026-10-13) — A seçildi, ORBIT adresine geçilecek
+
+Kurum sahibi **A**'yı seçti (kendi Gmail'i, uygulama şifresi) ve ORBIT için adres alınınca değiştirilecek. Kayıt: `DECISION_LOG.md` — "E-posta Edge fonksiyonlarından SMTP ile gider".
+
+| Nerede                                             | Ne                                                                        | Ne taşır                                                                                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase → Authentication → Emails → SMTP Settings | `smtp.gmail.com:587`, gönderen adı `ORBIT`, kullanıcı başına 60 sn aralık | GoTrue'nun kendi e-postaları: gerçek adresli hesabın sıfırlaması. **Kuruldu ve canlıda denendi (2026-10-13).** Saatlik e-posta sınırı kendiliğinden 30'a çıktı |
+| Supabase → Edge Functions → Secrets                | `SMTP_*` (bölüm 3.3) — **port 465**                                       | Edge fonksiyonlarının e-postaları: kurtarma kodu ve numarayla girenin sıfırlama bağlantısı. Edge'den 587 kapalı                                                |
+
+ORBIT adresine geçerken iki satır da güncellenir; kodda değişiklik yok.
 
 ### Tavsiye (2026-08-26) — henüz karar değil
 
