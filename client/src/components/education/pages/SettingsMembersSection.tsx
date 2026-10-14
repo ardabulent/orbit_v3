@@ -15,7 +15,15 @@ import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
 import { DEMO_TEMPORARY_PASSWORD } from "@/components/credentials/IssuedCredentials";
 import { MemberCreateDialog } from "./MemberCreateDialog";
-import { settingsKeys, useSettingsMembers } from "@/settings/settingsQueries";
+import {
+  settingsKeys,
+  useMemberMailStatus,
+  useSettingsMembers,
+} from "@/settings/settingsQueries";
+import {
+  describeLastMail,
+  type MemberMailStatus,
+} from "@/organization/memberMailService";
 import { educationKeys } from "@/education/educationQueries";
 import {
   resetMemberPassword,
@@ -67,6 +75,33 @@ function getResetTargetSubjectName(member: OrganizationMember): string {
   return "Kurum Üyesi";
 }
 
+function MemberMailCell({ status }: { status: MemberMailStatus | undefined }) {
+  if (!status) return <span className="text-slate-300">—</span>;
+  const last = describeLastMail(status);
+  return (
+    <div>
+      {status.hasRecoveryEmail ? (
+        <Badge tone="green">Tanımlı</Badge>
+      ) : (
+        <Badge tone="slate">Yok</Badge>
+      )}
+      {last ? (
+        <p
+          className={`mt-1 ${
+            last.tone === "ok"
+              ? "text-slate-500"
+              : last.tone === "bad"
+                ? "font-semibold text-rose-700"
+                : "text-slate-400"
+          }`}
+        >
+          {last.text}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function SettingsMembersSection() {
   const { identity, demoMode } = useAuth();
   const queryClient = useQueryClient();
@@ -82,6 +117,10 @@ export function SettingsMembersSection() {
   } = useSettingsMembers();
 
   const members = demoMode ? demoMembers : serverMembers;
+  // Kurtarma adresi ve son e-posta (2026-10-14): "kod gelmedi" diyen veliye
+  // yöneticinin "gönderilmiş, Spam'e bakın" diyebilmesi için. Yalnız yönetici.
+  const showMail = isAdmin && !demoMode;
+  const { data: mailStatus } = useMemberMailStatus({ enabled: showMail });
   const loading = !demoMode && isLoading;
   const loadError = queryError ? queryError.message : null;
 
@@ -219,6 +258,9 @@ export function SettingsMembersSection() {
                 <th className="px-4 py-3">Bağlı Kişi</th>
                 <th className="px-4 py-3">Şube</th>
                 <th className="px-4 py-3">Durum</th>
+                {showMail ? (
+                  <th className="px-4 py-3">Kurtarma e-postası</th>
+                ) : null}
                 <th className="px-4 py-3 text-right">İşlem</th>
               </tr>
             </thead>
@@ -274,6 +316,13 @@ export function SettingsMembersSection() {
                       {STATUS_META[member.status]?.label ?? member.status}
                     </Badge>
                   </td>
+                  {showMail ? (
+                    <td className="min-w-[200px] px-4 py-3 text-[11px] leading-4">
+                      <MemberMailCell
+                        status={mailStatus?.get(member.membershipId)}
+                      />
+                    </td>
+                  ) : null}
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button

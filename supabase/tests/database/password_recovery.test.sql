@@ -9,13 +9,19 @@
 --   9–12  Şifremi unuttum hedefi: kurtarma adresi yoksa sentetik adrese
 --         gönderilmez; varsa oraya; gerçek giriş adresi kendisine; etkin
 --         üyeliği olmayana hiç.
---   13    Kişi başına saatte en çok 3 gönderim.
+--   13    Kişi başına saatte en çok 3 gönderim (defterden sayılır,
+--         göç 20261103000000).
 --   14    Kişi kendi kurtarma adresini kaldırabilir.
+--   15    Defter adres, kod ya da bağlantı tutmaz; sonuç ve sebep yazılır.
+--   16    Kurum yöneticisi üyesinin kurtarma adresi olup olmadığını ve son
+--         e-postanın sonucunu görür (adresin kendisini değil).
+--   17    ⛔ Veli bu görünümü alamaz.
+--   18    ⛔ Başka kurumun yöneticisi bu kurumun üyelerini göremez.
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(19);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -23,18 +29,22 @@ values
   ('b2000000-0000-0000-0000-00000000b200', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '80010002@orbit.invalid', '', now(), now()),
   ('b3000000-0000-0000-0000-00000000b300', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'kurtarma-yonetici@example.test', '', now(), now()),
   ('b4000000-0000-0000-0000-00000000b400', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '80010004@orbit.invalid', '', now(), now()),
-  ('b5000000-0000-0000-0000-00000000b500', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '80010005@orbit.invalid', '', now(), now());
+  ('b5000000-0000-0000-0000-00000000b500', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '80010005@orbit.invalid', '', now(), now()),
+  ('b6000000-0000-0000-0000-00000000b600', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'baska-yonetici@example.test', '', now(), now());
 -- 1 veli, kurtarma adresi yok · 2 veli, adres ekleyecek · 3 yönetici, gerçek
 -- adres · 4 üyeliği yok ama adresi var · 5 geçici şifreli (kilitli)
+-- 6 başka kurumun yöneticisi
 
 insert into public.organizations (id, name, slug, code)
-values ('b9000000-0000-0000-0000-00000000b900', 'Kurtarma Dershanesi', 'kurtarma-dershanesi', 8001);
+values ('b9000000-0000-0000-0000-00000000b900', 'Kurtarma Dershanesi', 'kurtarma-dershanesi', 8001),
+       ('b9100000-0000-0000-0000-00000000b910', 'Başka Dershane', 'baska-dershane-kurtarma', 8002);
 
 insert into public.organization_memberships (organization_id, user_id, role, status)
 values ('b9000000-0000-0000-0000-00000000b900', 'b1000000-0000-0000-0000-00000000b100', 'parent', 'active'),
        ('b9000000-0000-0000-0000-00000000b900', 'b2000000-0000-0000-0000-00000000b200', 'parent', 'active'),
        ('b9000000-0000-0000-0000-00000000b900', 'b3000000-0000-0000-0000-00000000b300', 'admin', 'active'),
-       ('b9000000-0000-0000-0000-00000000b900', 'b5000000-0000-0000-0000-00000000b500', 'parent', 'active');
+       ('b9000000-0000-0000-0000-00000000b900', 'b5000000-0000-0000-0000-00000000b500', 'parent', 'active'),
+       ('b9100000-0000-0000-0000-00000000b910', 'b6000000-0000-0000-0000-00000000b600', 'admin', 'active');
 
 update public.profiles set recovery_email = 'eski-uye@example.test'
 where id = 'b4000000-0000-0000-0000-00000000b400';
@@ -129,7 +139,8 @@ select is((select count(*) from public.internal_claim_password_reset('80010004@o
 -- 13
 select public.internal_claim_password_reset('80010002@orbit.invalid') from generate_series(1, 3);
 select is(
-  (select count(*) from public.password_reset_requests where user_id = 'b2000000-0000-0000-0000-00000000b200'),
+  (select count(*) from public.email_deliveries
+    where kind = 'password_reset' and user_id = 'b2000000-0000-0000-0000-00000000b200'),
   3::bigint, 'at most three reset mails per person per hour');
 
 -- 14
@@ -138,6 +149,46 @@ select public.remove_my_recovery_email();
 reset role;
 select is((select recovery_email from public.profiles where id = 'b2000000-0000-0000-0000-00000000b200'),
   null, 'a person can remove their own recovery address');
+
+-- 15
+select public.internal_finish_email_delivery(
+  (select max(id) from public.email_deliveries where user_id = 'b2000000-0000-0000-0000-00000000b200'),
+  'failed', 'smtp_535');
+select ok(
+  (select array_agg(column_name::text order by column_name::text)
+     from information_schema.columns
+    where table_schema = 'public' and table_name = 'email_deliveries')
+    = array['created_at', 'finished_at', 'id', 'kind', 'reason', 'status', 'user_id']
+  and (select status = 'failed' and reason = 'smtp_535' and finished_at is not null
+         from public.email_deliveries
+        where id = (select max(id) from public.email_deliveries
+                     where user_id = 'b2000000-0000-0000-0000-00000000b200')),
+  'the ledger keeps the outcome and the reason, never an address, code or link');
+
+-- 16
+select pg_temp.olarak('b3000000-0000-0000-0000-00000000b300');
+select is(
+  (select (has_recovery_email, last_kind, last_status, last_reason)::text
+     from public.member_email_status() as durum
+     join public.organization_memberships as uyelik on uyelik.id = durum.membership_id
+    where uyelik.user_id = 'b2000000-0000-0000-0000-00000000b200'),
+  '(f,password_reset,failed,smtp_535)',
+  'the administrator sees whether a member has a recovery address and how the last mail went');
+reset role;
+
+-- 17
+select pg_temp.olarak('b1000000-0000-0000-0000-00000000b100');
+select is((select count(*) from public.member_email_status()), 0::bigint,
+  'a guardian does not get the mail status view');
+reset role;
+
+-- 18
+select pg_temp.olarak('b6000000-0000-0000-0000-00000000b600');
+-- Birleştirme yapılmaz: yönetici başka kurumun üyelik satırını zaten
+-- okuyamaz ve sayım her durumda 0 çıkardı. Görünümün kendisi sayılır.
+select is((select count(*) from public.member_email_status()), 1::bigint,
+  'another institution''s administrator sees only their own institution (one member)');
+reset role;
 
 select * from finish();
 rollback;

@@ -20,6 +20,7 @@ import { useSettingsMembers } from "@/settings/settingsQueries";
 
 vi.mock("@/settings/settingsQueries", () => ({
   useSettingsMembers: vi.fn(),
+  useMemberMailStatus: vi.fn().mockReturnValue({ data: undefined }),
   useSettingsBranches: vi.fn().mockReturnValue({
     data: [],
     isLoading: false,

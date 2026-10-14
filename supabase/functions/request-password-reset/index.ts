@@ -98,6 +98,7 @@ Deno.serve(async request => {
         user_id: string;
         auth_email: string;
         destination: string;
+        delivery_id: number;
       }>();
 
     if (claimError) {
@@ -105,6 +106,20 @@ Deno.serve(async request => {
       return;
     }
     if (!target) return;
+
+    // Sonuç deftere düşer (`email_deliveries`); yazılamazsa gönderim yine
+    // yapılır, kayıt düşer.
+    const finish = async (status: "sent" | "failed", reason?: string) => {
+      const { error } = await adminClient.rpc(
+        "internal_finish_email_delivery",
+        {
+          delivery_id: target.delivery_id,
+          delivery_status: status,
+          failure_reason: reason ?? null,
+        }
+      );
+      if (error) console.error("[request-password-reset] ledger write failed");
+    };
 
     const { data: link, error: linkError } =
       await adminClient.auth.admin.generateLink({
@@ -116,6 +131,7 @@ Deno.serve(async request => {
     const actionLink = link?.properties?.action_link;
     if (linkError || !actionLink) {
       console.error("[request-password-reset] link generation failed");
+      await finish("failed", "link_failed");
       return;
     }
 
@@ -141,11 +157,11 @@ Deno.serve(async request => {
           { label: "Yeni şifre belirle", url: actionLink }
         ),
       });
+      await finish("sent");
     } catch (sendError) {
-      console.error(
-        "[request-password-reset] mail failed",
-        sendError instanceof Error ? sendError.message : "unknown"
-      );
+      const reason = sendError instanceof Error ? sendError.message : "unknown";
+      console.error("[request-password-reset] mail failed", reason);
+      await finish("failed", reason);
     }
   })();
 

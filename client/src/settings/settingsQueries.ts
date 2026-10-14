@@ -12,6 +12,10 @@ import {
   type LoadBranchesOptions,
 } from "@/organization/branchService";
 import { loadProfileContact } from "@/auth/profileContactService";
+import {
+  loadMemberMailStatus,
+  type MemberMailStatus,
+} from "@/organization/memberMailService";
 
 /**
  * Ayarlar alanı sorgu anahtarları (v1.3-02 · a parçası, **K-19** / mimari kararlar).
@@ -37,6 +41,8 @@ export const settingsKeys = {
     ["settings", "branches", { organizationId }] as const,
   profileContact: (userId: string) =>
     ["settings", "profileContact", { userId }] as const,
+  memberMail: (organizationId: string) =>
+    ["settings", "memberMail", { organizationId }] as const,
 };
 
 export type UseSettingsMembersOptions = {
@@ -163,5 +169,23 @@ export function useProfileContact(options?: UseProfileContactOptions) {
       : (["settings", "profileContact", { userId: "" }] as const),
     queryFn: () => loadProfileContact(),
     enabled: isEnabled,
+  });
+}
+
+/**
+ * Üyelerin kurtarma adresi var mı ve son e-postaları nasıl gitti
+ * (2026-10-14). Yalnız yönetici için çalışır; şikâyet gelince güncel olsun
+ * diye pencereye dönüldüğünde tazelenir.
+ */
+export function useMemberMailStatus(options?: { enabled?: boolean }) {
+  const { identity, demoMode } = useAuth();
+  const organizationId = identity?.membership?.organizationId;
+  return useQuery<Map<string, MemberMailStatus>, Error>({
+    queryKey: organizationId
+      ? settingsKeys.memberMail(organizationId)
+      : (["settings", "memberMail", { organizationId: "" }] as const),
+    queryFn: loadMemberMailStatus,
+    enabled: (options?.enabled ?? true) && Boolean(organizationId) && !demoMode,
+    refetchOnWindowFocus: true,
   });
 }

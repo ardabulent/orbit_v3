@@ -163,6 +163,7 @@ vi.mock("@/audit/auditQueries", () => ({
 
 vi.mock("@/settings/settingsQueries", () => ({
   useSettingsMembers: vi.fn(),
+  useMemberMailStatus: vi.fn().mockReturnValue({ data: undefined }),
   useSettingsBranches: vi.fn(),
   settingsKeys: { members: () => ["settings", "members"] },
 }));

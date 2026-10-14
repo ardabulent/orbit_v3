@@ -137,6 +137,24 @@ Deno.serve(async request => {
     return jsonResponse({ error: "service_unavailable" }, 503, origin);
   }
 
+  // Gönderim deftere düşer (`email_deliveries`, göç 20261103000000): adres ve
+  // kod yazılmaz, yalnız sonuç. Defter yazılamazsa gönderim yine yapılır.
+  const { data: deliveryId, error: ledgerError } = await adminClient.rpc(
+    "internal_begin_email_delivery",
+    { target_user_id: userData.user.id, delivery_kind: "recovery_code" }
+  );
+  if (ledgerError) console.error(`${LOG} ledger write failed`);
+
+  const finishDelivery = async (status: "sent" | "failed", reason?: string) => {
+    if (typeof deliveryId !== "number") return;
+    const { error } = await adminClient.rpc("internal_finish_email_delivery", {
+      delivery_id: deliveryId,
+      delivery_status: status,
+      failure_reason: reason ?? null,
+    });
+    if (error) console.error(`${LOG} ledger write failed`);
+  };
+
   try {
     await sendMail(mail, {
       to: input.email.trim().toLowerCase(),
@@ -156,10 +174,9 @@ Deno.serve(async request => {
       ]),
     });
   } catch (sendError) {
-    console.error(
-      `${LOG} mail failed`,
-      sendError instanceof Error ? sendError.message : "unknown"
-    );
+    const reason = sendError instanceof Error ? sendError.message : "unknown";
+    console.error(`${LOG} mail failed`, reason);
+    await finishDelivery("failed", reason);
     await finishFunctionCall(
       adminClient,
       guard.callId,
@@ -169,6 +186,7 @@ Deno.serve(async request => {
     return jsonResponse({ error: "email_failed" }, 502, origin);
   }
 
+  await finishDelivery("sent");
   await finishFunctionCall(adminClient, guard.callId, { code_sent: true }, LOG);
 
   return jsonResponse({ data: { code_sent: true } }, 200, origin);
