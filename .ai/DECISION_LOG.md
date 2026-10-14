@@ -4083,4 +4083,6 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 - _SMS ile kod_ — ücretli sağlayıcı ister ve telefon doğrulanmıyor (`profiles.phone` iletişim bilgisidir).
 - _Yöneticinin velinin adresini kendi girmesi_ — adres doğrulanmadan kaydedilirdi; yanlış yazılan adres, başkasına sıfırlama bağlantısı demek.
 
+**Sonradan ek (2026-10-14) — her e-posta deftere yazılır.** İlk canlı sıfırlama e-postası gönderilmiş ama Spam'e düşmüştü; iz olmadığı için "gönderilmedi" sanıldı. Kurum sahibinin onayıyla `email_deliveries` eklendi (göç `20261103000000`): hesap, tür, sonuç, sebep; adres/kod/bağlantı yok; 30 gün. Saatlik sıfırlama sınırı da artık buradan sayılıyor, ayrı sayaç tablosu (`password_reset_requests`) kaldırıldı (K-06). Kurum yöneticisi Ayarlar → Üyeler'de "Kurtarma e-postası" sütununda üyenin adresi olup olmadığını (adresin kendisini değil) ve son e-postanın sonucunu görür; tam yetkili yönetici kurumu, şube yöneticisi şubesini.
+
 **Açık kalan:** gönderen adresi kişisel Gmail; dershane yöneticisine şifre bağlantısının kişisel bir adresten gelmesi oltalamaya güvenmeyi öğretir (§7 tavsiyesinin asıl gerekçesi). **İlk gerçek kurumdan önce ORBIT adresine geçilir**; geçiş yalnız `SMTP_*` değerleri ve panel SMTP ayarıdır.

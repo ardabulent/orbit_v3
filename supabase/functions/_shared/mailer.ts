@@ -102,7 +102,19 @@ function base64(value: string): string {
   return btoa(binary);
 }
 
-/** Gönderir; başarısızlıkta `Error("smtp_…")` fırlatır. */
+/** Bütün gönderimin üst sınırı; bağlanma adımı dahil. */
+const SEND_TIMEOUT_MS = 15_000;
+
+/**
+ * Gönderir; başarısızlıkta `Error("smtp_…")` fırlatır.
+ *
+ * 2026-10-14 ölçüldü: canlıdaki ilk gönderim hiçbir kayıt bırakmadan
+ * kayboldu. Süre sınırı bağlantı KURULDUKTAN sonra başlıyordu; bağlanma
+ * adımı takılırsa işlem fonksiyon kapanana kadar bekliyor ve sessizce
+ * kesiliyordu. Artık sınır en baştan başlar ve hata, takıldığı adımın adını
+ * taşır (`smtp_timeout_connect` gibi). Başarı da kayda düşer — adres
+ * olmadan.
+ */
 export async function sendMail(
   config: SmtpConfig,
   mail: MailContent
@@ -114,43 +126,69 @@ export async function sendMail(
     crypto.randomUUID()
   );
 
-  const conn =
-    config.port === 465
-      ? await Deno.connectTls({ hostname: config.host, port: config.port })
-      : await Deno.connect({ hostname: config.host, port: config.port });
+  let step = "connect";
+  let conn: Deno.Conn | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const timer = setTimeout(() => {
+  const closeQuietly = () => {
     try {
-      conn.close();
+      conn?.close();
     } catch (closeError) {
-      console.error("[mailer] bağlantı kapatılamadı", String(closeError));
+      // Zaten kapanmış bağlantıyı ikinci kez kapatmak hata verir; gönderimin
+      // sonucunu değiştirmez ama sessiz de geçilmez.
+      console.warn("[mailer] bağlantı zaten kapalı", String(closeError));
     }
-  }, 20_000);
+    conn = null;
+  };
 
-  try {
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      closeQuietly();
+      reject(new Error(`smtp_timeout_${step}`));
+    }, SEND_TIMEOUT_MS);
+  });
+
+  const exchange = async () => {
+    conn =
+      config.port === 465
+        ? await Deno.connectTls({ hostname: config.host, port: config.port })
+        : await Deno.connect({ hostname: config.host, port: config.port });
     const smtp = new SmtpSession(conn);
+    step = "greeting";
     await smtp.expect([220]);
+    step = "ehlo";
     await smtp.command("EHLO orbit", [250]);
     if (config.user && config.password) {
+      step = "auth";
       await smtp.command(
         "AUTH PLAIN " + base64(`\u0000${config.user}\u0000${config.password}`),
         [235]
       );
     }
+    step = "envelope";
     await smtp.command(`MAIL FROM:<${config.from}>`, [250]);
     await smtp.command(`RCPT TO:<${mail.to}>`, [250, 251]);
+    step = "data";
     await smtp.command("DATA", [354]);
     // Satır başındaki nokta ikilenir (RFC 5321 §4.5.2).
     await smtp.write(message.replace(/\r\n\./g, "\r\n..") + "\r\n.\r\n");
     await smtp.expect([250]);
+    step = "quit";
     await smtp.write("QUIT\r\n");
+  };
+
+  try {
+    await Promise.race([exchange(), timeout]);
+    console.log("[mailer] gönderildi");
+  } catch (sendError) {
+    const reason = sendError instanceof Error ? sendError.message : "unknown";
+    // Sunucu kodları (`smtp_535`) ve zaman aşımları olduğu gibi; ağ hataları
+    // takıldığı adımın adıyla.
+    throw new Error(
+      reason.startsWith("smtp_") ? reason : `smtp_${step}_${reason}`
+    );
   } finally {
     clearTimeout(timer);
-    try {
-      conn.close();
-    } catch {
-      // Zaman aşımı bağlantıyı zaten kapatmış olabilir; kapanmış bağlantıyı
-      // ikinci kez kapatmak hata verir ve gönderimin sonucunu değiştirmez.
-    }
+    closeQuietly();
   }
 }
