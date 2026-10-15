@@ -124,7 +124,7 @@ function AdminStats({
   overdueInstallments: number | null;
 }) {
   return (
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="mt-5 grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
       <StatCard
         label="Aktif öğrenci"
         value={String(counts.activeStudents)}

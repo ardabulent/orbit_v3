@@ -61,18 +61,69 @@ export function AdminPaymentsTable({
             );
           })}
         </div>
-        <label className="relative">
+        <label className="relative w-full sm:w-auto">
           <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Öğrenci ya da paket ara"
             aria-label="Öğrenci ya da paket ara"
-            className="h-8 w-56 rounded-lg border border-slate-200 pl-8 pr-2 text-[12px]"
+            className="h-8 w-full rounded-lg border border-slate-200 pl-8 pr-2 text-[12px] sm:w-56"
           />
         </label>
       </div>
-      <div className="overflow-x-auto">
+      {/* Telefonda kart (2026-10-15, analiz turu): 820 px'lik tablo dar
+          ekranda yana kayıyordu. */}
+      <ul className="divide-y divide-slate-100 sm:hidden">
+        {shown.length === 0 ? (
+          <li className="p-4">
+            <EmptyState title="Gösterilecek ödeme kaydı yok" />
+          </li>
+        ) : null}
+        {shown.map(row => (
+          <li key={row.id} className="px-4 py-3.5 text-[12px]">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-extrabold text-slate-800">
+                  {row.student}
+                </p>
+                <p className="truncate text-[11px] text-slate-500">
+                  {row.plan}
+                </p>
+              </div>
+              <StatusBadge row={row} />
+            </div>
+            <div className="mt-2">
+              <PaymentProgress row={row} />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-500">
+              <span>
+                {row.due ? (
+                  <>
+                    Sonraki taksit:{" "}
+                    <span className="font-semibold text-slate-700">
+                      {row.due}
+                    </span>{" "}
+                    · {row.amount}
+                  </>
+                ) : (
+                  "Bekleyen taksit yok"
+                )}
+              </span>
+              {onSelectPlan ? (
+                <button
+                  type="button"
+                  onClick={() => onSelectPlan(row)}
+                  className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold text-blue-600 hover:bg-blue-50"
+                >
+                  Detay
+                </button>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[820px] text-left">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-extrabold uppercase tracking-[.08em] text-slate-400">

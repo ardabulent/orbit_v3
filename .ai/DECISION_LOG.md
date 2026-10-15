@@ -155,6 +155,7 @@
 - Deneme sonucu dosyadan tabloya dolar; kaydı kullanıcı yapar
 - Uygulama içi iletişim: birebir mesaj, kişiye özel bildirim, yönetici yazışmayı okumaz
 - E-posta Edge fonksiyonlarından SMTP ile gider; şimdilik kurum sahibinin Gmail'i, numarayla girenin şifresi kurtarma adresine sıfırlanır
+- Öğrenci ve veliye telefonda alt gezinme çubuğu; personel kenar menüsünde kalır
 
 ---
 
@@ -4086,3 +4087,17 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Sonradan ek (2026-10-14) — her e-posta deftere yazılır.** İlk canlı sıfırlama e-postası gönderilmiş ama Spam'e düşmüştü; iz olmadığı için "gönderilmedi" sanıldı. Kurum sahibinin onayıyla `email_deliveries` eklendi (göç `20261103000000`): hesap, tür, sonuç, sebep; adres/kod/bağlantı yok; 30 gün. Saatlik sıfırlama sınırı da artık buradan sayılıyor, ayrı sayaç tablosu (`password_reset_requests`) kaldırıldı (K-06). Kurum yöneticisi Ayarlar → Üyeler'de "Kurtarma e-postası" sütununda üyenin adresi olup olmadığını (adresin kendisini değil) ve son e-postanın sonucunu görür; tam yetkili yönetici kurumu, şube yöneticisi şubesini.
 
 **Açık kalan:** gönderen adresi kişisel Gmail; dershane yöneticisine şifre bağlantısının kişisel bir adresten gelmesi oltalamaya güvenmeyi öğretir (§7 tavsiyesinin asıl gerekçesi). **İlk gerçek kurumdan önce ORBIT adresine geçilir**; geçiş yalnız `SMTP_*` değerleri ve panel SMTP ayarıdır.
+
+---
+
+### Karar: Öğrenci ve veliye telefonda alt gezinme çubuğu; personel kenar menüsünde kalır
+
+**Durum:** Kabul edildi · uygulandı (Arayüz 2 PR'ı)
+**Tarih:** 2026-10-15
+**Onaylayan:** Arda Bülent (analiz turu raporundaki sıra: _"önerdiğin sıra uygundur"_)
+
+**Bağlam:** "Öğrenci ve veli ekranları mobil-öncelikli tasarlanır" kararına rağmen telefonda menü sol üstteki düğmeyle açılıyordu; 14 Ekim taramasında görüldü.
+
+**Karar:** Öğrenci ve velide telefonda (lg altı) altta beş sütunlu çubuk: dört sık ekran + "Menü" (kalanlar kenar menüsünden). Öğrenci: Özet, Program, Ödevler, Sınavlar. Veli: Özet, Program, Sınavlar, İletişim (ödemeler Menü'de). Yönetici ve öğretmen 11–13 ekranla çubuğa sığmaz; kenar menüsü kalır. Geniş ekranda çubuk görünmez.
+
+**Reddedilen:** _Her role çubuk_ — personelin ekran sayısı beşi aşıyor; çubuğun yarısı "Menü" olurdu. _Kaydırılabilir sekme şeridi_ — telefon kullanıcısının alışkanlığı alt çubuk.

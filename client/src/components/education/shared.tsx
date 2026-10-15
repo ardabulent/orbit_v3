@@ -57,20 +57,27 @@ export function StatCard({
     rose: "bg-rose-50 text-rose-600",
   };
   return (
-    <section className="rounded-2xl border border-slate-200/85 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,.035)]">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[11px] font-bold text-slate-500">{label}</p>
+    // Telefonda kartlar ikişer dizilir (2026-10-15, analiz turu): dördü alt
+    // alta ekranın tamamını kaplıyor, "Dikkat isteyenler" kaydırmadan
+    // görünmüyordu. Dar kartta iç boşluk ve yazı küçülür, etiket kesilmez.
+    <section className="min-w-0 rounded-2xl border border-slate-200/85 bg-white p-3 shadow-[0_4px_16px_rgba(15,23,42,.035)] sm:p-4">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
+        <p className="min-w-0 text-[11px] font-bold leading-4 text-slate-500">
+          {label}
+        </p>
         <span
-          className={`grid h-8 w-8 place-items-center rounded-xl ${tones[tone]}`}
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-xl sm:h-8 sm:w-8 ${tones[tone]}`}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </span>
       </div>
-      <p className="mt-4 font-display text-[24px] font-extrabold tracking-[-.055em] text-slate-900">
+      <p className="mt-2 truncate font-display text-[20px] font-extrabold tracking-[-.055em] text-slate-900 sm:mt-4 sm:text-[24px]">
         {value}
       </p>
       {detail ? (
-        <p className="mt-1 text-[10px] font-medium text-slate-400">{detail}</p>
+        <p className="mt-1 line-clamp-2 text-[10px] font-medium text-slate-400">
+          {detail}
+        </p>
       ) : null}
     </section>
   );
@@ -217,6 +224,9 @@ export function ReportCard({
 }) {
   const veriYok =
     values.length === 0 || values.every(value => value === undefined);
+  // Tek ölçümle eğilim okunmaz (2026-10-15, analiz turu: yeni kurumda
+  // "Deneme gelişimi" kartı tek dev bir çubuktu).
+  const olcumSayisi = values.filter(value => value !== undefined).length;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
@@ -238,7 +248,7 @@ export function ReportCard({
           {values.map((value, index) => (
             <div
               key={labels[index] ?? index}
-              className="flex h-full flex-1 flex-col justify-end items-stretch"
+              className="mx-auto flex h-full w-full max-w-[56px] flex-1 flex-col items-stretch justify-end"
             >
               {value === undefined ? (
                 <span
@@ -275,6 +285,11 @@ export function ReportCard({
           ))}
         </div>
       )}
+      {!veriYok && olcumSayisi === 1 ? (
+        <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-500">
+          Şimdilik tek ölçüm var; eğilim ikinci ölçümden sonra görünür.
+        </p>
+      ) : null}
     </section>
   );
 }

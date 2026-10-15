@@ -66,14 +66,14 @@ export function SettingsProfileSection({ role }: { role: Role }) {
 
   return (
     <>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-[18px] font-extrabold text-slate-900">
           Profil Tercihleri
         </h2>
         <button
           onClick={() => void save()}
           disabled={loading || saving || Boolean(loadError)}
-          className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition hover:bg-slate-800 active:scale-[.98]"
+          className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition hover:bg-slate-800 active:scale-[.98]"
         >
           {saving ? "Kaydediliyor" : "Değişiklikleri Kaydet"}
         </button>
