@@ -128,6 +128,7 @@ import {
 import { SCHEDULE_TOTAL_CAP } from "@/education/scheduleService";
 import { PAYMENT_TOTAL_CAP } from "@/education/paymentService";
 import { allNav } from "./navigation";
+import { BottomNav } from "./BottomNav";
 import { roleMeta } from "./roleMeta";
 import { linkableMembers } from "@/organization/linkableMembers";
 import { ChildSwitcher } from "./guardianChild/ChildSwitcher";
@@ -223,6 +224,8 @@ export function EducationPlatform({
   const navItems = allNav.filter(item =>
     availableEducationSections(role).includes(item.label)
   );
+  // Öğrenci ve veliye telefonda alt gezinme çubuğu (2026-10-15).
+  const hasBottomNav = role === "student" || role === "parent";
 
   const organizationId = identity?.membership?.organizationId ?? "";
   // Velinin seçili çocuğu: üst çubukta seçilir, bütün veli sekmeleri okur
@@ -1549,7 +1552,9 @@ export function EducationPlatform({
             <div className="sm:hidden">
               <ChildSwitcher variant="compact" />
             </div>
-            <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            <div
+              className={`mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8 ${hasBottomNav ? "pb-24 lg:pb-8" : ""}`}
+            >
               {/* Sekme değişince sınır sıfırlanır; çökme yalnız o sekmeyi kapatır. */}
               <ErrorBoundary key={active} variant="section">
                 <Suspense
@@ -1568,6 +1573,15 @@ export function EducationPlatform({
             </div>
           </main>
         </div>
+        {hasBottomNav ? (
+          <BottomNav
+            role={role}
+            active={active}
+            available={navItems.map(item => item.label)}
+            onNavigate={navigate}
+            onOpenMenu={() => setMobileNav(true)}
+          />
+        ) : null}
         {selectedClass ? (
           <ClassDetail
             cls={selectedClass}

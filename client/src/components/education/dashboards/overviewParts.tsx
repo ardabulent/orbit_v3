@@ -73,7 +73,7 @@ export function DemoNotice() {
 
 export function StatsSkeleton() {
   return (
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="mt-5 grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
         <CardSkeleton key={index} />
       ))}

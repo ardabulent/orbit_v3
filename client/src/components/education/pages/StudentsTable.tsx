@@ -193,37 +193,56 @@ export function StudentsTable({
               }
             />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[960px] text-left">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-extrabold uppercase tracking-[.08em] text-slate-400">
-                    <th className="px-5 py-3.5">Öğrenci</th>
-                    <th className="px-5 py-3.5">Sınıf</th>
-                    <th className="px-5 py-3.5">Veli</th>
-                    <th className="px-5 py-3.5">Devam</th>
-                    <th className="px-5 py-3.5">Son sınav</th>
-                    <th className="px-5 py-3.5" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(student => (
-                    <StudentRow
-                      key={student.id}
-                      student={student}
-                      isAdmin={isAdmin}
-                      onSelect={onSelect}
-                      onEdit={onEdit}
-                      onArchive={onArchive ? handleArchive : undefined}
-                      archiving={archivingId === student.id}
-                      onLinkAccount={onLinkAccount}
-                      onUnlink={onUnlinkAccount ? handleUnlink : undefined}
-                      unlinking={unlinkingId === student.id}
-                      linkableMembers={linkableMembers}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <ul className="divide-y divide-slate-100 sm:hidden">
+                {rows.map(student => (
+                  <StudentCard
+                    key={student.id}
+                    student={student}
+                    isAdmin={isAdmin}
+                    onSelect={onSelect}
+                    onEdit={onEdit}
+                    onArchive={onArchive ? handleArchive : undefined}
+                    archiving={archivingId === student.id}
+                    onLinkAccount={onLinkAccount}
+                    onUnlink={onUnlinkAccount ? handleUnlink : undefined}
+                    unlinking={unlinkingId === student.id}
+                    linkableMembers={linkableMembers}
+                  />
+                ))}
+              </ul>
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full min-w-[960px] text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-extrabold uppercase tracking-[.08em] text-slate-400">
+                      <th className="px-5 py-3.5">Öğrenci</th>
+                      <th className="px-5 py-3.5">Sınıf</th>
+                      <th className="px-5 py-3.5">Veli</th>
+                      <th className="px-5 py-3.5">Devam</th>
+                      <th className="px-5 py-3.5">Son sınav</th>
+                      <th className="px-5 py-3.5" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(student => (
+                      <StudentRow
+                        key={student.id}
+                        student={student}
+                        isAdmin={isAdmin}
+                        onSelect={onSelect}
+                        onEdit={onEdit}
+                        onArchive={onArchive ? handleArchive : undefined}
+                        archiving={archivingId === student.id}
+                        onLinkAccount={onLinkAccount}
+                        onUnlink={onUnlinkAccount ? handleUnlink : undefined}
+                        unlinking={unlinkingId === student.id}
+                        linkableMembers={linkableMembers}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
       )}
@@ -231,18 +250,7 @@ export function StudentsTable({
   );
 }
 
-function StudentRow({
-  student,
-  isAdmin,
-  onSelect,
-  onEdit,
-  onArchive,
-  archiving,
-  onLinkAccount,
-  onUnlink,
-  unlinking,
-  linkableMembers,
-}: {
+type StudentRowProps = {
   student: Student;
   isAdmin: boolean;
   onSelect: (student: Student) => void;
@@ -256,7 +264,10 @@ function StudentRow({
   onUnlink?: (student: Student) => void;
   unlinking: boolean;
   linkableMembers: OrganizationMember[];
-}) {
+};
+
+function StudentRow(props: StudentRowProps) {
+  const { student, isAdmin, onSelect } = props;
   const initials = student.name
     .split(" ")
     .map(part => part[0])
@@ -324,57 +335,136 @@ function StudentRow({
         )}
       </td>
       <td className="px-5 py-4 text-right">
-        <div className="flex items-center justify-end gap-1.5">
-          {isAdmin ? (
-            <>
-              {student.hasAccount ? (
-                onUnlink ? (
-                  <button
-                    type="button"
-                    onClick={() => onUnlink(student)}
-                    disabled={unlinking}
-                    className="rounded-lg px-2 py-1 text-[11px] font-semibold text-amber-600 transition hover:bg-amber-50 disabled:opacity-50"
-                  >
-                    {unlinking ? "Ayrılıyor…" : "Giriş hesabını ayır"}
-                  </button>
-                ) : null
-              ) : onLinkAccount ? (
-                <LinkAccountPopover
-                  student={student}
-                  members={linkableMembers}
-                  onLink={onLinkAccount}
-                />
-              ) : null}
-              {onEdit ? (
-                <button
-                  type="button"
-                  onClick={() => onEdit(student)}
-                  className="rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100"
-                >
-                  Düzenle
-                </button>
-              ) : null}
-              {onArchive ? (
-                <button
-                  type="button"
-                  onClick={() => onArchive(student)}
-                  disabled={archiving}
-                  className="rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
-                >
-                  {archiving ? "Arşivleniyor…" : "Arşivle"}
-                </button>
-              ) : null}
-            </>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => onSelect(student)}
-            className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-blue-600 transition hover:bg-blue-50"
-          >
-            Profili aç
-          </button>
-        </div>
+        <StudentActions {...props} />
       </td>
     </tr>
+  );
+}
+
+/** Satırın ve telefon kartının ortak işlem düğmeleri. */
+function StudentActions({
+  student,
+  isAdmin,
+  onSelect,
+  onEdit,
+  onArchive,
+  archiving,
+  onLinkAccount,
+  onUnlink,
+  unlinking,
+  linkableMembers,
+  className = "justify-end",
+}: StudentRowProps & { className?: string }) {
+  return (
+    <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
+      {isAdmin ? (
+        <>
+          {student.hasAccount ? (
+            onUnlink ? (
+              <button
+                type="button"
+                onClick={() => onUnlink(student)}
+                disabled={unlinking}
+                className="rounded-lg px-2 py-1 text-[11px] font-semibold text-amber-600 transition hover:bg-amber-50 disabled:opacity-50"
+              >
+                {unlinking ? "Ayrılıyor…" : "Giriş hesabını ayır"}
+              </button>
+            ) : null
+          ) : onLinkAccount ? (
+            <LinkAccountPopover
+              student={student}
+              members={linkableMembers}
+              onLink={onLinkAccount}
+            />
+          ) : null}
+          {onEdit ? (
+            <button
+              type="button"
+              onClick={() => onEdit(student)}
+              className="rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100"
+            >
+              Düzenle
+            </button>
+          ) : null}
+          {onArchive ? (
+            <button
+              type="button"
+              onClick={() => onArchive(student)}
+              disabled={archiving}
+              className="rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+            >
+              {archiving ? "Arşivleniyor…" : "Arşivle"}
+            </button>
+          ) : null}
+        </>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => onSelect(student)}
+        className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-blue-600 transition hover:bg-blue-50"
+      >
+        Profili aç
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Telefonda tablo yerine kart (2026-10-15, analiz turu): 960 px'lik tablo
+ * dar ekranda yana kayıyor, sütunlar kesiliyordu. Kart aynı bilgiyi ve aynı
+ * düğmeleri taşır.
+ */
+function StudentCard(props: StudentRowProps) {
+  const { student, isAdmin, onSelect } = props;
+  return (
+    <li className="px-4 py-3.5">
+      <button
+        type="button"
+        onClick={() => onSelect(student)}
+        className="block w-full text-left"
+      >
+        <span className="flex items-center justify-between gap-2">
+          <span className="min-w-0 truncate text-[13px] font-extrabold text-slate-800">
+            {student.name}
+          </span>
+          {student.attendance !== undefined ? (
+            <Badge tone={student.attendance < 90 ? "amber" : "green"}>
+              %{student.attendance}
+            </Badge>
+          ) : null}
+        </span>
+        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+          {student.code ? <span>{student.code}</span> : null}
+          {student.group ? (
+            <span className="font-semibold text-slate-600">
+              {student.group}
+            </span>
+          ) : (
+            <Badge tone="amber">Sınıfsız</Badge>
+          )}
+          {student.parent ? (
+            <span>· {student.parent}</span>
+          ) : (
+            <Badge tone="amber">Velisiz</Badge>
+          )}
+          {isAdmin && student.hasAccount === false ? (
+            <Badge tone="slate">Giriş hesabı yok</Badge>
+          ) : null}
+        </span>
+        {student.score !== undefined ? (
+          <span className="mt-1 block text-[11px] text-slate-500">
+            Son sınav:{" "}
+            <span className="font-bold text-slate-700">
+              {student.latestExamMaxScore !== null &&
+              student.latestExamMaxScore !== undefined
+                ? `${formatScore(student.score)} / ${formatScore(student.latestExamMaxScore)}`
+                : `${formatScore(student.score)} puan`}
+            </span>
+            {student.latestExamName ? ` · ${student.latestExamName}` : ""}
+          </span>
+        ) : null}
+      </button>
+      <StudentActions {...props} className="mt-2 -ml-2" />
+    </li>
   );
 }

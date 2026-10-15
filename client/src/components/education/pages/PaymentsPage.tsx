@@ -101,7 +101,7 @@ export function PaymentsPage({
       />
 
       {role === "admin" && stats.length > 0 ? (
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
           {stats.map(stat => (
             <StatCard
               key={stat.label}
