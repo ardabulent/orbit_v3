@@ -55,8 +55,12 @@ export type RawScheduleRow = {
   starts_at: string;
   ends_at?: string | null;
   title?: string | null;
-  room?: string | null;
   room_id?: string | null;
+  /**
+   * Derslik adı derslik KAYDINDAN okunur (2026-10-14). `schedule_entries.room`
+   * metin kopyası okunmuyor; bir sonraki sürümde sütun kalkıyor.
+   */
+  rooms?: { name: string } | { name: string }[] | null;
   class_id: string;
   subject_id?: string | null;
   membership_id?: string | null;
@@ -170,7 +174,8 @@ export function mapScheduleRow(
   const teacher = row.membership_id
     ? (staffNames.get(row.membership_id) ?? null)
     : null;
-  const room = row.room?.trim() || null;
+  const roomRow = Array.isArray(row.rooms) ? row.rooms[0] : row.rooms;
+  const room = roomRow?.name?.trim() || null;
   const time = formatTime(row.starts_at);
   const duration = calculateDuration(row.starts_at, row.ends_at);
 
@@ -248,13 +253,13 @@ async function loadSchedulePage(
       starts_at,
       ends_at,
       title,
-      room,
       room_id,
       class_id,
       subject_id,
       membership_id,
       classes ( id, name, archived_at ),
-      subjects ( id, name, archived_at )
+      subjects ( id, name, archived_at ),
+      rooms ( name )
     `
     )
     .eq("organization_id", organizationId)

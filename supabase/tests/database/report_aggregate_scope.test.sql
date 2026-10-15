@@ -306,6 +306,9 @@ reset role;
 --      bir kapı, tek tek bozulmayı görmüyor.
 --
 --      Beklenen adet: yoklama 2 · sınav puanı 2 · rapor 4 · ödeme 2 = 10.
+--      **Sonradan düzeltme (2026-10-14, göç 20261104000000):** yoklama 3 —
+--      yetki dizileri (`yetki`), velinin sınıfları (`veli_siniflari`) ve
+--      (öğrenci, sınıf) toplamları (`toplam`). Toplam 11.
 --      Yeni bir CTE eklendiğinde bu iddia kırılır — istenen de o: ekleyen kişi
 --      onu materyalize etmesi gerekip gerekmediğini düşünmek zorunda kalsın.
 select is(
@@ -321,7 +324,7 @@ select is(
        'report_exam_averages',
        'payment_overview_counts'
      )),
-  10::bigint,
+  11::bigint,
   'every CTE in the authorize-once pattern is still materialised — counted, not merely present, because presence stayed green under mutation'
 );
 
