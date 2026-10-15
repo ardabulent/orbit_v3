@@ -1441,7 +1441,11 @@ export function EducationPlatform({
               className="fixed inset-0 z-30 bg-slate-950/20 lg:hidden"
             />
           ) : null}
-          <main className="min-w-0 flex-1">
+          {/* `overflow-x-clip` (2026-10-15): geniş bir tablo içeriği taşırsa
+              bütün sayfa yana kaymaz — üst çubuk ve kenar çubuğu düğmesi
+              yerinde kalır, tablo kendi kutusunda kayar. `hidden` değil
+              `clip`: kaydırma kabı oluşturmaz, yapışkan üst çubuk çalışır. */}
+          <main className="min-w-0 flex-1 overflow-x-clip">
             <ConnectionBanner channelStatus={organizationChannel.status} />
             <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-[#f6f8fc]/90 px-4 backdrop-blur sm:px-6 lg:px-8">
               <div className="flex items-center gap-3">

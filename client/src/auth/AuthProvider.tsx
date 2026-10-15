@@ -304,6 +304,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     clearLastActivity();
     clearIdentity();
+    // Oturumun bildirimleri giriş ekranına taşınmaz (2026-10-15: "Kurtarma
+    // e-postası kaydedildi" çıkıştan sonra da görünüyordu).
+    toast.dismiss();
 
     if (revokeError) {
       throw revokeError;

@@ -25,6 +25,11 @@ export function SettingsCategoryList({
           return (
             <button
               key={category.id}
+              type="button"
+              // Taşma denetimi kategorileri bununla bulur
+              // (ops/arayuz/tasma-denetimi.js).
+              data-settings-category={category.title}
+              aria-current={selected ? "page" : undefined}
               onClick={() => onSelect(category.id)}
               className={`flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition ${
                 selected

@@ -91,7 +91,10 @@ export function PlatformTabs({
   return (
     <nav
       aria-label="Platform bölümleri"
-      className="flex gap-1 rounded-xl bg-white/[.06] p-1"
+      // Telefonda dört sekme tek satıra sığmıyordu ve sayfayı 57 px
+      // taşırıyordu (2026-10-15, ops/arayuz/tasma-denetimi.js): satır kendi
+      // içinde kayar, sayfa kaymaz.
+      className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-white/[.06] p-1"
     >
       {PLATFORM_TABS.map(tab => (
         <button
@@ -99,7 +102,7 @@ export function PlatformTabs({
           type="button"
           onClick={() => onChange(tab.id)}
           aria-current={active === tab.id ? "page" : undefined}
-          className={`rounded-lg px-3.5 py-2 text-[12px] font-bold transition ${
+          className={`shrink-0 whitespace-nowrap rounded-lg px-3.5 py-2 text-[12px] font-bold transition ${
             active === tab.id
               ? "bg-white text-slate-900"
               : "text-slate-300 hover:bg-white/10"

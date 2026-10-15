@@ -38,6 +38,7 @@ import {
 import { roleMeta } from "../roleMeta";
 import { organizationMembers as demoMembers } from "../educationData";
 import { Badge, ErrorState, TableSkeleton } from "../shared";
+import { AssignRecordPopover } from "./AssignRecordPopover";
 
 const ASSIGNABLE_ROLES: { value: MemberRole; label: string }[] = [
   { value: "admin", label: "Yönetici" },
@@ -255,7 +256,7 @@ export function SettingsMembersSection() {
                 <th className="px-4 py-3">Ad Soyad</th>
                 <th className="px-4 py-3">Giriş Numarası</th>
                 <th className="px-4 py-3">Rol</th>
-                <th className="px-4 py-3">Bağlı Kişi</th>
+                <th className="px-4 py-3">Atandığı Kayıt</th>
                 <th className="px-4 py-3">Şube</th>
                 <th className="px-4 py-3">Durum</th>
                 {showMail ? (
@@ -298,7 +299,15 @@ export function SettingsMembersSection() {
                           {member.linkedPerson.name}
                         </span>
                       ) : (
-                        <Badge tone="slate">Bağlı değil</Badge>
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge tone="amber">Kayda atanmadı</Badge>
+                          {isAdmin && !demoMode && organizationId ? (
+                            <AssignRecordPopover
+                              member={member}
+                              organizationId={organizationId}
+                            />
+                          ) : null}
+                        </div>
                       )
                     ) : (
                       <span className="text-slate-400">—</span>

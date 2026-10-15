@@ -113,7 +113,7 @@ export function DayPlanCalendar({
   }, [isDemo, events, displayEvents, selectedDate]);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
         <div className="flex items-center justify-between">
           <p className="text-[14px] font-extrabold capitalize text-slate-900">
