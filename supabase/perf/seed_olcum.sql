@@ -248,7 +248,7 @@ from generate_series(0, 19) as g(k),
 
 -- Haftalık program: öğretmen çakışması olmayacak biçimde sınıf başına 5 kayıt
 insert into public.schedule_entries (id, organization_id, class_id, subject_id, membership_id,
-                                     day_of_week, starts_at, ends_at, room)
+                                     day_of_week, starts_at, ends_at)
 select md5('sched:' || k || ':' || c || ':' || d)::uuid,
        md5('org:' || k)::uuid,
        md5('class:' || k || ':' || c)::uuid,
@@ -256,8 +256,7 @@ select md5('sched:' || k || ':' || c || ':' || d)::uuid,
        md5('staffmem:' || k || ':' || (case when k = 0 then 3 + (c % 30) else 1 + (c % 6) end))::uuid,
        ((d + c) % 5) + 1,
        (time '08:00' + ((c % 8) || ' hours')::interval)::time,
-       (time '08:00' + ((c % 8) || ' hours')::interval + interval '50 minutes')::time,
-       'Derslik ' || lpad((c + 1)::text, 2, '0')
+       (time '08:00' + ((c % 8) || ' hours')::interval + interval '50 minutes')::time
 from generate_series(0, 19) as g(k),
      generate_series(0, case when k = 0 then 19 when k <= 2 then 14 else 4 end) as cl(c),
      generate_series(0, 4) as day(d);

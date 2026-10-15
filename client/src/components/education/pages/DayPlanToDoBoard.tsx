@@ -157,7 +157,7 @@ export function DayPlanToDoBoard({
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1.7fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="rounded-2xl bg-slate-900 p-6 text-white">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-extrabold">
             <Sparkles className="h-3 w-3" />

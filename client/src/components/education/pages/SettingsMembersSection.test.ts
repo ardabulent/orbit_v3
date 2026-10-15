@@ -182,6 +182,61 @@ describe("SettingsMembersSection (v1.4-07 · #280)", () => {
     expect(html).toContain("Kurumdan çıkar");
   });
 
+  // 2026-10-15 (analiz turu): sütun hesabın atandığı KAYDI gösteriyor; kayda
+  // atanmamış öğrenci/veli hesabı uyarı rozeti ve "Kayda ata" düğmesi alır.
+  it("kayda atanmamış öğrenci hesabı 'Kayda atanmadı' rozeti ve 'Kayda ata' düğmesi alır; atanmışlar almaz", () => {
+    vi.mocked(useSettingsMembers).mockReturnValue({
+      data: [
+        ...mockMembers,
+        {
+          membershipId: "mem-student-2",
+          displayName: "Atanmamış Öğrenci",
+          loginNumber: "10011005",
+          role: "student",
+          branchName: "Merkez",
+          status: "active",
+          linkedPerson: null,
+        },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useSettingsMembers>);
+
+    const html = renderWithAuth(createElement(SettingsMembersSection), {
+      role: "admin",
+    });
+
+    expect(html).toContain("Atandığı Kayıt");
+    expect(html.match(/Kayda atanmadı/g)?.length).toBe(1);
+    expect(html.match(/>Kayda ata</g)?.length).toBe(1);
+  });
+
+  it("yönetici olmayan rolde 'Kayda ata' düğmesi çizilmez", () => {
+    vi.mocked(useSettingsMembers).mockReturnValue({
+      data: [
+        {
+          membershipId: "mem-student-2",
+          displayName: "Atanmamış Öğrenci",
+          loginNumber: "10011005",
+          role: "student",
+          branchName: "Merkez",
+          status: "active",
+          linkedPerson: null,
+        },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useSettingsMembers>);
+
+    const html = renderWithAuth(createElement(SettingsMembersSection), {
+      role: "teacher",
+    });
+
+    expect(html).not.toContain(">Kayda ata<");
+  });
+
   // ⚠️ Bu iddia 2026-09-13'te TERSİNE döndü (v1.4-08, #282).
   // v1.4-07'de yönetici hedefinde eylemler çizilmiyordu ("kapsamı v1.4-08");
   // artık yönetici devri ve çoklu yönetici meşru olduğu için başka bir yöneticinin

@@ -65,6 +65,8 @@
 
 ## 5. Klasör Yapısı
 
+> `ops/arayuz/tasma-denetimi.js` (2026-10-15): tarayıcı konsoluna yapıştırılan taşma denetimi — her ekranı 390/768/1024/1280 px'te açar, sayfayı yana taşıranı yazar. `ops/yedek/` gece yedeklerinin tarifi.
+
 ```
 client/src/
 ├── components/

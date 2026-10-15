@@ -119,10 +119,10 @@ select lives_ok(
 -- =========================================================================
 
 insert into public.schedule_entries
-  (id, organization_id, class_id, membership_id, subject_id, day_of_week, starts_at, room)
+  (id, organization_id, class_id, membership_id, subject_id, day_of_week, starts_at)
 values ('d8000000-0000-0000-0000-0000000000d8', 'dd000000-0000-0000-0000-0000000000dd',
         'dc000000-0000-0000-0000-0000000000dc', '4a000000-0000-0000-0000-000000000002',
-        'd5000000-0000-0000-0000-0000000000d5', 3, '10:00', 'A-101');
+        'd5000000-0000-0000-0000-0000000000d5', 3, '10:00');
 
 select throws_ok(
   $sql$update public.subjects set archived_at = now()

@@ -119,18 +119,23 @@ select throws_ok(
   $$update public.rooms set archived_at = now() where id = 'c5100000-0000-0000-0000-0000000c5100'$$,
   'ORB03', null, 'a room in use cannot be closed');
 
--- 9
+-- 9 · Metin kopyası göç 20261105000000 ile kalktı; derslik adı kayıttan
+--     okunur ve yeniden adlandırma derse yansır.
 update public.rooms set name = 'A-101 (Fen)' where id = 'c5100000-0000-0000-0000-0000000c5100';
 select is(
-  (select room from public.schedule_entries where id = 'c6100000-0000-0000-0000-0000000c6100'),
-  'A-101 (Fen)', 'the legacy text column follows the room name');
+  (select derslik.name from public.schedule_entries as ders
+     join public.rooms as derslik on derslik.id = ders.room_id
+    where ders.id = 'c6100000-0000-0000-0000-0000000c6100'),
+  'A-101 (Fen)', 'a lesson shows the room under its new name');
 
 -- 10
 select ok(
-  not has_column_privilege('authenticated', 'public.schedule_entries', 'room', 'UPDATE')
-  and not has_column_privilege('authenticated', 'public.schedule_entries', 'room', 'INSERT')
+  not exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'schedule_entries'
+                and column_name = 'room')
+  and has_column_privilege('authenticated', 'public.schedule_entries', 'room_id', 'INSERT')
   and has_column_privilege('authenticated', 'public.schedule_entries', 'room_id', 'UPDATE'),
-  'the legacy text column cannot be written; room_id can');
+  'the legacy text column is gone; room_id stays writable');
 
 -- 11
 select lives_ok(

@@ -79,13 +79,13 @@ export function SettingsPage({
             : "Kişisel ayarlarınızı kategori bazlı yönetin."
         }
       />
-      <div className="mt-6 grid gap-5 lg:grid-cols-[280px_1fr]">
+      <div className="mt-6 grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
         <SettingsCategoryList
           categories={categories}
           selectedId={selected}
           onSelect={setSelected}
         />
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
+        <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
           <p className="text-[10px] font-extrabold uppercase tracking-[.15em] text-blue-600">
             {category.eyebrow}
           </p>
