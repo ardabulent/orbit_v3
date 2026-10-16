@@ -129,6 +129,7 @@ import { SCHEDULE_TOTAL_CAP } from "@/education/scheduleService";
 import { PAYMENT_TOTAL_CAP } from "@/education/paymentService";
 import { allNav } from "./navigation";
 import { BottomNav } from "./BottomNav";
+import { useApplyOrbitTheme } from "@/theme/orbitTheme";
 import { roleMeta } from "./roleMeta";
 import { linkableMembers } from "@/organization/linkableMembers";
 import { ChildSwitcher } from "./guardianChild/ChildSwitcher";
@@ -224,6 +225,8 @@ export function EducationPlatform({
   const navItems = allNav.filter(item =>
     availableEducationSections(role).includes(item.label)
   );
+  // Koyu tema yalnız kurum panelinde uygulanır (2026-10-15, #135).
+  useApplyOrbitTheme(true);
   // Öğrenci ve veliye telefonda alt gezinme çubuğu (2026-10-15).
   const hasBottomNav = role === "student" || role === "parent";
 
@@ -1297,14 +1300,14 @@ export function EducationPlatform({
 
   return (
     <GuardianChildContext.Provider value={guardianChild}>
-      <div className="min-h-screen bg-[#f6f8fc] text-slate-900">
+      <div className="min-h-screen bg-[#f6f8fc] dark:bg-[#0b1120] text-slate-900">
         <div className="flex min-h-screen">
           <aside
             className={`fixed inset-y-0 left-0 z-40 flex w-[258px] flex-col border-r border-slate-200 bg-white px-3 py-4 transition-all lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${mobileNav ? "translate-x-0" : "-translate-x-full"} ${navCollapsed ? "lg:w-[74px] lg:px-2" : "lg:w-[258px]"}`}
           >
             <div className="mb-7 flex items-center justify-between px-2">
               <div className="flex items-center gap-2.5">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,.12)]">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,.12)] dark:bg-[#1e293b]">
                   <OrbitMark
                     inverted
                     className="h-full w-full object-contain"
@@ -1450,7 +1453,7 @@ export function EducationPlatform({
               `clip`: kaydırma kabı oluşturmaz, yapışkan üst çubuk çalışır. */}
           <main className="min-w-0 flex-1 overflow-x-clip">
             <ConnectionBanner channelStatus={organizationChannel.status} />
-            <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-[#f6f8fc]/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+            <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-[#f6f8fc]/90 dark:bg-[#0b1120]/90 px-4 backdrop-blur sm:px-6 lg:px-8">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setMobileNav(true)}

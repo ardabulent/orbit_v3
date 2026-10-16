@@ -282,7 +282,7 @@ export function MemberCreateDialog({
               ))}
             </select>
             {effectiveBranchKey === "__all__" ? (
-              <p className="rounded-md bg-amber-50/70 p-2 text-[11px] leading-4 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+              <p className="rounded-md bg-amber-50/70 p-2 text-[11px] leading-4 text-amber-800">
                 <strong>Kurum geneli:</strong> Bu üye kurumun tüm mevcut ve
                 gelecekte açılacak şubelerini görebilir ve işlem yapabilir.
               </p>
@@ -331,14 +331,14 @@ export function MemberCreateDialog({
               Boolean(branchError)
             }
             title={formValidationError ?? undefined}
-            className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40"
           >
             {submitting ? "Oluşturuluyor…" : "Üyeyi oluştur"}
           </button>
         </DialogFooter>
 
         {formValidationError ? (
-          <p className="-mt-1 text-right text-[11px] font-bold text-amber-600 dark:text-amber-400">
+          <p className="-mt-1 text-right text-[11px] font-bold text-amber-600">
             {formValidationError}
           </p>
         ) : null}

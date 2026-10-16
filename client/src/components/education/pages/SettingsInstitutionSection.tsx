@@ -237,12 +237,12 @@ export function SettingsInstitutionSection() {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-[18px] font-extrabold text-slate-900 dark:text-slate-100">
+        <h2 className="font-display text-[18px] font-extrabold text-slate-900">
           Kurum Tercihleri
         </h2>
         <button
           onClick={savePreferences}
-          className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition hover:bg-slate-800 active:scale-[.98] dark:bg-slate-100 dark:text-slate-900"
+          className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition hover:bg-slate-800 active:scale-[.98]"
         >
           Değişiklikleri Kaydet
         </button>
@@ -254,16 +254,16 @@ export function SettingsInstitutionSection() {
       </div>
 
       {/* Şube Yönetimi Bölümü (v1.4-09 · #284) */}
-      <div className="mt-10 border-t border-slate-200/80 pt-8 dark:border-slate-800">
+      <div className="mt-10 border-t border-slate-200/80 pt-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-slate-600 dark:text-slate-300" />
-              <h3 className="font-display text-[16px] font-extrabold text-slate-900 dark:text-slate-100">
+              <Building2 className="h-5 w-5 text-slate-600" />
+              <h3 className="font-display text-[16px] font-extrabold text-slate-900">
                 Şubeler
               </h3>
             </div>
-            <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 text-[12px] text-slate-500">
               Kurumun şubelerini yönetin, yeni şube ekleyin veya varsayılan
               şubeyi belirleyin.
             </p>
@@ -273,7 +273,7 @@ export function SettingsInstitutionSection() {
             <button
               type="button"
               onClick={() => setShowArchived(!showArchived)}
-              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50"
+              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               {showArchived ? "Yalnız Aktif Şubeler" : "Kapatılan Şubeleri Gör"}
             </button>
@@ -295,9 +295,9 @@ export function SettingsInstitutionSection() {
         {truncated ? (
           <div
             role="alert"
-            className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-[12px] text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
+            className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-[12px] text-amber-900"
           >
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
             <div>
               <strong className="font-bold">
                 Şube listesi üst sınıra ulaştı:
@@ -309,7 +309,7 @@ export function SettingsInstitutionSection() {
         ) : null}
 
         {/* Şube Listesi */}
-        <div className="mt-4 rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="mt-4 rounded-xl border border-slate-200/80 bg-white shadow-sm">
           {branchesLoading ? (
             <div className="space-y-3 p-4">
               <Skeleton className="h-10 w-full" />
@@ -320,13 +320,13 @@ export function SettingsInstitutionSection() {
               {branchesQueryError.message}
             </div>
           ) : branches.length === 0 ? (
-            <div className="p-8 text-center text-[13px] text-slate-500 dark:text-slate-400">
+            <div className="p-8 text-center text-[13px] text-slate-500">
               {showArchived
                 ? "Kapatılmış bir şube bulunmuyor."
                 : "Henüz kayıtlı bir şube bulunmuyor."}
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-slate-100">
               {branches.map(b => {
                 const isDefault = Boolean(b.isDefault);
                 const isArchived = Boolean(b.archivedAt);
@@ -337,7 +337,7 @@ export function SettingsInstitutionSection() {
                     className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="font-medium text-slate-900 dark:text-slate-100 text-[13px]">
+                      <div className="font-medium text-slate-900 text-[13px]">
                         {b.name}
                       </div>
                       {isDefault ? (
@@ -358,7 +358,7 @@ export function SettingsInstitutionSection() {
                                 type="button"
                                 onClick={() => handleSetDefault(b)}
                                 disabled={settingDefaultId === b.id}
-                                className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 px-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                                className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 px-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
                               >
                                 <Star className="h-3 w-3" />
                                 <span>Varsayılan Yap</span>
@@ -368,7 +368,7 @@ export function SettingsInstitutionSection() {
                             <button
                               type="button"
                               onClick={() => handleOpenEdit(b)}
-                              className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 px-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                              className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 px-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                             >
                               <Edit2 className="h-3 w-3" />
                               <span>Düzenle</span>
@@ -377,7 +377,7 @@ export function SettingsInstitutionSection() {
                             <button
                               type="button"
                               onClick={() => handleOpenArchive(b)}
-                              className="inline-flex h-7 items-center gap-1 rounded-md border border-rose-200 px-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                              className="inline-flex h-7 items-center gap-1 rounded-md border border-rose-200 px-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                             >
                               <Trash2 className="h-3 w-3" />
                               <span>Kapat</span>
@@ -388,7 +388,7 @@ export function SettingsInstitutionSection() {
                             type="button"
                             onClick={() => handleRestore(b)}
                             disabled={restoringId === b.id}
-                            className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 dark:border-emerald-900/50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                            className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
                           >
                             <RotateCcw className="h-3 w-3" />
                             <span>Yeniden Aç</span>
@@ -449,7 +449,7 @@ export function SettingsInstitutionSection() {
               {addError ? (
                 <div
                   role="alert"
-                  className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300"
+                  className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700"
                 >
                   {addError}
                 </div>
@@ -461,7 +461,7 @@ export function SettingsInstitutionSection() {
                 type="button"
                 onClick={() => setAddOpen(false)}
                 disabled={addLoading}
-                className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+                className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
               >
                 Vazgeç
               </button>
@@ -504,7 +504,7 @@ export function SettingsInstitutionSection() {
               {editError ? (
                 <div
                   role="alert"
-                  className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300"
+                  className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700"
                 >
                   {editError}
                 </div>
@@ -516,7 +516,7 @@ export function SettingsInstitutionSection() {
                 type="button"
                 onClick={() => setEditingBranch(null)}
                 disabled={editLoading}
-                className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+                className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
               >
                 Vazgeç
               </button>
@@ -546,7 +546,7 @@ export function SettingsInstitutionSection() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-2 text-[12px] text-slate-600 dark:text-slate-400">
+          <div className="space-y-3 py-2 text-[12px] text-slate-600">
             <p>
               Kapatılan şube yeni kayıtlar için seçilemez. Şubenin
               kapatılabilmesi için içinde aktif öğrenci, sınıf veya personel
@@ -556,7 +556,7 @@ export function SettingsInstitutionSection() {
             {archiveError ? (
               <div
                 role="alert"
-                className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300 font-medium"
+                className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-700 font-medium"
               >
                 {archiveError}
               </div>
@@ -568,7 +568,7 @@ export function SettingsInstitutionSection() {
               type="button"
               onClick={() => setBranchToArchive(null)}
               disabled={archiveLoading}
-              className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+              className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
             >
               Vazgeç
             </button>

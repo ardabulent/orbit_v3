@@ -181,7 +181,7 @@ export function AddSubjectDialog({
             {error ? (
               <div
                 role="alert"
-                className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300"
+                className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700"
               >
                 {error}
               </div>
@@ -193,7 +193,7 @@ export function AddSubjectDialog({
               type="button"
               onClick={() => setOpen(false)}
               disabled={loading}
-              className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+              className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
             >
               Vazgeç
             </button>
