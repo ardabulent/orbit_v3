@@ -65,7 +65,7 @@ export function CredentialsPanel({
         />
       </PrintPortal>
 
-      <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900">
         <p className="font-bold">Bu şifre bir daha gösterilmeyecek.</p>
         <p className="mt-1">
           Hiçbir yere kaydedilmiyor. Bu pencereyi kapatmadan önce bilgileri
@@ -102,7 +102,7 @@ export function CredentialsPanel({
         {credentials.passwordLockSet === false ? (
           <div
             role="alert"
-            className="rounded-xl border-2 border-rose-400 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900 dark:border-rose-500 dark:bg-rose-500/10 dark:text-rose-100"
+            className="rounded-xl border-2 border-rose-400 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900"
           >
             İlk giriş kilidi kurulamadı. Bu hesap geçici şifresini değiştirmeden
             sisteme girebilir. Kullanıcıya şifresini ilk girişte kendisinin
@@ -114,7 +114,7 @@ export function CredentialsPanel({
         {credentials.auditWritten === false ? (
           <div
             role="alert"
-            className="rounded-xl border-2 border-rose-400 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900 dark:border-rose-500 dark:bg-rose-500/10 dark:text-rose-100"
+            className="rounded-xl border-2 border-rose-400 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900"
           >
             Bu işlemin denetim kaydı yazılamadı. İşlem gerçekleşti ancak denetim
             listesinde görünmeyecek.
@@ -169,7 +169,7 @@ export function CredentialsPanel({
           title={
             acknowledged ? undefined : "Önce bilgileri aldığınızı onaylayın"
           }
-          className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
+          className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40"
         >
           Kapat
         </button>

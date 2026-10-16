@@ -173,7 +173,9 @@ client/src/
 │   ├── errorReporter.ts    # Aynı mesaj 10 dk'da bir, açılış başına 20 kayıt
 │   ├── errorReportService.ts # `report_client_error` / `list_client_error_reports`
 │   └── installErrorReporting.ts # `error` + `unhandledrejection` dinleyicileri; demo modunda kapalı
-├── contexts/               # ThemeProvider
+├── contexts/               # ThemeProvider — uygulanan temayı yalnız okur
+├── theme/orbitTheme.ts     # Tema tercihi (açık/koyu/sistem, `localStorage`), `useApplyOrbitTheme` — 2026-10-16
+├── koyu-tema.css           # Koyu palet: `html.dark` altında Tailwind renk değişkenleri
 ├── hooks/                  # useComposition
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue
 │   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)

@@ -156,6 +156,7 @@
 - Uygulama içi iletişim: birebir mesaj, kişiye özel bildirim, yönetici yazışmayı okumaz
 - E-posta Edge fonksiyonlarından SMTP ile gider; şimdilik kurum sahibinin Gmail'i, numarayla girenin şifresi kurtarma adresine sıfırlanır
 - Öğrenci ve veliye telefonda alt gezinme çubuğu; personel kenar menüsünde kalır
+- Koyu mod paletin ters çevrilmesiyle yapılır; yalnız kurum panelinde, tercih cihazda saklanır
 
 ---
 
@@ -4101,3 +4102,23 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Karar:** Öğrenci ve velide telefonda (lg altı) altta beş sütunlu çubuk: dört sık ekran + "Menü" (kalanlar kenar menüsünden). Öğrenci: Özet, Program, Ödevler, Sınavlar. Veli: Özet, Program, Sınavlar, İletişim (ödemeler Menü'de). Yönetici ve öğretmen 11–13 ekranla çubuğa sığmaz; kenar menüsü kalır. Geniş ekranda çubuk görünmez.
 
 **Reddedilen:** _Her role çubuk_ — personelin ekran sayısı beşi aşıyor; çubuğun yarısı "Menü" olurdu. _Kaydırılabilir sekme şeridi_ — telefon kullanıcısının alışkanlığı alt çubuk.
+
+---
+
+### Karar: Koyu mod paletin ters çevrilmesiyle yapılır; yalnız kurum panelinde, tercih cihazda saklanır
+
+**Durum:** Kabul edildi · uygulandı (koyu mod PR'ı)
+**Tarih:** 2026-10-16
+**Onaylayan:** Arda Bülent (analiz turu raporundaki sıra: _"önerdiğin sıra uygundur"_)
+
+**Bağlam:** Ayarlar → Tema "henüz hazır değil" uyarısıyla kilitliydi. Bileşenlerde yüzlerce sabit renk sınıfı var (`bg-white`, `text-slate-900`, `bg-rose-50`…); her birine `dark:` karşılığı yazmak binlerce satır değişiklik ve her yeni ekranda unutulacak bir kural demekti.
+
+**Karar:**
+
+1. **Palet ters çevrilir, sınıflar değişmez.** Tailwind 4 renkleri CSS değişkeni olduğu için `html.dark` altında yeniden tanımlanır (`client/src/koyu-tema.css`): `white` koyu yüzey olur, slate ölçeği ters döner, renkli tonların açık uçları (50–100) koyu tint, koyu uçları (700–900) açık ton olur; 400–500 aynı kalır. Bileşenlere `dark:` yazılmaz; yalnız tersinin yanlış olduğu birkaç yer (logo kutusu, kök zemin) `dark:` ile sabitlenir.
+2. **Yalnız kurum paneli.** `dark` sınıfını yalnız `EducationPlatform` ekler, ayrılınca kaldırır. Giriş ekranı ve operatör paneli kendi koyu/açık tasarımıyla çizildi; ters palet onları bozar.
+3. **Tercih cihazda.** Açık / Koyu / Sistem, `localStorage` (`orbit-tema`); hesaba yazılmaz — aynı kişi okulda açık, evde koyu kullanabilir. Okunamazsa açık tema. Tek kaynak `client/src/theme/orbitTheme.ts`; `ThemeProvider` yalnız okur.
+
+**Reddedilen:** _Her bileşene `dark:` sınıfı_ — bakımı sürmez, yeni ekranda unutulur. _Tercihi veritabanında tutmak_ — göç ve RPC gerektirir, cihaz başına farklı tercihi engeller; ihtiyaç doğarsa sonra eklenir.
+
+**Bilinen sınır:** Ters palet, açık temada "koyu kart" olarak tasarlanmış yerleri (ör. `bg-slate-900` düğmeler) koyu temada açık renkli yapar. Okunurluk korunur; görünüm bilinçli olarak kabul edildi.

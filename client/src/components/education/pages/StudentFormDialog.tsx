@@ -276,7 +276,7 @@ export function StudentFormDialog({
               disabled={submitting}
               className={
                 isNumberError
-                  ? "border-rose-400 focus-visible:ring-rose-200 dark:border-rose-600"
+                  ? "border-rose-400 focus-visible:ring-rose-200"
                   : undefined
               }
             />
@@ -288,15 +288,13 @@ export function StudentFormDialog({
 
           {/* Hata gösterimi */}
           {error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-800">
               <p className="font-bold">
                 {isEditMode
                   ? "Öğrenci güncellenemedi"
                   : "Öğrenci oluşturulamadı"}
               </p>
-              <p className="mt-0.5 text-[11px] text-rose-700 dark:text-rose-400">
-                {error}
-              </p>
+              <p className="mt-0.5 text-[11px] text-rose-700">{error}</p>
             </div>
           ) : null}
         </div>
@@ -320,7 +318,7 @@ export function StudentFormDialog({
               Boolean(branchError)
             }
             title={formValidationError ?? undefined}
-            className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40"
           >
             {submitting
               ? isEditMode
@@ -333,7 +331,7 @@ export function StudentFormDialog({
         </DialogFooter>
 
         {formValidationError ? (
-          <p className="-mt-1 text-right text-[11px] font-bold text-amber-600 dark:text-amber-400">
+          <p className="-mt-1 text-right text-[11px] font-bold text-amber-600">
             {formValidationError}
           </p>
         ) : null}

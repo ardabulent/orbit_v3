@@ -227,7 +227,7 @@ export function SettingsMembersSection() {
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="rounded-xl bg-slate-900 px-3.5 py-2 text-[12px] font-extrabold text-white transition hover:bg-slate-800 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
+          className="rounded-xl bg-slate-900 px-3.5 py-2 text-[12px] font-extrabold text-white transition hover:bg-slate-800"
         >
           Üye ekle
         </button>
@@ -441,7 +441,7 @@ export function SettingsMembersSection() {
                     type="button"
                     onClick={() => void handleConfirmReset()}
                     disabled={resetSubmitting}
-                    className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
+                    className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40"
                   >
                     {resetSubmitting ? "Üretiliyor…" : "Yeni şifre üret"}
                   </button>
@@ -619,12 +619,12 @@ export function ChangeRoleDialog({
           {isSelfDemotion ? (
             <div
               data-testid="self-demotion-warning"
-              className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+              className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900"
             >
-              <p className="font-bold text-amber-950 dark:text-amber-100">
+              <p className="font-bold text-amber-950">
                 Yöneticiliği bırakıyorsunuz.
               </p>
-              <p className="mt-0.5 text-[11px] text-amber-800 dark:text-amber-300">
+              <p className="mt-0.5 text-[11px] text-amber-800">
                 Bu işlemden sonra üye yönetimi yetkiniz kalmayacak ve rolünüzü
                 yalnız başka bir yönetici geri verebilecek.
               </p>
@@ -634,7 +634,7 @@ export function ChangeRoleDialog({
           <div className="space-y-1.5">
             <label
               htmlFor="member-role-select"
-              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+              className="block text-xs font-semibold text-slate-700"
             >
               Yeni Rol
             </label>
@@ -643,7 +643,7 @@ export function ChangeRoleDialog({
               value={selectedRole}
               onChange={e => setSelectedRole(e.target.value as MemberRole)}
               disabled={submitting}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
             >
               {ASSIGNABLE_ROLES.map(r => (
                 <option key={r.value} value={r.value}>
@@ -657,12 +657,10 @@ export function ChangeRoleDialog({
             <div
               role="alert"
               data-testid="change-role-error"
-              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-800"
             >
               <p className="font-bold">Rol değiştirilemedi</p>
-              <p className="mt-0.5 text-[11px] text-rose-700 dark:text-rose-400">
-                {error}
-              </p>
+              <p className="mt-0.5 text-[11px] text-rose-700">{error}</p>
             </div>
           ) : null}
         </div>
@@ -680,7 +678,7 @@ export function ChangeRoleDialog({
             type="button"
             onClick={() => void handleConfirm()}
             disabled={submitting}
-            className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40"
           >
             {submitting ? "Güncelleniyor…" : "Rolü Değiştir"}
           </button>
@@ -799,7 +797,7 @@ export function RemoveMemberDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 py-2 text-[12px] leading-5 text-slate-600 dark:text-slate-300">
+        <div className="space-y-3 py-2 text-[12px] leading-5 text-slate-600">
           {member.role === "student" || member.role === "parent" ? (
             <p>
               Üyelik askıya alınacak{" "}
@@ -809,12 +807,12 @@ export function RemoveMemberDialog({
           ) : isSelf && member.role === "admin" ? (
             <div
               data-testid="self-removal-warning"
-              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900"
             >
-              <p className="font-bold text-rose-950 dark:text-rose-100">
+              <p className="font-bold text-rose-950">
                 Yöneticiliği ve kurumu bırakıyorsunuz.
               </p>
-              <p className="mt-0.5 text-[11px] text-rose-800 dark:text-rose-300">
+              <p className="mt-0.5 text-[11px] text-rose-800">
                 Üyeliğiniz askıya alınacak ve bu işlemden sonra kuruma giriş
                 yapamayacaksınız. Bu işlemi yalnız başka bir yönetici geri
                 alabilir.
@@ -832,12 +830,10 @@ export function RemoveMemberDialog({
             <div
               role="alert"
               data-testid="remove-member-error"
-              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-800"
             >
               <p className="font-bold">Üye çıkarılamadı</p>
-              <p className="mt-0.5 text-[11px] text-rose-700 dark:text-rose-400">
-                {error}
-              </p>
+              <p className="mt-0.5 text-[11px] text-rose-700">{error}</p>
             </div>
           ) : null}
         </div>

@@ -192,7 +192,7 @@ export function SubjectsTab({
   return (
     <div className="mt-6">
       <div className="flex justify-end">
-        <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-slate-600 dark:text-slate-300">
+        <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-slate-600">
           <input
             type="checkbox"
             checked={showArchived}
@@ -204,8 +204,8 @@ export function SubjectsTab({
       </div>
 
       {truncated ? (
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-[12px] text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-[12px] text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <div>
             <strong className="font-bold">
               Ders listesi üst sınıra ulaştı:
@@ -217,7 +217,7 @@ export function SubjectsTab({
       ) : null}
 
       {/* Ders Listesi */}
-      <div className="mt-4 rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="mt-4 rounded-xl border border-slate-200/80 bg-white shadow-sm">
         {subjectsLoading ? (
           <div className="space-y-3 p-4">
             <Skeleton className="h-10 w-full" />
@@ -228,13 +228,13 @@ export function SubjectsTab({
             {subjectsQueryError.message}
           </div>
         ) : subjects.length === 0 ? (
-          <div className="p-8 text-center text-[13px] text-slate-500 dark:text-slate-400">
+          <div className="p-8 text-center text-[13px] text-slate-500">
             {showArchived
               ? "Kapatılmış bir ders bulunmuyor."
               : "Henüz kayıtlı bir ders bulunmuyor."}
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="divide-y divide-slate-100">
             {subjects.map(sub => {
               const isArchived = Boolean(sub.archivedAt);
 
@@ -245,7 +245,7 @@ export function SubjectsTab({
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-3">
-                      <div className="text-[13px] font-medium text-slate-900 dark:text-slate-100">
+                      <div className="text-[13px] font-medium text-slate-900">
                         {sub.name}
                       </div>
                       {isArchived ? (
@@ -253,7 +253,7 @@ export function SubjectsTab({
                       ) : null}
                     </div>
                     {!isArchived ? (
-                      <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="mt-0.5 text-[11px] text-slate-500">
                         {describeSubjectUsage(usageFor(usage, sub.id))}
                       </div>
                     ) : null}
@@ -266,7 +266,7 @@ export function SubjectsTab({
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(sub)}
-                            className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 px-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                            className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-200 px-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                           >
                             <Edit2 className="h-3 w-3" />
                             <span>Düzenle</span>
@@ -275,7 +275,7 @@ export function SubjectsTab({
                           <button
                             type="button"
                             onClick={() => handleOpenArchive(sub)}
-                            className="inline-flex h-7 items-center gap-1 rounded-md border border-rose-200 px-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                            className="inline-flex h-7 items-center gap-1 rounded-md border border-rose-200 px-2 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                           >
                             <Trash2 className="h-3 w-3" />
                             <span>Kapat</span>
@@ -286,7 +286,7 @@ export function SubjectsTab({
                           type="button"
                           onClick={() => handleRestore(sub)}
                           disabled={restoringId === sub.id}
-                          className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 dark:border-emerald-900/50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                          className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-200 px-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
                         >
                           <RotateCcw className="h-3 w-3" />
                           <span>Yeniden Aç</span>
@@ -339,7 +339,7 @@ export function SubjectsTab({
               {editError ? (
                 <div
                   role="alert"
-                  className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300"
+                  className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[12px] text-rose-700"
                 >
                   {editError}
                 </div>
@@ -351,7 +351,7 @@ export function SubjectsTab({
                 type="button"
                 onClick={() => setEditingSubject(null)}
                 disabled={editLoading}
-                className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+                className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
               >
                 Vazgeç
               </button>
@@ -381,7 +381,7 @@ export function SubjectsTab({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-2 text-[12px] text-slate-600 dark:text-slate-400">
+          <div className="space-y-3 py-2 text-[12px] text-slate-600">
             <p>
               Kapatılan ders yeni program ve ödev kayıtlarında seçilemez. Dersi
               kapatabilmek için canlı öğretmen ataması ve ders programı satırı
@@ -391,7 +391,7 @@ export function SubjectsTab({
             {archiveError ? (
               <div
                 role="alert"
-                className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300 font-medium"
+                className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-700 font-medium"
               >
                 {archiveError}
               </div>
@@ -403,7 +403,7 @@ export function SubjectsTab({
               type="button"
               onClick={() => setSubjectToArchive(null)}
               disabled={archiveLoading}
-              className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+              className="h-9 rounded-lg border border-slate-200 px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
             >
               Vazgeç
             </button>

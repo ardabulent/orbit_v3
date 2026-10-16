@@ -1,6 +1,11 @@
-import { AlertTriangle, Check, Monitor, Moon, Sun } from "lucide-react";
+import { Check, Monitor, Moon, Sun } from "lucide-react";
+import {
+  useThemePreference,
+  writeThemePreference,
+  type ThemePreference,
+} from "@/theme/orbitTheme";
 
-type ThemeOptionId = "light" | "dark" | "system";
+type ThemeOptionId = ThemePreference;
 
 const THEME_OPTIONS: {
   id: ThemeOptionId;
@@ -30,9 +35,9 @@ const THEME_OPTIONS: {
 ];
 
 export function SettingsThemeSection() {
-  // Arayüz henüz koyu temaya hazır olmadığı için mevcut tema açık olarak
-  // kilitlenmiştir; seçenekler tıklanamaz (#135).
-  const currentTheme: ThemeOptionId = "light";
+  // 2026-10-15 (#135): koyu tema açıldı. Tercih bu tarayıcıda saklanır ve
+  // yalnız kurum panelinde uygulanır (`@/theme/orbitTheme`).
+  const currentTheme = useThemePreference();
 
   return (
     <>
@@ -53,11 +58,12 @@ export function SettingsThemeSection() {
             <button
               key={option.id}
               type="button"
-              disabled
-              className={`flex cursor-not-allowed flex-col items-start rounded-2xl border p-4 text-left transition ${
+              onClick={() => writeThemePreference(option.id)}
+              aria-pressed={isSelected}
+              className={`flex flex-col items-start rounded-2xl border p-4 text-left transition ${
                 isSelected
                   ? "border-blue-600 bg-blue-50/50 shadow-sm"
-                  : "border-slate-200 bg-white opacity-60"
+                  : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
               <div className="flex w-full items-center justify-between">
@@ -86,13 +92,9 @@ export function SettingsThemeSection() {
           );
         })}
       </div>
-      <p className="mt-5 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-        <span>
-          <strong>Koyu tema henüz hazır değil</strong> — arayüzün tamamı koyu
-          görünüme uyarlanmadan bu seçenek açılmayacak. Şu an tüm ekranlar açık
-          temada çalışıyor.
-        </span>
+      <p className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">
+        Seçiminiz bu cihazda saklanır; başka bir cihazda ayrıca seçebilirsiniz.
+        Giriş ekranı her zaman kendi görünümünde açılır.
       </p>
     </>
   );
