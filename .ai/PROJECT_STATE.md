@@ -178,6 +178,7 @@ client/src/
 ├── koyu-tema.css           # Koyu palet: `html.dark` altında Tailwind renk değişkenleri
 ├── hooks/                  # useComposition
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue
+│   ├── clockSkewRetryFetch.ts # Girişte "JWT issued at future" (401 PGRST303) alan isteği 1 sn sonra yeniden gönderir (2026-10-16)
 │   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)
 │   ├── cspConnectSrc.ts    # CSP connect-src ↔ VITE_SUPABASE_URL denetleyicisi; `vite.config.ts` çağırır (v1.5-09)
 │   ├── pagedRead.ts        # Sayfa sayfa okuma: READ_PAGE_SIZE 500, `*_TOTAL_CAP` tavanları (#435)
