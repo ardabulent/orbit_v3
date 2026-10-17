@@ -85,7 +85,7 @@ export const AUDIT_ACTION_KIND_LABELS: Record<AuditActionKind, string> = {
  *
  *   * `system`   — kaydın aktörü hiç yazılmamış (`actor_user_id is null`).
  *   * `outside`  — isim sorgusu **başarılı** ama bu kimlik dönmedi. Bu bir
- *     tahmin değil **mantıksal kesinlik**: `profiles_select_organization_admin`
+ *     tahmin değil **mantıksal kesinlik**: `profiles_select` (yönetici dalı)
  *     tam olarak yöneticinin kendi kurumundaki kişileri döndürür, dolayısıyla
  *     dönmemesi "bu kişi bu kurumun üyesi değil" demektir. Pratikte kurumu
  *     kuran platform operatörü.
@@ -353,7 +353,7 @@ async function loadMemberNames(
 
 /**
  * "Kim yaptı" süzgecinin seçenekleri: yöneticinin görebildiği kişiler
- * (`profiles_select_organization_admin` — kendi kurumundakiler), ada göre.
+ * (`profiles_select` (yönetici dalı) — kendi kurumundakiler), ada göre.
  */
 export async function loadAuditActors(): Promise<
   { id: string; name: string }[]

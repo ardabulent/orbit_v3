@@ -15,7 +15,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(19);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -203,12 +203,33 @@ select is(
           not like '%must_change_password%'
   ),
   'branches.branches_select_member, '
-  || 'organization_memberships.memberships_select_self, '
   || 'organizations.organizations_select_member, '
   || 'platform_operators.platform_operators_select_operator, '
-  || 'profiles.profiles_select_self, '
   || 'profiles.profiles_update_self',
-  'exactly six policies skip the password lock, and every one of them is an identity read'
+  'exactly four policies skip the password lock, and every one of them is an identity read'
+);
+
+-- 2026-10-17 (göç 20261106000000): `memberships_select_self` ve
+-- `profiles_select_self` birleşik okuma kurallarına girdi. Kilit artık o
+-- kuralların içinde, "kendi satırı" dalı DIŞINDAKİ her dalda. Yukarıdaki
+-- "kilitli yönetici kendi profilini ve üyeliğini okur" iddiaları kendi satırı
+-- dalını, aşağıdaki iki iddia da dalın şeklini sabitliyor.
+select ok(
+  (
+    select pg_get_expr(p.polqual, p.polrelid) like '((user_id = ( SELECT auth.uid() AS uid)) OR ((NOT ( SELECT current_user_must_change_password()%'
+    from pg_policy as p
+    where p.polrelid = 'public.organization_memberships'::regclass and p.polname = 'memberships_select'
+  ),
+  'memberships_select: only the own-row branch skips the lock'
+);
+
+select ok(
+  (
+    select pg_get_expr(p.polqual, p.polrelid) like '((id = ( SELECT auth.uid() AS uid)) OR ((NOT ( SELECT current_user_must_change_password()%'
+    from pg_policy as p
+    where p.polrelid = 'public.profiles'::regclass and p.polname = 'profiles_select'
+  ),
+  'profiles_select: only the own-row branch skips the lock'
 );
 
 select * from finish();

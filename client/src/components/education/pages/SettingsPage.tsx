@@ -31,7 +31,7 @@ export function SettingsPage({
   //
   // Bu kontrol bir güvenlik sınırı DEĞİLDİR: istemci kodunu yok sayan biri
   // API veya servisi doğrudan çağırabilir. Gerçek yetki sınırı veritabanındaki
-  // `profiles_select_organization_admin` ve `memberships_select_self_or_admin`
+  // `profiles_select` ve `memberships_select` (yönetici dalları)
   // RLS politikalarıdır; buradaki kontrol yalnızca kullanıcı deneyimi içindir.
   const categories = SETTINGS_CATEGORIES.filter(item =>
     item.roles.includes(role)
