@@ -158,15 +158,16 @@ export function DayPlanToDoBoard({
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <div className="rounded-2xl bg-slate-900 p-6 text-white">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-extrabold">
+        {/* Koyu temada sabit koyu kart: ters palet onu beyaza çevirirdi (2026-10-16). */}
+        <div className="rounded-2xl bg-slate-900 p-6 text-white dark:bg-[#1e293b] dark:text-[#f8fafc]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-extrabold dark:bg-[#ffffff1a]">
             <Sparkles className="h-3 w-3" />
             Günün odağı
           </span>
           <p className="mt-3 font-display text-[19px] font-extrabold tracking-[-.03em]">
             {todayCount} görev bugün · {focusCount} odakta
           </p>
-          <p className="mt-4 max-w-md text-[11px] leading-5 text-white/70">
+          <p className="mt-4 max-w-md text-[11px] leading-5 text-white/70 dark:text-[#f8fafcb3]">
             {totalCount === 0
               ? "Henüz görev yok. Bir sütundaki + ile o sütuna görev ekleyebilirsiniz."
               : overdueCount > 0

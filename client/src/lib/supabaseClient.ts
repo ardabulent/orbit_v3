@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { createClockSkewRetryFetch } from "./clockSkewRetryFetch";
 import {
   newTabId,
   removeLegacyAuthTokens,
@@ -59,6 +60,11 @@ export const supabase = createClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+    },
+    // Girişten hemen sonraki istek, sunucu saat farkı yüzünden 401 alabiliyor
+    // ve oturum kapanıyordu (2026-10-16). Ayrıntı `clockSkewRetryFetch.ts`.
+    global: {
+      fetch: createClockSkewRetryFetch((input, init) => fetch(input, init)),
     },
   }
 );
