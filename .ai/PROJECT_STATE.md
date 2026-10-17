@@ -176,6 +176,7 @@ client/src/
 ├── contexts/               # ThemeProvider — uygulanan temayı yalnız okur
 ├── theme/orbitTheme.ts     # Tema tercihi (açık/koyu/sistem, `localStorage`), `useApplyOrbitTheme` — 2026-10-16
 ├── koyu-tema.css           # Koyu palet: `html.dark` altında Tailwind renk değişkenleri
+├── yumusak-palet.css       # Açık tema: yedi renkli ailenin canlılığı kısılmış değerleri (slate dokunulmaz) — 2026-10-17
 ├── hooks/                  # useComposition
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue
 │   ├── clockSkewRetryFetch.ts # Girişte "JWT issued at future" (401 PGRST303) alan isteği 1 sn sonra yeniden gönderir (2026-10-16)
