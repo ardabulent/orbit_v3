@@ -39,6 +39,7 @@ import {
   DEMO_TEACHER_CLASS_GROUPS,
   DEMO_TEACHER_NAMES,
 } from "./demoData";
+import { isDemoMode } from "@/auth/runtime";
 import type {
   ClassGroup,
   Homework,
@@ -49,13 +50,21 @@ import type {
 } from "./types";
 
 /**
+ * Derleme anında belli olan demo bayrağı (2026-10-17, Hız 2). Ayrıntı ve
+ * gerekçe: `educationData.ts`'teki aynı adlı sabit. Kapı:
+ * `scripts/check-demo-leak.mjs`.
+ */
+const DEMO_BUILD =
+  typeof __ORBIT_DEMO_MODE__ === "boolean" ? __ORBIT_DEMO_MODE__ : isDemoMode;
+
+/**
  * Öğretmen paneli (TeacherDashboard) için ders programı filtresi.
  */
 export function filterScheduleForTeacher(
   schedule: ScheduleItem[],
   isDemo: boolean
 ): ScheduleItem[] {
-  if (isDemo) {
+  if (DEMO_BUILD && isDemo) {
     return schedule.filter(item =>
       DEMO_TEACHER_NAMES.includes(
         item.teacher as (typeof DEMO_TEACHER_NAMES)[number]
@@ -77,7 +86,7 @@ export function filterStudentsForRole(
   if (role === "admin") {
     return students;
   }
-  if (isDemo) {
+  if (DEMO_BUILD && isDemo) {
     if (role === "teacher") {
       return students.filter(student =>
         DEMO_TEACHER_CLASS_GROUPS.includes(
@@ -109,7 +118,7 @@ export function filterAttendanceStudents(
   if (role === "admin") {
     return students;
   }
-  if (isDemo) {
+  if (DEMO_BUILD && isDemo) {
     if (role === "teacher") {
       return students.filter(student =>
         DEMO_TEACHER_CLASS_GROUPS.includes(
@@ -138,7 +147,7 @@ export function filterClassesForRole(
   if (role === "admin") {
     return classes;
   }
-  if (isDemo) {
+  if (DEMO_BUILD && isDemo) {
     if (role === "teacher") {
       return classes.filter(group => group.mentor === DEMO_CLASS_MENTOR);
     }
@@ -163,7 +172,7 @@ export function filterHomeworkForRole(
   if (role === "admin") {
     return homework;
   }
-  if (isDemo) {
+  if (DEMO_BUILD && isDemo) {
     if (role === "teacher") {
       return homework.filter(item =>
         DEMO_TEACHER_CLASS_GROUPS.includes(
@@ -197,7 +206,7 @@ export function filterPaymentsForRole(
   if (role === "admin") {
     return paymentRows;
   }
-  if (isDemo) {
+  if (DEMO_BUILD && isDemo) {
     if (role === "parent") {
       return paymentRows.filter(item => item.student === DEMO_STUDENT_NAME);
     }
@@ -222,7 +231,7 @@ export function filterScheduleForRole(
   if (role === "admin") {
     return schedule;
   }
-  if (isDemo) {
+  if (DEMO_BUILD && isDemo) {
     if (role === "student" || role === "parent") {
       return schedule.filter(
         item =>

@@ -1,6 +1,5 @@
 // ORBIT Education Platform: Modern, multi-role CRM and operations dashboard for education centers.
 import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -62,21 +61,22 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster position="top-right" richColors />
-          <Suspense
-            fallback={
-              <div
-                role="status"
-                className="grid min-h-screen place-items-center text-[12px] font-semibold text-slate-400"
-              >
-                Yükleniyor…
-              </div>
-            }
-          >
-            <Router />
-          </Suspense>
-        </TooltipProvider>
+        {/* `TooltipProvider` kalktı (2026-10-17, Hız 2): uygulamada ipucu kutusu
+            kullanılmıyordu ama giriş paketine radix-tooltip ve floating-ui
+            taşıyordu. Gerekirse kullanıldığı ekranın içine konur. */}
+        <Toaster position="top-right" richColors />
+        <Suspense
+          fallback={
+            <div
+              role="status"
+              className="grid min-h-screen place-items-center text-[12px] font-semibold text-slate-400"
+            >
+              Yükleniyor…
+            </div>
+          }
+        >
+          <Router />
+        </Suspense>
       </ThemeProvider>
     </ErrorBoundary>
   );

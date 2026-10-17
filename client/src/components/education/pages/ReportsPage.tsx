@@ -61,6 +61,14 @@ const formatNet = (value: number) =>
 // ayırt edilemiyor. Çubuğun altına sınavın tarihi yazılır.
 const examLabel = (exam: ExamAverage) => formatTrWeekLabel(exam.examDate);
 
+/**
+ * Derleme anında belli olan demo bayrağı (2026-10-17, Hız 2). Ayrıntı ve
+ * gerekçe: `educationData.ts`'teki aynı adlı sabit. Kapı:
+ * `scripts/check-demo-leak.mjs`.
+ */
+const DEMO_BUILD =
+  typeof __ORBIT_DEMO_MODE__ === "boolean" ? __ORBIT_DEMO_MODE__ : isDemoMode;
+
 export function ReportsPage({
   role,
   isDemo = isDemoMode,
@@ -78,7 +86,7 @@ export function ReportsPage({
   onOpenStudent,
 }: ReportsPageProps) {
   const isTeacher = role === "teacher";
-  const activeDemo = isDemoMode && isDemo;
+  const activeDemo = DEMO_BUILD && isDemo;
 
   // Hafta aralığı alt başlığı: her iki haftalık fonksiyon (devam ve ödev)
   // aynı 4 takvim haftasını ölçer (v1.4-16 · #278 / K-06).

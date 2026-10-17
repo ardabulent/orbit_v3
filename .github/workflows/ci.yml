@@ -84,6 +84,12 @@ jobs:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-anon-key
 
+      # Demo verisi üretim paketine girmemeli (#144). Paketleyici değişince bu
+      # koruma bir kez sessizce bozuldu (2026-10-17); artık derlemeden sonra
+      # paketin kendisinde aranıyor.
+      - name: Demo Verisi Sızıntı Kontrolü
+        run: node scripts/check-demo-leak.mjs dist
+
       # Kapı yalnızca production bağımlılıklarına uygulanır. ORBIT bir Vite
       # SPA'dır; kullanıcının tarayıcısına ulaşan kod yalnızca production
       # ağacından gelir. devDependencies'teki açıklar CI makinesinde çalışan

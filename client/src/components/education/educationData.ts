@@ -9,7 +9,7 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-import { isDemoMode } from "@/auth/runtime";
+import { isDemoMode as runtimeDemoMode } from "@/auth/runtime";
 import {
   formatCurrency,
   type PaymentOverviewCounts,
@@ -68,6 +68,20 @@ export type {
   StudentWeeklyNote,
   TeacherFollowUpItem,
 } from "./demoData";
+
+/**
+ * Derleme anında belli olan demo bayrağı (2026-10-17, Hız 2). `isDemoMode`
+ * başka modülden geldiğinde paketleyici (Vite 8 / Rolldown) onu ağaç
+ * sarsmasından önce katlayamıyor; demo verisi "kullanılıyor" sayılıp üretim
+ * paketinde kalıyordu (#144'ün sessiz geri dönüşü). Aynı modülde okunan
+ * derleme sabiti katlanıyor ve demo dalı veriyle birlikte düşüyor. Kapı:
+ * `scripts/check-demo-leak.mjs` (CI, derlemeden sonra).
+ */
+const DEMO_BUILD =
+  typeof __ORBIT_DEMO_MODE__ === "boolean"
+    ? __ORBIT_DEMO_MODE__
+    : runtimeDemoMode;
+const isDemoMode = DEMO_BUILD;
 
 /**
  * Eğitim ekranlarının veri kaynağı.
