@@ -18,6 +18,14 @@ import { roleEmail } from "./demoData";
 import { Badge } from "./shared";
 import type { Role } from "./types";
 
+/**
+ * Derleme anında belli olan demo bayrağı (2026-10-17, Hız 2). Ayrıntı ve
+ * gerekçe: `educationData.ts`'teki aynı adlı sabit. Kapı:
+ * `scripts/check-demo-leak.mjs`.
+ */
+const DEMO_BUILD =
+  typeof __ORBIT_DEMO_MODE__ === "boolean" ? __ORBIT_DEMO_MODE__ : isDemoMode;
+
 export function EducationLoginScreen({
   onLogin,
   demoMode,
@@ -26,17 +34,19 @@ export function EducationLoginScreen({
   demoMode: boolean;
 }) {
   const [selectedRole, setSelectedRole] = useState<Role>("admin");
-  const [identifier, setIdentifier] = useState(demoMode ? roleEmail.admin : "");
+  const [identifier, setIdentifier] = useState(
+    DEMO_BUILD && demoMode ? roleEmail.admin : ""
+  );
   // `isDemoMode` derleme sabiti: üretimde `false`a katlanır ve demo şifresi
   // pakete girmez (B12, 2026-10-11). `demoMode` tek başına çalışma anında
   // gelen bir değer olduğu için dalı elemeye yetmiyordu.
   const [password, setPassword] = useState(
-    isDemoMode && demoMode ? "demo123" : ""
+    DEMO_BUILD && demoMode ? "demo123" : ""
   );
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const selectRole = (role: Role) => {
-    if (!demoMode) return;
+    if (!DEMO_BUILD || !demoMode) return;
     setSelectedRole(role);
     setIdentifier(roleEmail[role]);
   };
@@ -207,7 +217,7 @@ export function EducationLoginScreen({
                 <ChevronRight className="h-4 w-4" />
               </button>
             </form>
-            {isDemoMode && demoMode ? (
+            {DEMO_BUILD && demoMode ? (
               <p className="mt-5 text-[10px] leading-5 text-slate-400">
                 Demo şifresi:{" "}
                 <strong className="font-bold text-slate-600">demo123</strong>.

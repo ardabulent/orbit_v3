@@ -1189,6 +1189,8 @@ Kod zaten doğru kalıbı kullanıyordu — `educationData.ts`'in her ihracı `i
 
 **Kapsam dışı bırakıldı:** `roleEmail` gibi birkaç küçük demo sabiti hâlâ `demoMode` prop'una bağlı tüketicilerden erişilebilir; bunlar kişi adı taşımadığı için #144'ün gerekçesine girmiyor.
 
+**Sonradan düzeltme (2026-10-17):** Bu koruma Vite 8 / Rolldown geçişinde **sessizce bozuldu** ve hiçbir kontrol fark etmedi. Ölçüldü: üretim paketinin giriş parçası öğrenci, ödeme ve program demo dizilerini taşıyordu (`demoData` ayrı parça olarak giriş parçasından statik içe aktarılıyordu). Sebep: Rolldown başka modülden gelen `isDemoMode`'u ağaç sarsmasından **sonra** katlıyor; `isDemoMode ? demoX : []` çıktıda `[]` oluyor ama `demoX` o ana kadar "kullanılmış" sayıldığı için paketten atılmıyor. `optimization.inlineConst` tur sayısını artırmak etkisizdi. Düzeltme: demo verisini kullanan her modül kararı **kendi içinde** derleme sabitinden okuyor (`const DEMO_BUILD = typeof __ORBIT_DEMO_MODE__ === "boolean" ? __ORBIT_DEMO_MODE__ : isDemoMode`) — `educationData.ts`, `scopeFilters.ts`, `LoginScreen.tsx`, `SettingsProfileSection.tsx`, `ReportsPage.tsx`; yukarıdaki "kapsam dışı" `roleEmail` da bu turda girdi. **Yeni kural:** "doğrulama iki yönlüdür" ilkesi artık elle değil CI'da: `scripts/check-demo-leak.mjs` derlemeden sonra paketteki yedi demo işaretini arar ve bulursa düşer (düzeltmesiz `main` üzerinde denendi, yakaladı). Demo verisini yeni bir modülde kullanan, koşulu `DEMO_BUILD` ile kurar; kapı unutulursa hatırlatır.
+
 ---
 
 ### Karar: ORBIT tüm rollere "siz" diye hitap eder

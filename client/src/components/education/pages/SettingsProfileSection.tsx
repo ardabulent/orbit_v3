@@ -6,9 +6,18 @@ import { saveProfilePhone } from "@/auth/profileContactService";
 import { settingsKeys, useProfileContact } from "@/settings/settingsQueries";
 import { demoRoleNames, roleMeta } from "../roleMeta";
 import { roleEmail } from "../demoData";
+import { isDemoMode } from "@/auth/runtime";
 import type { Role } from "../types";
 import { SettingsFormField } from "./SettingsFormField";
 import { RecoveryEmailCard } from "./RecoveryEmailCard";
+
+/**
+ * Derleme anında belli olan demo bayrağı (2026-10-17, Hız 2). Ayrıntı ve
+ * gerekçe: `educationData.ts`'teki aynı adlı sabit. Kapı:
+ * `scripts/check-demo-leak.mjs`.
+ */
+const DEMO_BUILD =
+  typeof __ORBIT_DEMO_MODE__ === "boolean" ? __ORBIT_DEMO_MODE__ : isDemoMode;
 
 export function SettingsProfileSection({ role }: { role: Role }) {
   const { identity, demoMode } = useAuth();
@@ -24,9 +33,8 @@ export function SettingsProfileSection({ role }: { role: Role }) {
       ? userPhone
       : (contact?.phone ?? "");
 
-  const recoveryEmail = demoMode
-    ? roleEmail[role]
-    : (contact?.recoveryEmail ?? "");
+  const recoveryEmail =
+    DEMO_BUILD && demoMode ? roleEmail[role] : (contact?.recoveryEmail ?? "");
 
   const loading = !demoMode && isLoading;
   const loadError = queryError ? queryError.message : null;
