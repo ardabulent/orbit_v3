@@ -1,0 +1,103 @@
+/*
+ * Yumuşak palet — açık tema (2026-10-17).
+ *
+ * Bugünkü açık tema korunur: slate (gri / lacivert-siyah) ölçeği ve zeminler
+ * aynı. Yalnız renkli ailelerin (rose, red, blue, sky, amber, emerald, violet)
+ * canlılığı (oklch C) kısılır: zemin tonlarında (50–200) %85, yazı ve düğme
+ * tonlarında (300–950) %78. Açıklık (L) ve renk açısı (H) değişmez, yani her
+ * sınıf aynı yerde aynı anlamı taşır; yalnız "neon" etkisi kalkar.
+ *
+ * Değerler Tailwind 4'ün kendi paletinden üretildi (`theme.css`). Rozet
+ * okunurluğu (700 yazı / 50 zemin) 4,8–6,3 arasında, WCAG AA (4,5) üstünde.
+ * Yeni bir renk ailesi kullanılırsa buraya ve `koyu-tema.css`'e eklenir.
+ *
+ * Seçici `html`: Tailwind'in değişkenleri `@layer theme` içinde, bu dosya
+ * katmansız olduğu için onları ezer; `html.dark` (koyu-tema.css) daha belirgin
+ * olduğu için koyu temada o geçerlidir.
+ */
+html {
+  /* rose */
+  --color-rose-50: oklch(96.9% 0.013 12.4);
+  --color-rose-100: oklch(94.1% 0.025 12.6);
+  --color-rose-200: oklch(89.2% 0.049 10);
+  --color-rose-300: oklch(81% 0.091 11.6);
+  --color-rose-400: oklch(71.2% 0.151 13.4);
+  --color-rose-500: oklch(64.5% 0.192 16.4);
+  --color-rose-600: oklch(58.6% 0.197 17.6);
+  --color-rose-700: oklch(51.4% 0.173 16.9);
+  --color-rose-800: oklch(45.5% 0.147 13.7);
+  --color-rose-900: oklch(41% 0.124 10.3);
+  --color-rose-950: oklch(27.1% 0.082 12.1);
+  /* red */
+  --color-red-50: oklch(97.1% 0.011 17.4);
+  --color-red-100: oklch(93.6% 0.027 17.7);
+  --color-red-200: oklch(88.5% 0.053 18.3);
+  --color-red-300: oklch(80.8% 0.089 19.6);
+  --color-red-400: oklch(70.4% 0.149 22.2);
+  --color-red-500: oklch(63.7% 0.185 25.3);
+  --color-red-600: oklch(57.7% 0.191 27.3);
+  --color-red-700: oklch(50.5% 0.166 27.5);
+  --color-red-800: oklch(44.4% 0.138 26.9);
+  --color-red-900: oklch(39.6% 0.11 25.7);
+  --color-red-950: oklch(25.8% 0.072 26);
+  /* blue */
+  --color-blue-50: oklch(97% 0.012 254.6);
+  --color-blue-100: oklch(93.2% 0.027 255.6);
+  --color-blue-200: oklch(88.2% 0.05 254.1);
+  --color-blue-300: oklch(80.9% 0.082 251.8);
+  --color-blue-400: oklch(70.7% 0.129 254.6);
+  --color-blue-500: oklch(62.3% 0.167 259.8);
+  --color-blue-600: oklch(54.6% 0.191 262.9);
+  --color-blue-700: oklch(48.8% 0.19 264.4);
+  --color-blue-800: oklch(42.4% 0.155 265.6);
+  --color-blue-900: oklch(37.9% 0.114 265.5);
+  --color-blue-950: oklch(28.2% 0.071 267.9);
+  /* sky */
+  --color-sky-50: oklch(97.7% 0.011 236.6);
+  --color-sky-100: oklch(95.1% 0.022 236.8);
+  --color-sky-200: oklch(90.1% 0.049 230.9);
+  --color-sky-300: oklch(82.8% 0.087 230.3);
+  --color-sky-400: oklch(74.6% 0.125 232.7);
+  --color-sky-500: oklch(68.5% 0.132 237.3);
+  --color-sky-600: oklch(58.8% 0.123 242);
+  --color-sky-700: oklch(50% 0.105 242.7);
+  --color-sky-800: oklch(44.3% 0.086 240.8);
+  --color-sky-900: oklch(39.1% 0.07 240.9);
+  --color-sky-950: oklch(29.3% 0.051 243.2);
+  /* amber */
+  --color-amber-50: oklch(98.7% 0.019 95.3);
+  --color-amber-100: oklch(96.2% 0.05 95.6);
+  --color-amber-200: oklch(92.4% 0.102 95.7);
+  --color-amber-300: oklch(87.9% 0.132 91.6);
+  --color-amber-400: oklch(82.8% 0.147 84.4);
+  --color-amber-500: oklch(76.9% 0.147 70.1);
+  --color-amber-600: oklch(66.6% 0.14 58.3);
+  --color-amber-700: oklch(55.5% 0.127 49);
+  --color-amber-800: oklch(47.3% 0.107 46.2);
+  --color-amber-900: oklch(41.4% 0.087 45.9);
+  --color-amber-950: oklch(27.9% 0.06 45.6);
+  /* emerald */
+  --color-emerald-50: oklch(97.9% 0.018 166.1);
+  --color-emerald-100: oklch(95% 0.044 163.1);
+  --color-emerald-200: oklch(90.5% 0.079 164.2);
+  --color-emerald-300: oklch(84.5% 0.112 165);
+  --color-emerald-400: oklch(76.5% 0.138 163.2);
+  --color-emerald-500: oklch(69.6% 0.133 162.5);
+  --color-emerald-600: oklch(59.6% 0.113 163.2);
+  --color-emerald-700: oklch(50.8% 0.092 165.6);
+  --color-emerald-800: oklch(43.2% 0.074 166.9);
+  --color-emerald-900: oklch(37.8% 0.06 168.9);
+  --color-emerald-950: oklch(26.2% 0.04 172.6);
+  /* violet */
+  --color-violet-50: oklch(96.9% 0.014 293.8);
+  --color-violet-100: oklch(94.3% 0.025 294.6);
+  --color-violet-200: oklch(89.4% 0.048 293.3);
+  --color-violet-300: oklch(81.1% 0.087 293.6);
+  --color-violet-400: oklch(70.2% 0.143 293.5);
+  --color-violet-500: oklch(60.6% 0.195 292.7);
+  --color-violet-600: oklch(54.1% 0.219 293);
+  --color-violet-700: oklch(49.1% 0.211 292.6);
+  --color-violet-800: oklch(43.2% 0.181 292.8);
+  --color-violet-900: oklch(38% 0.147 293.7);
+  --color-violet-950: oklch(28.3% 0.11 291.1);
+}
