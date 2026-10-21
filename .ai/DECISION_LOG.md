@@ -157,6 +157,7 @@
 - E-posta Edge fonksiyonlarından SMTP ile gider; şimdilik kurum sahibinin Gmail'i, numarayla girenin şifresi kurtarma adresine sıfırlanır
 - Öğrenci ve veliye telefonda alt gezinme çubuğu; personel kenar menüsünde kalır
 - Koyu mod paletin ters çevrilmesiyle yapılır; yalnız kurum panelinde, tercih cihazda saklanır
+- İki geliştiricili çalışma düzeni
 
 ---
 
@@ -4126,3 +4127,27 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Bilinen sınır:** Ters palet, açık temada "koyu kart" olarak tasarlanmış yerleri (ör. `bg-slate-900` düğmeler) koyu temada açık renkli yapar. Okunurluk korunur; görünüm bilinçli olarak kabul edildi.
 
 **Ek (2026-10-17) — yumuşak palet:** Kurum sahibi koyu temayı "fazla neon" buldu; açık temayı beğendiğini, yalnız renklerin orada da fazla canlı olduğunu söyledi. Altı palet önerisi (ORBIT için iki, Nord / Catppuccin / Rosé Pine / Everforest'tan uyarlanmış dört) gösterildi; karar: _"Sis ile Catppuccin arası, başka tema olmasın, açık temadaki koyu mavi-siyah ton kalsın"_. Uygulama: slate ölçeğine ve zeminlere açık temada dokunulmadı; yedi renkli ailenin canlılığı (oklch C) açıkta %78–85'e, koyuda yazı tonlarında %60'a (en çok 0,11) kısıldı, koyudaki yazı tonları 4 puan koyulaştı, koyudaki en açık slate tonları bir kademe indi. Rozet okunurluğu açıkta 4,8–6,3, koyuda 5,3–9,8 (WCAG AA 4,5). **Reddedilen:** _Birden çok palet seçeneği_ — kurum sahibi tek açık + tek koyu istedi.
+
+---
+
+### Karar: İki geliştiricili çalışma düzeni
+
+**Durum:** Kabul edildi · uygulandı (çalışma kuralları PR'ı)
+**Tarih:** 2026-10-19
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** Projeye bir yazılımcı ortak katıldı. Kurallar üç yerde gerçeği anlatmıyordu: `CONTRIBUTING.md` "ekip tek kişi, insan onayı istenmiyor", `AGENTS.md` "YZ ajanı commit atmaz, push etmez, göç yazmaz" diyordu; ikincisi aylardır uygulanmıyordu. `package.json` "MIT" diyordu ama `LICENSE` dosyası yoktu; herkese açık deponun hukuki durumu belirsizdi. Dal adı kuralı (`feat/<issue-no>`) da uygulanmıyordu. 18 Ekim depo denetiminin yüksek öncelikli bulgularıydı.
+
+**Karar:**
+
+1. **Lisans: tüm hakları saklı.** Depo herkese açık kalır ama açık kaynak değildir; `LICENSE` yalnız görüntülemeye izin verir. `package.json`: `SEE LICENSE IN LICENSE`.
+2. **Birleştirme squash ile ve bir insan onayıyla.** PR `main`'e tek commit olarak girer. Onayı PR'ı açmayan geliştirici verir; GitHub kişinin kendi PR'ını onaylamasına izin vermez.
+3. **Issue isteğe bağlı, dal adı tür önekli.** `feat/ fix/ perf/ ui/ docs/ chore/ test/` + kısa Türkçe ad. Birden çok PR'a yayılan ya da sonraya kalan iş issue olarak açılır.
+4. **YZ ajanı PR açar, birleştirmez.** Dal, kod, göç, yerel test, commit, push ve PR ajanın; birleştirme, panel ayarı, şifre ve gizli anahtar insanın. Canlıya salt okunur bakılır.
+5. **GitHub koruması ortak eklenince sıkılaşır:** 1 onay, yeni commit gelince eski onayın düşmesi, CodeQL zorunlu kontrol, yalnız squash. Ortak işbirlikçi olmadan onay zorunlu yapılırsa kurucu kendi PR'ını birleştiremez; sıra bu yüzden böyledir.
+
+**Gerekçe:** Birleştirme düğmesi canlıyı değiştiren düğmedir (göçler Supabase'e otomatik uygulanır). Sınırı oraya çekmek, ajanın hızını korurken geri dönüşü zor adımı insanda tutar. Squash, ortak için okunur bir `main` geçmişi verir (her PR bir satır). Zorunlu issue küçük işlerde tören olurdu; tür öneki dal listesini okunur yapmaya yeter.
+
+**Reddedilen:** _MIT ya da başka açık lisans_ — ürün ticari, kod henüz satılabilir varlık. _Depoyu özele almak_ — kurucu açık kalmasını istedi. _Ajanın da birleştirmesi_ — canlıya giden adımda insan gözü kalmaz. _Zorunlu issue_ — bkz. gerekçe.
+
+**Eski kayıtlarla ilişki:** "Stabilizasyon fazında tek kişilik merge'e sınırlı izin" (2026-08-23) v1.1.2 ile zaten sona ermişti; bu karar onun dönmeyi öngördüğü iki kişilik onayı geri getirir, artık GitHub ayarıyla zorlanarak.

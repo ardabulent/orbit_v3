@@ -1,32 +1,40 @@
-## 🎯 Bu PR Ne İşe Yarıyor?
+## Ne değişti, neden?
 
-- Closes #[Issue Numarası]
-  <!-- Anahtar kelime İNGİLİZCE olmak zorunda: Closes / Fixes / Resolves.
-       "Kapatır: #123" yazılırsa GitHub bunu sıradan metin sayar, issue merge
-       edildiğinde KAPANMAZ ve kimse fark etmez. Bir kez oldu (2026-09-07,
-       beş issue). Merge sonrası issue'nun gerçekten kapandığı kontrol edilir. -->
-- [Yapılan değişikliğin kısa özeti]
+<!-- Bir iki cümle: hangi sorun, nasıl çözüldü. Squash başlığı PR başlığıdır; başlık Conventional Commits formatında olsun (fix: …, feat: …). -->
 
-## 🧠 Yapay Zekâ & Mimari Notları
+Closes #
 
-- **Kullanılan YZ:** [Claude / Gemini / Cursor / ChatGPT / Antigravity]
-- **Etkilenen Modüller:** [Örn: Sınıf Yönetimi, Öğrenci Tablosu, Yoklama]
-- **.ai/ Hafıza Dosyaları Güncellendi mi?:** [ ] Evet / [ ] Hayır
+<!-- Issue yoksa satırı silin. Anahtar kelime İNGİLİZCE olmak zorunda: Closes / Fixes / Resolves.
+     "Kapatır: #123" GitHub'da çalışmaz; issue kapanmaz ve kimse fark etmez (2026-09-07, beş issue). -->
 
-## 🕸️ Graph & Etki Alanı (Blast Radius) Analizi
+## Etki alanı
 
-- **Dokunulan Düğümler:** [Hangi veri tipleri, tablolar veya bileşenler değişti?]
-- **Bağlı Modül Etkisi:** [Bu değişiklik başka hangi ekranları etkiliyor?]
-- **Ticari & Güvenlik / KVKK Riski Var mı?:** [ ] Hayır / [ ] Evet (Açıklayınız)
+- **Dokunulan modüller / ekranlar:**
+- **Dokunulan tablolar / RLS politikaları:** <!-- yoksa "yok" -->
+- **Güvenlik, KVKK veya maliyet riski:** <!-- yoksa "yok"; varsa açıklayın -->
 
-## 🧪 Nasıl Test Edildi?
+## Nasıl denendi?
 
-- [ ] Otomatik testler eklendi ve geçti (`pnpm test`)
-- [ ] Tarayıcıda manuel UI/UX testi yapıldı
-- [ ] Edge-case senaryoları denendi (Hatalı girdi, yetkisiz erişim vb.)
+- [ ] `pnpm format && pnpm check && pnpm lint && pnpm test`
+- [ ] Tarayıcıda denendi (hangi rol, hangi ekran):
+- [ ] Hatalı girdi / yetkisiz erişim gibi kenar durumlar denendi
 
-## 👥 Code Review Kontrol Listesi (Arkadaşın İçin)
+### Göç varsa (`supabase/migrations/`)
 
-- [ ] Hardcoded API Key / Secret yok
-- [ ] Gereksiz kütüphane eklenmemiş
-- [ ] Kod mevcut mimariyle uyumlu
+- [ ] Yerelde temiz kuruldu, pgTAP testi eklendi ve geçti (`supabase test db`)
+- [ ] Yıkıcı değil — ya da gerekçesi aşağıda yazılı
+- [ ] Göç sırası testi (`supabase/tests/deployment/migrationOrderIsMonotonic.test.ts`) güncellendi
+
+### Edge Function değiştiyse (`supabase/functions/`)
+
+- [ ] `deno check` ve fonksiyonun testleri geçti
+- [ ] Girdi Zod ile doğrulanıyor
+
+## İnceleyen için
+
+- [ ] Gizli anahtar, gerçek kişi verisi ya da canlı adres yok (depo herkese açık)
+- [ ] Yeni bağımlılık yok — ya da gerekçesi yazılı
+- [ ] Mevcut desenle tutarlı (klasör yapısı, servis katmanı, adlandırma)
+- [ ] Değişen karar / durum / ayar aynı PR'da belgeye işlendi (`DECISION_LOG`, `ROADMAP` §0, `PLATFORM_SETTINGS`, `PROJECT_STATE` §5)
+
+<!-- Birleştirdikten sonra: Vercel yayını ve (göç varsa) Supabase göç sayısı kontrol edilir — PLATFORM_SETTINGS.md §6. -->

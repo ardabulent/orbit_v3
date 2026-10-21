@@ -8,6 +8,8 @@
 
 ## Neden var
 
+> **Sonradan düzeltme (2026-10-19):** Ekip yeniden iki kişi oldu (kurucu + yazılımcı ortak). Aşağıdaki "ekip tek kişi" cümlesi o tarihe kadar doğruydu. Bugünkü düzen: YZ ajanı dal açar, commit atar ve PR açar; **birleştirmeyi bir insan yapar** ve kendi açtığı PR'ı onaylayamaz. Yani denetleyen rolünün kaymasını yakalayacak ikinci göz yeniden var. Brifing → uygulama → teslim → inceleme döngüsü iki ajanla çalışılırken aynen geçerli; tek ajanla çalışıldığında inceleme adımını PR'ı onaylayan insan üstlenir. Bkz. `CONTRIBUTING.md` — "Kim ne yapar".
+
 ORBIT sıfır bütçeli bir ekip tarafından geliştiriliyor ve ağır iş yükü yapay zekâ ajanlarında. **2026-09-19'dan beri ekip tek kişi** (önce iki kişiydi); bu belgedeki **yazan / denetleyen** ayrımı iki _insanı_ değil iki _rolü_ anlatır, dolayısıyla ayrım aynen geçerli. Değişen şey şu: insan tarafında ikinci göz kalmadı, yani denetleyen rolünün kaymasını yakalayacak kimse yok — aşağıdaki "denetleyenin kayması daha pahalıdır" maddesi bundan sonra daha da bağlayıcı. Tek bir ajanın hem yazıp hem denetlemesi iki sorun üretiyordu: maliyet ve kör nokta. Bir ajan kendi varsayımını dürüstçe bildirebiliyor ama **yanlış olduğunu göremiyor**.
 
 Bu yüzden iş ikiye ayrıldı: **yazan** ve **denetleyen**. Bu belge o ayrımın kurallarını tutuyor ki oturum değişince kaybolmasın.
