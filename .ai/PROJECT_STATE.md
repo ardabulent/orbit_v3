@@ -70,7 +70,7 @@
 ```
 client/src/
 ├── components/
-│   ├── ui/                 # Radix/shadcn UI bileşenleri (vendored; sayı yazılmaz, 2026-10-22 itibarıyla 13 — 53 diyordu)
+│   ├── ui/                 # Radix/shadcn UI bileşenleri (vendored). Sayı yazılmaz: "53" diyordu, gerçek çok daha azdı (K-06)
 │   ├── education/          # ORBIT Eğitim Çekirdek Ekranları (rol/sayfa bazlı bölünmüş)
 │   │   ├── types.ts          # Student/ClassGroup/ScheduleItem/Automation/PaymentRow
 │   │   ├── demoData.ts       # YALNIZ demo verisi — üretim paketinde elenir (#144)
