@@ -287,7 +287,8 @@ select is(
 select is(
   (select count(*) from realtime.messages
    where topic <> 'org:cc000000-0000-0000-0000-0000000000cc'
-     and payload ->> 'table' = 'homework_assignments'),
+     and payload ->> 'table' = 'homework_assignments'
+     and inserted_at >= now()),
   0::bigint,
   'no homework message leaks to another organization channel'
 );

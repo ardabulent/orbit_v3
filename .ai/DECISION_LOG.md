@@ -4175,3 +4175,5 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Reddedilen:** _`supabase/seed.sql`_ — yukarıdaki iki sebep. _Canlıdan anonimleştirilmiş kopya_ — gerçek kişi verisi yerel makineye iner (KVKK); depo herkese açık.
 
 **Bilinen sınır:** Bilinen bir şifreyle hesap açar; yerel adres kontrolü bu yüzden betiğin ilk işidir. pgTAP'in boş veritabanı varsayımı ayrı bir iştir; o güne kadar tarif "önce `db reset`, sonra test, sonra tohum".
+
+**Sonradan düzeltme (2026-10-22):** sayım eksikti — _"7 dosya, 11 iddia"_ yalnız `Failed test` satırları sayılarak çıkmıştı. İki dosya daha (`person_code`, `platform_operator_reads`) örnek kurumun `10001000@orbit.invalid` adresiyle çakışıp **hiç koşamıyordu** ve o satırı üretmiyordu; doğrusu 9 dosya, 15 iddia. Hepsi düzeltildi (ana plan 0.11): tüm tabloyu sayan iddialar yalnız testin kendi işleminde yazılan satırları sayar (`created_at >= now()`, `realtime.messages` için `inserted_at`), sabit test adresleri 9000'li aralığa taşındı. pgTAP artık boş ve tohumlu veritabanında aynı sonucu verir (1350/1350, ikisi de ölçüldü); "önce `db reset`" adımı kalktı.

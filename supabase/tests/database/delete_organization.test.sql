@@ -207,7 +207,7 @@ select ok(
 );
 
 select is(
-  (select count(*) from public.platform_operators),
+  (select count(*) from public.platform_operators where created_at >= now()),
   2::bigint,
   'platform operator records survive the organization deletion'
 );

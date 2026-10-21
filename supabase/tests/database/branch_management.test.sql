@@ -271,7 +271,8 @@ select throws_ok(
 
 select is(
   (select count(*) from public.audit_events
-   where entity_type = 'branch' and action = 'branch.created'),
+   where entity_type = 'branch' and action = 'branch.created'
+     and created_at >= now()),  -- yalnız bu işlemde yazılanlar; yerel örnek veri karışmaz
   3::bigint,
   'every branch that was opened left a trace'
 );
@@ -294,7 +295,8 @@ select ok(
 select is(
   (select count(*) from realtime.messages
    where topic <> 'org:cd000000-0000-0000-0000-0000000000cd'
-     and payload ->> 'table' = 'branches'),
+     and payload ->> 'table' = 'branches'
+     and inserted_at >= now()),
   0::bigint,
   'and no branch message leaks to another organization'
 );

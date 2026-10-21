@@ -49,7 +49,7 @@ values
     '00000000-0000-0000-0000-000000000000',
     'authenticated',
     'authenticated',
-    '10001000@orbit.invalid',
+    '90001000@orbit.invalid',
     '',
     now(),
     now()
@@ -106,7 +106,7 @@ select set_config(
 select set_config('request.jwt.claim.role', 'authenticated', true);
 
 select is(
-  (select count(*) from public.organizations),
+  (select count(*) from public.organizations where created_at >= now()),
   1::bigint,
   'active operator can list organizations'
 );

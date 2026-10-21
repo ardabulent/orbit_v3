@@ -326,7 +326,8 @@ reset role;
 
 select ok(
   (select count(*) from public.audit_events
-   where entity_type = 'exam_section_result' and action = 'exam_section_result.created') = 4,
+   where entity_type = 'exam_section_result' and action = 'exam_section_result.created'
+     and created_at >= now()) = 4,
   'every section result entry leaves a trace'
 );
 
