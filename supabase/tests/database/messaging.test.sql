@@ -150,7 +150,7 @@ insert into public.homework_assignments (organization_id, class_id, title, due_d
 values ('a9000000-0000-0000-0000-00000000a900', 'a9200000-0000-0000-0000-00000000a920',
         'Kuvvet soruları', public.orbit_today() + 3);
 select is(
-  (select array_agg(user_id order by user_id) from public.notifications where kind = 'homework'),
+  (select array_agg(user_id order by user_id) from public.notifications where kind = 'homework' and created_at >= now()),
   array['a4000000-0000-0000-0000-00000000a400', 'a5000000-0000-0000-0000-00000000a500']::uuid[],
   'homework notifies the class''s student and guardian only');
 
@@ -162,7 +162,7 @@ insert into public.attendance_records (organization_id, session_id, student_id, 
 values ('a9000000-0000-0000-0000-00000000a900', 'a9800000-0000-0000-0000-00000000a980',
         'a9400000-0000-0000-0000-00000000a940', 'absent');
 select is(
-  (select array_agg(user_id) from public.notifications where kind = 'attendance'),
+  (select array_agg(user_id) from public.notifications where kind = 'attendance' and created_at >= now()),
   array['a5000000-0000-0000-0000-00000000a500']::uuid[],
   'an absence is told to the guardian, not the student');
 
@@ -171,7 +171,7 @@ insert into public.daily_feed_posts (organization_id, title, body, author_member
 values ('a9000000-0000-0000-0000-00000000a900', 'Öğretmenler toplantısı', 'Cuma',
         'a1100000-0000-0000-0000-00000000a110', 'staff');
 select is(
-  (select array_agg(user_id order by user_id) from public.notifications where kind = 'announcement'),
+  (select array_agg(user_id order by user_id) from public.notifications where kind = 'announcement' and created_at >= now()),
   array['a2000000-0000-0000-0000-00000000a200', 'a3000000-0000-0000-0000-00000000a300']::uuid[],
   'a staff-only announcement notifies teachers only, not its author or families');
 

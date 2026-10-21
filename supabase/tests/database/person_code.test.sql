@@ -10,17 +10,18 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(14);
 
--- Kurulum: iki kurum, üç kullanıcı.
+-- Kurulum: iki kurum, üç kullanıcı. Adresler 9000'li aralıkta: yerel örnek
+-- kurum (`pnpm yerel:tohum`) 1000'den başlayan numaraları alır ve çakışmamalı.
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
 )
 values
   ('a1000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', '10001000@orbit.invalid', '', now(), now()),
+   'authenticated', 'authenticated', '90001000@orbit.invalid', '', now(), now()),
   ('a2000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', '10001001@orbit.invalid', '', now(), now()),
+   'authenticated', 'authenticated', '90001001@orbit.invalid', '', now(), now()),
   ('a3000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', '10011000@orbit.invalid', '', now(), now());
+   'authenticated', 'authenticated', '90011000@orbit.invalid', '', now(), now());
 
 insert into public.organizations (id, name, slug)
 values
@@ -123,7 +124,7 @@ select lives_ok(
 -- aittir" kararının şema tarafındaki karşılığıdır. Kayıtlar birbirini
 -- engellemez çünkü farklı auth kullanıcılarıdır.
 select is(
-  (select count(*) from public.organization_memberships where person_code = 1000),
+  (select count(*) from public.organization_memberships where person_code = 1000 and created_at >= now()),
   2::bigint,
   'person code 1000 exists once per organization'
 );

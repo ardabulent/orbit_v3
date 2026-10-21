@@ -122,13 +122,13 @@ select ok(
 );
 
 select is(
-  (select count(*) from public.platform_operators),
+  (select count(*) from public.platform_operators where created_at >= now()),
   1::bigint,
   'operator can read the operator list'
 );
 
 select is(
-  (select count(*) from public.platform_audit_events),
+  (select count(*) from public.platform_audit_events where created_at >= now()),
   1::bigint,
   'operator can read platform audit events'
 );
@@ -161,7 +161,7 @@ select throws_ok(
 -- iddia (şube ve üyelik) o sınırın bekçisidir ve kapalı kalır.
 
 select is(
-  (select count(*) from public.organizations),
+  (select count(*) from public.organizations where created_at >= now()),
   1::bigint,
   'platform operator can read the organization container'
 );

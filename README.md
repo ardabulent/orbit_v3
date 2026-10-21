@@ -124,13 +124,13 @@ Yeni bir göç yazdığında `npx supabase db reset` onu sıfırdan uygular; toh
 
 ```bash
 pnpm format && pnpm check && pnpm lint && pnpm test   # her PR (CI'daki quality-gate)
-npx supabase db reset && npx supabase test db         # supabase/ değiştiyse: pgTAP (boş veritabanında)
+npx supabase test db                                  # supabase/ değiştiyse: pgTAP
 bash supabase/tests/functions/create_member_chain.sh  # Edge Function değiştiyse
 deno check supabase/functions/*/index.ts              # Edge Function değiştiyse
 pnpm build && node scripts/check-demo-leak.mjs        # demo verisi üretim paketine sızdı mı
 ```
 
-⚠️ **pgTAP boş veritabanı bekler.** Bazı testler tüm veritabanını sayar (örn. "operatör listesinde bir kişi var"); örnek veri yüklüyken 7 dosyada 11 iddia kırılır. Bu yüzden önce `db reset`, testlerden sonra `pnpm yerel:tohum` (üçü birlikte ~1 dakika). CI'da örnek veri yoktur. Zincir testi (`create_member_chain.sh`) örnek veriden etkilenmez.
+pgTAP ve zincir testi örnek veriden etkilenmez: her test dosyası kendi işleminde koşar ve yalnız o işlemde yazdığı satırları sayar (`created_at >= now()`). Yeni bir pgTAP iddiası tüm tabloyu sayıyorsa aynı süzgeci ekleyin; sabit giriş numarası gerekiyorsa 9000'li aralığı kullanın (örnek kurum 1000'den başlar).
 
 ### Windows: `supabase start` port hatası verirse
 

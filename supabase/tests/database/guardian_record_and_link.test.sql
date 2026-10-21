@@ -382,7 +382,8 @@ select is(
 select is(
   (select count(*) from realtime.messages
    where topic <> 'org:ee000000-0000-0000-0000-0000000000ee'
-     and payload ->> 'table' in ('guardians', 'student_guardians')),
+     and payload ->> 'table' in ('guardians', 'student_guardians')
+     and inserted_at >= now()),
   0::bigint,
   'no guardian message leaks to another organization channel'
 );

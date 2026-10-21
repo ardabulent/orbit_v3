@@ -30,7 +30,7 @@ Dosyaların nerede durduğu: `PROJECT_STATE.md` §5 (bir test bu ağacın eksiks
 ## 3. İlk gün yapılacaklar
 
 1. **Yerel kurulum** — `README.md` → "Yerel Kurulum". Sonunda örnek kurumla, her rolde girebildiğin bir kopyan olur. Canlıya bağlanmaz.
-2. **Kapıları bir kez çalıştır** — `pnpm format && pnpm check && pnpm lint && pnpm test`, sonra `npx supabase db reset && npx supabase test db`. Hepsi yeşilse ortam doğru.
+2. **Kapıları bir kez çalıştır** — `pnpm format && pnpm check && pnpm lint && pnpm test`, sonra `npx supabase test db`. Hepsi yeşilse ortam doğru.
 3. **Uygulamayı dört rolle gez** — yönetici, öğretmen, öğrenci, veli (giriş numaraları tohumun çıktısında).
 4. **Çalışma kurallarını oku** — `CONTRIBUTING.md` (kısa). Özet: `main`'e doğrudan yazılmaz; tür önekli dal → PR → bir insan onayı → squash. Kendi PR'ını onaylayamazsın.
 5. **Planı oku** — `ROADMAP.md` §0 ve §4.27. Sıradaki iş oradan seçilir.
