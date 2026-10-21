@@ -107,7 +107,7 @@ describe("loadAuditEvents (v1.3-06 cursor pagination)", () => {
         const chain: Record<string, unknown> = {};
         chain.select = vi.fn().mockReturnValue(chain);
         chain.in = vi.fn().mockResolvedValue({
-          data: [{ id: "user-1", display_name: "Hamza Bayrak" }],
+          data: [{ id: "user-1", display_name: "Kerem Aydın" }],
           error: null,
         });
         return chain;

@@ -1,12 +1,15 @@
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { useTheme } from "@/contexts/ThemeContext";
 
+// Tema `next-themes`'ten değil uygulamanın kendi kaynağından okunur:
+// `next-themes` sağlayıcısı hiç kurulmamıştı ve kutucuklar hep "system"
+// temasında kalıyordu (2026-10-18 depo denetimi).
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  const { theme } = useTheme();
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme}
       className="toaster group"
       style={
         {

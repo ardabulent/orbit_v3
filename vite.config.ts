@@ -7,11 +7,11 @@ import { defineConfig, loadEnv } from "vite";
 import {
   isDemoEnvironment,
   resolveDeploymentEnvironment,
-} from "./client/src/auth/deploymentEnvironment";
+} from "./client/src/auth/deploymentEnvironment.ts";
 import {
   checkCspAllowsSupabase,
   extractCspFromVercelConfig,
-} from "./client/src/lib/cspConnectSrc";
+} from "./client/src/lib/cspConnectSrc.ts";
 
 export default defineConfig(({ mode }) => {
   const localEnv = loadEnv(mode, import.meta.dirname, "VITE_");
