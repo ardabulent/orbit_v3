@@ -158,6 +158,7 @@
 - Öğrenci ve veliye telefonda alt gezinme çubuğu; personel kenar menüsünde kalır
 - Koyu mod paletin ters çevrilmesiyle yapılır; yalnız kurum panelinde, tercih cihazda saklanır
 - İki geliştiricili çalışma düzeni
+- Yerel örnek veri SQL dosyasıyla değil, arayüzün API yolundan kurulur
 
 ---
 
@@ -4151,3 +4152,21 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Reddedilen:** _MIT ya da başka açık lisans_ — ürün ticari, kod henüz satılabilir varlık. _Depoyu özele almak_ — kurucu açık kalmasını istedi. _Ajanın da birleştirmesi_ — canlıya giden adımda insan gözü kalmaz. _Zorunlu issue_ — bkz. gerekçe.
 
 **Eski kayıtlarla ilişki:** "Stabilizasyon fazında tek kişilik merge'e sınırlı izin" (2026-08-23) v1.1.2 ile zaten sona ermişti; bu karar onun dönmeyi öngördüğü iki kişilik onayı geri getirir, artık GitHub ayarıyla zorlanarak.
+
+---
+
+### Karar: Yerel örnek veri SQL dosyasıyla değil, arayüzün API yolundan kurulur
+
+**Durum:** Kabul edildi · uygulandı (yerel kurulum PR'ı)
+**Tarih:** 2026-10-21
+**Onaylayan:** Arda Bülent (ana plan Faz 0 — 0.6)
+
+**Bağlam:** Yerel veritabanı boş açılıyordu; `config.toml` olmayan bir `seed.sql`'i gösteriyordu. Operatör, kurum ve hesaplar her seferinde elle, yazılı olmayan adımlarla kuruluyordu. Projeye katılan ikinci geliştiricinin ilk günü buna takılırdı.
+
+**Karar:** Örnek kurum `scripts/yerel-tohum.mjs` (`pnpm yerel:tohum`) ile kurulur. Betik operatörü GoTrue yönetim API'siyle açar; geri kalan her şeyi arayüzün kullandığı yoldan yazar: kurum `bootstrap-organization`, üyeler `create-member`, öğrenciler `import_students`, ders/sınav/ödeme RPC'leri ve RLS altında tablo yazımı. Her hesap ilk girişte geçici şifresini ortak yerel şifreye çevirir; kilit tetikleyiciyle kalkar. Betik yalnız `127.0.0.1` / `localhost` adresinde çalışır, kurum zaten varsa hiçbir şey yazmaz.
+
+**Gerekçe:** `auth.users`'a doğrudan INSERT GoTrue doğrulamasını atlar (aynı gerekçe: `supabase/tests/auth/synthetic_email.sh`). API yolundan geçen tohum bir smoke test olarak da çalışır: bir göç bir akışı bozarsa tohum durur ve adımı söyler. `seed.sql` ayrıca CI'daki `supabase start`'ta da yüklenirdi; pgTAP'in 7 dosyası (11 iddia) veritabanında yalnız kendi verisinin olduğunu varsayıyor ve kırılırdı (ölçüldü).
+
+**Reddedilen:** _`supabase/seed.sql`_ — yukarıdaki iki sebep. _Canlıdan anonimleştirilmiş kopya_ — gerçek kişi verisi yerel makineye iner (KVKK); depo herkese açık.
+
+**Bilinen sınır:** Bilinen bir şifreyle hesap açar; yerel adres kontrolü bu yüzden betiğin ilk işidir. pgTAP'in boş veritabanı varsayımı ayrı bir iştir; o güne kadar tarif "önce `db reset`, sonra test, sonra tohum".

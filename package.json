@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "yerel:tohum": "node scripts/yerel-tohum.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
