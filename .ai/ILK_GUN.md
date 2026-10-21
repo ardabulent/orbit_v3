@@ -8,7 +8,7 @@ Dershane ve kurs merkezleri için çok kiracılı bir yönetim uygulaması: kuru
 
 ## 2. Mimari tek resimde
 
-```
+```text
 Tarayıcı (React + Vite, Vercel'de statik)
    │  supabase-js — anahtar herkese açık; güvenlik burada DEĞİL
    ▼
