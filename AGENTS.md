@@ -3,7 +3,7 @@
 > **Bu belge bir görev değildir.** Rol üstlenmeni, mülakat başlatmanı veya bir şey üretmeni istemez.
 > Sana yalnızca **hangi soru için hangi dosyayı okuyacağını** söyler. Açık bir görev almadan hiçbir şey yapma.
 
-ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir yönetim SaaS'ıdır. Tek kişilik bir ekip (Arda Bülent) ve onun kullandığı YZ ajanları tarafından geliştirilir.
+ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir yönetim SaaS'ıdır. İki geliştirici (kurucu Arda Bülent ve bir yazılımcı ortak) ve kullandıkları YZ ajanları tarafından geliştirilir. Kim ne yapar: `CONTRIBUTING.md` — "Kim ne yapar".
 
 **Faz E kapandı (2026-08-29):** kimlik zinciri uçtan uca çalışıyor ve production'da dört rolle doğrulandı. Kalan bütün sürümler, her biri **dayandığı varsayımları beyan eden** dilimlere bölünmüştür: `.ai/ROADMAP.md` **§4.6**.
 
@@ -57,9 +57,10 @@ Sonra `ROADMAP.md` §0'ı oku: 🟡 işaretli satır, yarıda kalmış dilimdir.
 
 Bunlar tercih değil, sınır.
 
-1. **Repo public.** `ardabulent/orbit_v3` herkese açıktır. Sır, anahtar, gerçek kişi verisi veya müşteri bilgisi commit edilemez.
-2. **YZ ajanlarının GitHub, Supabase ve Vercel erişimi yoktur.** Kod yazan ajan yerel dosya sistemiyle sınırlıdır; commit, push, migration ve deploy insan onayıyla ve denetleyen taraf üzerinden yapılır. Gerekçe: `AGENT_WORKFLOW.md`.
-3. **`main`'e doğrudan commit yok.** Her değişiklik issue → branch → PR → karşılıklı onay yolundan geçer.
+1. **Repo public, kod değil.** `ardabulent/orbit_v3` herkese açıktır ama açık kaynak değildir: tüm hakları saklıdır (`LICENSE`). Sır, anahtar, gerçek kişi verisi veya müşteri bilgisi commit edilemez.
+2. **YZ ajanı PR açar, birleştirmez.** Ajan dal açar, kod ve göç yazar, yerelde test eder, commit atar, push eder ve PR açar. **Birleştirme, panel ayarı (Supabase/Vercel/GitHub), şifre ve gizli anahtar insanın işidir.** Canlıya erişim yalnız salt okunurdur; canlı veriye yazılmaz. PR birleşince göçler canlıya kendiliğinden uygulandığı için birleştirme düğmesi canlıyı değiştiren düğmedir ve bir insanın elindedir.
+   > **Sonradan düzeltme (2026-10-19):** bu madde önceden _"YZ ajanlarının GitHub, Supabase ve Vercel erişimi yoktur; commit, push, migration ve deploy denetleyen taraf üzerinden yapılır"_ diyordu. Uygulama aylardır böyle değildi (ajanlar commit atıp PR açıyordu); kural gerçeğe uyduruldu, sınır birleştirmeye çekildi. Karar: `DECISION_LOG.md` — "İki geliştiricili çalışma düzeni".
+3. **`main`'e doğrudan commit yok.** Her değişiklik dal → PR → bir insan onayı → squash birleştirme yolundan geçer. Issue isteğe bağlıdır. Ayrıntı: `CONTRIBUTING.md`.
 4. **Şifre ve hesap açma işlemleri ajanlara yaptırılmaz.** Bu adımlar Supabase panelinden ekip tarafından yapılır.
    - **Yedek gizli anahtarı ajanların değildir.** Kurum sahibinin masaüstündeki `ORBIT-yedek-GIZLI-anahtar.asc` (gece yedeklerini açan tek anahtar, `ops/yedek/README.md`) hiçbir ajan tarafından okunmaz, kopyalanmaz, taşınmaz, içe aktarılmaz ve bir komuta argüman olarak verilmez. Yedek açmak ve geri yüklemek insan işidir; ajan yalnız tarif eder. Dosyanın bugün masaüstünde durması kurum sahibinin bilinçli MVP kararıdır (2026-10-07); ilk gerçek kurum verisinden önce yeniden değerlendirilir.
 5. **Sürüm kapısı atlanmaz.** Proje aşama aşama ilerler. Bir aşama tamamlanıp release gate'i doğrulanmadan sonrakine geçilmez; kapsam ve kabul kriterleri `ROADMAP.md`'de yazılıdır. Bir işi "sonra tamamlarız" diye açık bırakıp ilerlemek, bu projede birden fazla kez tamam sanılan bir sürümün aslında kırık olduğunun aylar sonra anlaşılmasına yol açtı.
