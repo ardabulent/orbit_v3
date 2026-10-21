@@ -28,11 +28,11 @@
 
 ## 2. Ekip Dinamiği & Geliştirme Kültürü
 
-- **Ekip:** 1 Kişi (Arda) — Uçtan uca Full-Stack / Vibe Coding.
+- **Ekip:** ~~1 Kişi (Arda)~~ **İki geliştirici** (kurucu Arda Bülent + yazılımcı ortak, 2026-10-19) ve YZ ajanları. Kim ne yapar: `CONTRIBUTING.md`. _(Sonradan düzeltme 2026-10-21.)_
 - **Kullanılan YZ Araçları:** Claude Code, Codex, Antigravity.
 - **Hedef Takvim:** Birkaç gün içinde Vercel üzerinde yayına çıkacak MVP.
 - **Bütçe:** 0₺ (Tamamen ücretsiz katmanlar). ⚠️ **Bu kısıt v1.5'te karara açıldı (2026-09-16):** `ROADMAP` §4.12'nin tetikleyici tablosu _"Supabase Pro → ilk gerçek kurum verisi girmeden önce"_ diyor ve ölçüldü — organizasyon planı bugün `free`, yani **otomatik yedek de PITR de yok.** İkisi birlikte doğru olamaz; karar `v1.5-08`'e bağlandı. Pilot, gerçek çocuk verisini geri dönüşü olmayan bir veritabanına koymak demektir.
-- **Çalışma Prensibi:** Tek doğruluk kaynağı (`.ai/`), atomik commit'ler, branch bazlı PR ve karşılıklı onay süreci. Kurallar: `CONTRIBUTING.md` ve `AGENTS.md`.
+- **Çalışma Prensibi:** Tek doğruluk kaynağı (`.ai/`), tür önekli dal, PR, bir insan onayı ve squash birleştirme. Kurallar: `CONTRIBUTING.md` ve `AGENTS.md`.
 - **Karar Alma İlkesi (Graph-First):** Herhangi bir kod yazılmadan önce problem 6 Boyutlu Graf Haritası (Teknik Tipler/State/DB, Ticari Bütçe, Hata/Fallback, KVKK/Gizlilik, Pik Yük/Darboğaz, Güvenlik) olarak analiz edilir; risk varsa proaktif itiraz (pushback) yapılır.
 
 ---
@@ -105,6 +105,7 @@ client/src/
 │   ├── types.ts            # AuthIdentity — üyelik ve platform operatörlüğü iki bağımsız eksen
 │   ├── loginIdentifier.ts  # Giriş numarası ↔ sentetik adres; giriş ekranına bağlı (E3)
 │   ├── passwordPolicy.ts   # Şifre kuralları, Türkçe harflerle uyumlu
+│   ├── passwordChange.ts   # Kişinin kendi isteğiyle şifre değiştirmesi ve denetim kaydı (2026-09-29)
 │   ├── idleTimeout.ts / useIdleTimeout.ts  # 30 dk hareketsizlik sayacı
 │   ├── sessionEvents.ts    # Supabase auth olaylarının ayrıştırılması
 │   ├── profileContactService.ts  # İletişim bilgisi ve kurtarma kanalı (E4)
@@ -138,7 +139,14 @@ client/src/
 │   ├── paymentSchedule.ts  # Peşinat + eşit taksit tablosu hesabı; kayıt `save_payment_plan` (#415)
 │   ├── importFile.ts / importDraft.ts / importNormalize.ts # İçe aktarma: dosya okuma (.xlsx ≤ 300 KB, CSV),
 │   │                       #   ekran taslağı, sınıf eşleme ve Türkçe büyük harf düzeltme (#419, #421)
-│   └── examAbsenceService.ts # "Sınava girmedi" işareti: koy, geri al (#433)
+│   ├── examAbsenceService.ts # "Sınava girmedi" işareti: koy, geri al (#433)
+│   ├── examNetService.ts   # Sınav listesi ve deneme netleri (ders bölümü, doğru/yanlış → net)
+│   ├── studentImport.ts / importMapping.ts # Toplu öğrenci aktarımı (`import_students`) ve sütun eşleme (2026-09-29, 10-01)
+│   ├── newStudentFlow.ts   # "Yeni öğrenci" tek akışı: öğrenci + veli + sınıf (karar 2026-09-28)
+│   ├── overviewService.ts  # Yönetici Genel Bakış kartlarının verisi
+│   ├── attentionReasons.ts # Dikkat listesindeki öğrencinin nedenleri, ekranda okunacak haliyle
+│   ├── reportCsv.ts        # Sınıf karşılaştırması → Excel'in Türkçe ayarında açılan CSV (`;`, BOM, ondalık virgül)
+│   └── studentExamService.ts / studentHomeworkService.ts # Öğrenci ve velinin sınav ve ödev görünümü (karar 2026-09-28)
 ├── audit/                  # Kurum denetim kaydı
 │   ├── auditService.ts     # İmleçli sayfalama; sıra sütunu `id`, `created_at` DEĞİL
 │   └── auditQueries.ts     # useInfiniteQuery
@@ -156,6 +164,8 @@ client/src/
 │   └── settingsQueries.ts  # Üyeler, şubeler, kişi iletişim bilgisi
 ├── organization/           # Dershane tarafının veri katmanı — kurum yöneticisinin gördüğü
 │   ├── linkableMembers.ts  # "Giriş hesabı ata" listesi: yalnız hiçbir kayda bağlı olmayan hesaplar (#405)
+│   ├── branchService.ts    # Şubeler: listeleme, ekleme, varsayılan şube, arşiv
+│   ├── memberMailService.ts # Üyelerin kurtarma e-postası durumu ve son gönderim sonucu (adresin kendisi değil; 2026-10-14)
 │   └── memberService.ts    # Kurum üyeleri: listeleme, şifre sıfırlama, üye oluşturma, şubeler.
 │                           #   Giriş numarası kurulumu ve sıralama saf fonksiyonlarda
 ├── platform/               # Platform operatörü paneli — dershane ağacından ayrı
@@ -173,11 +183,11 @@ client/src/
 │   ├── errorReporter.ts    # Aynı mesaj 10 dk'da bir, açılış başına 20 kayıt
 │   ├── errorReportService.ts # `report_client_error` / `list_client_error_reports`
 │   └── installErrorReporting.ts # `error` + `unhandledrejection` dinleyicileri; demo modunda kapalı
-├── contexts/               # ThemeProvider — uygulanan temayı yalnız okur
+├── contexts/ThemeContext.tsx # ThemeProvider — uygulanan temayı yalnız okur
 ├── theme/orbitTheme.ts     # Tema tercihi (açık/koyu/sistem, `localStorage`), `useApplyOrbitTheme` — 2026-10-16
 ├── koyu-tema.css           # Koyu palet: `html.dark` altında Tailwind renk değişkenleri
 ├── yumusak-palet.css       # Açık tema: yedi renkli ailenin canlılığı kısılmış değerleri (slate dokunulmaz) — 2026-10-17
-├── hooks/                  # useComposition
+├── hooks/                  # useComposition (IME yazımı), usePersistFn — ikisi de `components/ui/` için
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue
 │   ├── clockSkewRetryFetch.ts # Girişte "JWT issued at future" (401 PGRST303) alan isteği 1 sn sonra yeniden gönderir (2026-10-16)
 │   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)
@@ -192,6 +202,8 @@ client/src/
     ├── SetPassword.tsx     # /sifre-belirle — Supabase kurtarma bağlantısının hedefi
     └── NotFound.tsx        # 404 sayfası
 ```
+
+> **Sonradan düzeltme (2026-10-21) — dördüncü kez ve son kez elle:** ağaçta 14 dosya eksikti (dokuzu `education/`, ikisi `organization/`, `passwordChange`, `ThemeContext`, `usePersistFn`). Artık bir test yakalıyor: `supabase/tests/deployment/projectStateTree.test.ts`, veri katmanı klasörlerindeki her dosyanın adının bu belgede geçmesini ister (`pnpm test`, dolayısıyla `quality-gate`). Yeni bir servis dosyası eklenince bu ağaca satır eklenmezse kapı kırmızı olur.
 
 **Repo kökünde, istemci dışında (2026-10-21):** `scripts/yerel-tohum.mjs` (`pnpm yerel:tohum`) — boş yerel veritabanına örnek kurumu arayüzün yolundan (Edge Function, RPC, RLS) kurar; yerel olmayan adreste durur. `supabase/functions/.env.example` — Edge Function'ların yerel ayarı (e-posta yerel Mailpit'e). Tarif: `README.md` — Yerel Kurulum. **Repo kökünde, istemci dışında (2026-10-17):** `scripts/check-demo-leak.mjs` — üretim paketinde demo verisi arayan CI kapısı (derlemeden sonra). **Repo kökünde, istemci dışında (2026-10-07):** `ops/yedek/` — gece yedeğinin anahtar üretme ve geri yükleme betikleri ile tarifi (`README.md`); görev `.github/workflows/gece-yedegi.yml`. Gizli anahtar repoda **değil** (`AGENTS.md` kısıt 4). **2026-10-12:** `.github/workflows/saglik-kontrolu.yml` — yarım saatte bir site, Supabase API, veritabanı boyutu ve hata kaydı sayısı (`v1.5-06`); aynı sırla salt okunur.
 

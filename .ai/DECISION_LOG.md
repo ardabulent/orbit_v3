@@ -3705,6 +3705,7 @@ Bu, **K-30**'un ürün tarafındaki karşılığıdır: bir ortamda görünmeyen
 - Kişisel veri istemcide **ve** sunucuda ayıklanır: e-posta, 6+ haneli sayı, adres sorgusu.
 - Operatöre kullanıcı kimliği gösterilmez, yalnız kurum adı gösterilir.
 - Kişi başına saatte 30, sayfa açılışı başına 20 kayıt; kayıtlar 30 gün saklanır.
+  - **Sonradan düzeltme (2026-10-21):** "30 gün saklanır" tam doğru değil. 30 günden eski kayıtlar yalnız **bir sonraki hata yazılırken** ayıklanıyor; arka plan işi yok. Hata gelmezse eski kayıtlar kalır ve panel ("son 30 gün" yazsa da) onları da listeler; `list_client_error_reports`'ta tarih süzgeci yok. Aynısı `email_deliveries` için geçerli. Düzeltme ana planın Faz 2'sinde (saklama süreleri); o güne kadar tablo yorumları da bu nottaki gibi okunmalı.
 
 **Gerekçe:**
 
@@ -3782,7 +3783,7 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 
 ### Karar: C-11 yeniden üretilemedi ve ölçümle kapatıldı
 
-**Durum:** Kapatıldı (yeniden açılabilir)
+**Durum:** Kapatıldı (yeniden açılabilir) · ⚠️ **yeniden açıldı ve kök sebebiyle kapandı (2026-10-16, #470)** — aşağıdaki sonradan düzeltmeye bakın
 **Tarih:** 2026-10-05
 **Onaylayan:** Arda Bülent
 
@@ -3802,6 +3803,8 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Tekrar görülürse:** Aynı yöntem uygulanır: temiz sekme, ağ ve konsol kaydı açık; ilk denemenin HTTP kodu ve `error_code`'u kaydedilir. Tahminle düzeltme yapılmaz.
 
 **Yan bulgu (ölçerken):** Öğrenci ve veli girişi, kullanmadığı kurum listelerini de okuyordu (~10 boşa istek). #441 ile kapandı.
+
+**Sonradan düzeltme (2026-10-21):** Kurum sahibi 2026-10-16'da _"ilk girişte her seferinde hata alıyorum"_ dedi; bu kez ağ kaydı alındı. İlk veri isteği 401 **PGRST303** _"JWT issued at future"_ dönüyordu: kullanıcının bilgisayar saati sunucudan birkaç saniye ilerideydi, yeni jetonun "verildiği an" PostgREST'e gelecekte görünüyordu. Altı ölçümün hepsi saati düzgün makinelerde yapıldığı için yeniden üretilemedi. Ders: _"yeniden üretilemedi"_ ile _"yok"_ aynı şey değildir; ölçümün yapıldığı ortam kayda yazılmalı. Düzeltme #470: supabase-js'e verilen `fetch` sarmalayıcısı yalnız bu hatayı alan isteği 1 sn arayla en çok 3 kez yeniden gönderir (`client/src/lib/clockSkewRetryFetch.ts`, 5 birim testi).
 
 ### Karar: Vekil öğretmen bir öğretmenin yerine geçer, ders saatinin değil; erişim tarih aralığıyla SQL'de açılır
 
