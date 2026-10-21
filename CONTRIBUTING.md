@@ -23,7 +23,7 @@ Canlıyı değiştiren her adım — PR'ı birleştirmek (göçler Supabase'e ot
 4. **Dal adları tür önekiyle başlar:** `feat/`, `fix/`, `perf/`, `ui/`, `docs/`, `chore/`, `test/` + kısa Türkçe ad (örn. `fix/veli-telefon-eslesmesi`). Issue varsa numarası ada eklenebilir (`fix/481-veli-telefon`).
 5. **Issue isteğe bağlıdır.** Birden çok PR'a yayılan ya da sonraya kalan iş issue olarak açılır; küçük iş issue'suz PR olabilir. Issue kapatan PR açıklamasında anahtar kelime **İngilizce** yazılır: `Closes #123` (Türkçe "Kapatır" GitHub'da çalışmaz).
 6. **Commit ve PR başlıkları [Conventional Commits](https://www.conventionalcommits.org/) formatında:** `feat:`, `fix:`, `perf:`, `refactor:`, `test:`, `chore:`, `docs:`. Kapsam isteğe bağlı: `fix(auth): …`.
-7. **Değişen bilgi aynı PR'da belgeye işlenir.** Karar → `DECISION_LOG.md`, durum → `ROADMAP.md` §0, panel ayarı → `PLATFORM_SETTINGS.md`, klasör/servis yapısı → `PROJECT_STATE.md` §5. Ayrı bir "belgeleri güncelleme" işi açılmaz; açılırsa yapılmaz.
+7. **Değişen bilgi aynı PR'da belgeye işlenir.** Karar → `DECISION_LOG.md`, durum → `ROADMAP.md` §0 ve §4.27'deki madde, panel ayarı → `PLATFORM_SETTINGS.md`, klasör/servis yapısı → `PROJECT_STATE.md` §5. Ayrı bir "belgeleri güncelleme" işi açılmaz; açılırsa yapılmaz.
 8. **Modülerlik & tek sorumluluk:** yeni ekran veya özellik kendi dosyasına gider, büyük dosyaya eklenmez. Ayrıntı: `AGENTS.md`.
 9. **Önce etki alanı:** kod yazmadan önce değişikliğin dokunduğu modüller, tablolar, RLS politikaları ve maliyet/güvenlik/KVKK boyutu düşünülür (`AGENTS.md` — "Değişiklik öncesi düşünme").
 

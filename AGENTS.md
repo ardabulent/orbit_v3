@@ -7,7 +7,7 @@ ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir y
 
 **Faz E kapandı (2026-08-29):** kimlik zinciri uçtan uca çalışıyor ve production'da dört rolle doğrulandı. Kalan bütün sürümler, her biri **dayandığı varsayımları beyan eden** dilimlere bölünmüştür: `.ai/ROADMAP.md` **§4.6**.
 
-> **Sonradan düzeltme (2026-09-19):** bu satır _"Sıradaki iş **v1.2**"_ diyordu ve üç sürüm boyunca güncellenmedi (**K-08**). v1.2, v1.3 ve v1.4 kapandı; **yürüyen sürüm v1.5**. Sürüm durumunu buradan okuma — tek kaynak `ROADMAP.md` **§0**, sıradaki iş **§4.6**. Buraya sürüm numarası yazılmamasının sebebi tam olarak budur: iki yerde tutulan durumun biri her zaman eskir (**K-06**).
+> **Sonradan düzeltme (2026-09-19):** bu satır _"Sıradaki iş **v1.2**"_ diyordu ve üç sürüm boyunca güncellenmedi (**K-08**). v1.2, v1.3 ve v1.4 kapandı; **yürüyen sürüm v1.5**. Sürüm durumunu buradan okuma — tek kaynak `ROADMAP.md` **§0**, sıradaki iş ~~**§4.6**~~ **§4.27** (2026-10-21'den beri ana plan). Buraya sürüm numarası yazılmamasının sebebi tam olarak budur: iki yerde tutulan durumun biri her zaman eskir (**K-06**).
 
 ---
 
@@ -18,7 +18,9 @@ Her dosyanın tek bir sorusu var. Hepsini birden okuma; sorunun hangisi olduğun
 | Sorun                                             | Dosya                                                 |
 | ------------------------------------------------- | ----------------------------------------------------- |
 | **Şu an neredeyiz?**                              | `.ai/ROADMAP.md` **§0** — tek durum kaynağı           |
-| **Sırada ne var, o iş neye dayanıyor?**           | `.ai/ROADMAP.md` **§4.6** — dilimler ve varsayımları  |
+| **Projeye yeni mi katıldın?**                     | `.ai/ILK_GUN.md` — mimari, ilk gün, ısıran kurallar   |
+| **Sırada ne var?**                                | `.ai/ROADMAP.md` **§4.27** — ana plan                 |
+| **O iş neye dayanıyor, geçmişte ne ölçüldü?**     | `.ai/arsiv/ROADMAP-gecmis.md` — §4.6 dilimler, turlar |
 | **Sistem bugün ne yapıyor, ne eksik?**            | `.ai/PROJECT_STATE.md` **§6.1** — 2026-08-29 denetimi |
 | **Bu daha önce kararlaştırıldı mı, neden böyle?** | `.ai/DECISION_LOG.md` — başındaki indeksten gir       |
 | **Ürün ne, roller neler, dosyalar nerede?**       | `.ai/PROJECT_STATE.md`                                |
@@ -47,7 +49,7 @@ ls .ai/tasks/                # devredilmiş, henüz bitmemiş görev
 
 **Çalışma kopyası bayat olabilir ve bunu sana kimse söylemez.** `git` kendiliğinden senkronize olmaz; biri PR merge ettiğinde yerel dosyalar eski kalır. Bir dosyayı okuyup "kod böyle" demeden önce geride olup olmadığına bak. İşe başlıyorsan `AGENT_WORKFLOW.md`'deki **0. adım** geçerlidir: güncel `main` üzerinden yeni dal.
 
-Sonra `ROADMAP.md` §0'ı oku: 🟡 işaretli satır, yarıda kalmış dilimdir.
+Sonra `ROADMAP.md` §0 ve §4.27'yi oku: 🟡 işaretli satır, yarıda kalmış iştir.
 
 > **Neden ayrı bir "şu an ne yapılıyor" dosyası yok:** Denendi ve öldü. Elle güncellenen bir durum dosyası, güncellenmediği anda yanlış bilgi kaynağına dönüşür — ve boş bir dosyadan daha zararlıdır, çünkü okuyan ona güvenir. Yukarıdaki beş komut kimsenin bakımına muhtaç değildir.
 
@@ -63,7 +65,7 @@ Bunlar tercih değil, sınır.
 3. **`main`'e doğrudan commit yok.** Her değişiklik dal → PR → bir insan onayı → squash birleştirme yolundan geçer. Issue isteğe bağlıdır. Ayrıntı: `CONTRIBUTING.md`.
 4. **Şifre ve hesap açma işlemleri ajanlara yaptırılmaz.** Bu adımlar Supabase panelinden ekip tarafından yapılır.
    - **Yedek gizli anahtarı ajanların değildir.** Kurum sahibinin masaüstündeki `ORBIT-yedek-GIZLI-anahtar.asc` (gece yedeklerini açan tek anahtar, `ops/yedek/README.md`) hiçbir ajan tarafından okunmaz, kopyalanmaz, taşınmaz, içe aktarılmaz ve bir komuta argüman olarak verilmez. Yedek açmak ve geri yüklemek insan işidir; ajan yalnız tarif eder. Dosyanın bugün masaüstünde durması kurum sahibinin bilinçli MVP kararıdır (2026-10-07); ilk gerçek kurum verisinden önce yeniden değerlendirilir.
-5. **Sürüm kapısı atlanmaz.** Proje aşama aşama ilerler. Bir aşama tamamlanıp release gate'i doğrulanmadan sonrakine geçilmez; kapsam ve kabul kriterleri `ROADMAP.md`'de yazılıdır. Bir işi "sonra tamamlarız" diye açık bırakıp ilerlemek, bu projede birden fazla kez tamam sanılan bir sürümün aslında kırık olduğunun aylar sonra anlaşılmasına yol açtı.
+5. **Sürüm kapısı atlanmaz.** Proje aşama aşama ilerler. Bir aşama tamamlanıp release gate'i doğrulanmadan sonrakine geçilmez; kapsam ve kabul kriterleri `ROADMAP.md`'nin gösterdiği yerde (2026-10-22'den beri arşivin §4'ü) yazılıdır. Bir işi "sonra tamamlarız" diye açık bırakıp ilerlemek, bu projede birden fazla kez tamam sanılan bir sürümün aslında kırık olduğunun aylar sonra anlaşılmasına yol açtı.
 6. **Sağlayıcı bir tercihtir, bağımlılık değil.** Sistemin ileride kendi sunucumuza (Hetzner) taşınması açık bir ihtimaldir. Yeni bir bağımlılık veya sağlayıcıya özgü özellik eklerken sorulacak soru: _bu, düz Postgres veya standart bir arayüzle (S3, SMTP, OIDC) yapılabilir mi?_ Yapılabiliyorsa öyle yapılır. Yetkilendirmenin SQL'de yaşaması bu kuralın en önemli parçasıdır ve zaten yürürlüktedir. Gerekçe ve ölçümler: `DECISION_LOG.md` — "Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir".
 
 ---
@@ -96,7 +98,7 @@ Yeni bir özellik veya refactor talebinde doğrudan koda atlanmaz. Önce etki al
 
 Bir PR bir kararı, bir durumu veya bir panel ayarını değiştiriyorsa ilgili dosya **aynı PR'da** güncellenir. Ayrı bir "belgeleri güncelleme" işi açılmaz; açılırsa yapılmaz.
 
-- Faz/sürüm durumu değişti → `ROADMAP.md` §0 **ve** ilgili maddenin kutucuğu
+- Faz/sürüm durumu değişti → `ROADMAP.md` §0 **ve** §4.27'deki maddenin durum sütunu
 - Bir mimari karar alındı veya değişti → `DECISION_LOG.md` (indekse satır eklemeyi unutma)
 - Panelden bir ayar değiştirildi → `PLATFORM_SETTINGS.md`
 - Klasör yapısı veya servis katmanı değişti → `PROJECT_STATE.md` §5

@@ -6,6 +6,8 @@
 >
 > **Not:** 2026-08-25 öncesi kayıtlarda geçen `PROJECT_ARCHITECT.md` ve `WORK_LOG.md` atıfları **tarihseldir**; iki dosya da o tarihte emekliye ayrıldı ve git geçmişinde durur. Bu kayıtlar geriye dönük düzeltilmez — bkz. son kayıt, "Belge sayısı değil bakım borcu".
 
+> **Nasıl okunur (2026-10-22):** baştan sona okunmaz; aşağıdaki indeksten başlıkla aranır (Ctrl+F). Yeni katılan biri için ilk okunacak on karar `.ai/ILK_GUN.md` §5'te. Kararlar bağlayıcı olduğu için bu dosya arşive bölünmedi; yol haritasının tur kayıtları bölündü (`.ai/arsiv/`).
+
 ## İçindekiler
 
 > **İndeks 2026-09-16'da gövdeden yeniden üretildi.** Ölçüldü: gövdede **117** karar vardı, indekste **68** satır — yani **49 karar bu listede hiç görünmüyordu** ve indeks 2026-09-11 civarında donmuştu. `AGENTS.md` bunu adıyla uyarıyor (_"indekse satır eklemeyi unutma"_) ve bu dosyanın kendi başlığı da giriş noktası olarak indeksi gösteriyor — yani eksik indeks, kaydın **%42'sini görünmez** kılmıştı (**K-08**). Bundan sonra eklenen her karar buraya da yazılır.
