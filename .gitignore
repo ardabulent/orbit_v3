@@ -9,6 +9,8 @@ build/
 
 # Environment variables
 .env*
+!.env.example
+!supabase/functions/.env.example
 
 # IDE and editor files
 .vscode/
