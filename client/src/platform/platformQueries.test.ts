@@ -202,7 +202,7 @@ describe("PlatformAuditLog UI pagination", () => {
     {
       id: 10,
       actorUserId: "u-1",
-      actorName: "Hamza Bayrak",
+      actorName: "Kerem Aydın",
       action: "platform.organization_created",
       entityType: "organization",
       entityId: "org-1",
@@ -298,7 +298,7 @@ describe("PlatformOperators UI (3.E bounded list)", () => {
         operators: [
           {
             userId: "u-1",
-            displayName: "Hamza Bayrak",
+            displayName: "Kerem Aydın",
             role: "owner",
             status: "active",
             note: null,
@@ -318,7 +318,7 @@ describe("PlatformOperators UI (3.E bounded list)", () => {
         operators: [
           {
             userId: "u-1",
-            displayName: "Hamza Bayrak",
+            displayName: "Kerem Aydın",
             role: "owner",
             status: "active",
             note: null,

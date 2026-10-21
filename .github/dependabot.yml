@@ -102,7 +102,7 @@ updates:
 # güvenli: kapalı olsaydı bir güvenlik açığı buradaki takvime düşer ve bir ay
 # bekleyebilirdi.
 #
-# **2026-09-07: anahtar açıldı** (Hamza). Yani güvenlik açıkları artık bu
+# **2026-09-07: anahtar açıldı** (o günkü ekip üyesi). Yani güvenlik açıkları artık bu
 # dosyanın takviminden bağımsız, bildirildikleri gün ele alınıyor; buradaki
 # "aylık" yalnızca rutin sürüm güncellemelerini yavaşlatıyor. Envanter ve
 # doğrulama komutları: `.ai/PLATFORM_SETTINGS.md` bölüm 3.6 ve 6.
