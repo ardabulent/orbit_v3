@@ -52,11 +52,15 @@ function fail(message) {
   throw new Error(message);
 }
 
-async function rest(method, path, body) {
+// `token` verilmezse service_role; verilirse o kullanıcı olarak (RLS altında).
+// Kurum verisi (öğrenci, veli, bağ) yönetici olarak yazılır: CI'daki eski CLI
+// sürümünde service_role `search_fold`'u çalıştıramıyor (canlıda ve yerelde
+// varsayılan yetkiyle çalıştırıyor) — test o farka bağlı kalmasın, 2026-10-23.
+async function rest(method, path, body, token) {
   const response = await fetch(`${API}/rest/v1/${path}`, {
     method,
     headers: {
-      ...svc,
+      ...(token ? { apikey: ANON, Authorization: `Bearer ${token}` } : svc),
       "Content-Type": "application/json",
       Prefer: "return=representation",
     },
@@ -178,28 +182,58 @@ try {
       person_code: 1001,
     },
   ]);
-  const students = await rest("POST", "students", [
-    {
-      organization_id: orgId,
-      branch_id: branchId,
-      full_name: "Zincir Kardeş Bir",
-    },
-    {
-      organization_id: orgId,
-      branch_id: branchId,
-      full_name: "Zincir Kardeş İki",
-    },
-  ]);
-  const [foreignStudent] = await rest("POST", "students", [
+  const foreignAdminEmail = `${FOREIGN.code}1000@orbit.invalid`;
+  const foreignAdminId = await createAuthUser(foreignAdminEmail);
+  await rest("POST", "organization_memberships", [
     {
       organization_id: foreign.orgId,
       branch_id: foreign.branchId,
-      full_name: "Yabancı Öğrenci",
+      user_id: foreignAdminId,
+      role: "admin",
+      status: "active",
+      person_code: 1000,
     },
   ]);
-  const [guardian] = await rest("POST", "guardians", [
-    { organization_id: orgId, full_name: "Zincir Ortak Veli" },
-  ]);
+
+  const adminToken = await signIn(adminEmail);
+  const teacherToken = await signIn(teacherEmail);
+  const foreignAdminToken = await signIn(foreignAdminEmail);
+
+  const students = await rest(
+    "POST",
+    "students",
+    [
+      {
+        organization_id: orgId,
+        branch_id: branchId,
+        full_name: "Zincir Kardeş Bir",
+      },
+      {
+        organization_id: orgId,
+        branch_id: branchId,
+        full_name: "Zincir Kardeş İki",
+      },
+    ],
+    adminToken
+  );
+  const [foreignStudent] = await rest(
+    "POST",
+    "students",
+    [
+      {
+        organization_id: foreign.orgId,
+        branch_id: foreign.branchId,
+        full_name: "Yabancı Öğrenci",
+      },
+    ],
+    foreignAdminToken
+  );
+  const [guardian] = await rest(
+    "POST",
+    "guardians",
+    [{ organization_id: orgId, full_name: "Zincir Ortak Veli" }],
+    adminToken
+  );
   await rest(
     "POST",
     "student_guardians",
@@ -207,14 +241,13 @@ try {
       organization_id: orgId,
       student_id: s.id,
       guardian_id: guardian.id,
-    }))
+    })),
+    adminToken
   );
   console.log(
-    "1/6 iki kurum, yönetici, öğretmen, iki kardeş ve ortak veli hazır"
+    "1/6 iki kurum, yöneticiler, öğretmen, iki kardeş ve ortak veli hazır"
   );
 
-  const adminToken = await signIn(adminEmail);
-  const teacherToken = await signIn(teacherEmail);
   const ids = [...students.map(s => s.id), foreignStudent.id];
 
   // 4 · Öğretmen: hiçbir hesap açılmaz (önce, kayıtlar hâlâ hesapsızken)
