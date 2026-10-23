@@ -41,6 +41,9 @@ export function ImportPreview({
   onCancel: () => void;
 }) {
   const hasErrors = result.errors.length > 0;
+  // Sınıf sütunu eşlenmezse ön izleme "hata yok" der ve herkes sınıfsız gider;
+  // bunu söylemeden kaydetmek sessiz bir sapma olurdu (B9, K-14).
+  const classless = rows.filter(row => !row.class_name.trim()).length;
   // Sunucu satırı 1'den sayar (gönderilen listenin sırası).
   const labelOf = (row: number) => rowLabels[row - 1] ?? `${row}. satır`;
 
@@ -61,6 +64,15 @@ export function ImportPreview({
             ? `${result.errors.length} hata — hiçbir şey kaydedilmedi`
             : "hata yok, kaydedilmeye hazır"}
         </p>
+        {!hasErrors && classless > 0 ? (
+          <p className="mt-1 text-[11px] font-semibold text-amber-800">
+            {classless === rows.length
+              ? "Hiçbir öğrencinin sınıfı yok"
+              : `${classless} öğrencinin sınıfı boş`}
+            ; sınıfsız kaydedilecek. Dosyada sınıf sütunu varsa geri dönüp
+            “Sınıf” alanına eşleyin.
+          </p>
+        ) : null}
         {skipped > 0 ? (
           <p className="mt-1 text-[11px] text-slate-600">
             Numarası zaten kayıtlı {skipped} öğrenci atlandı; onlara

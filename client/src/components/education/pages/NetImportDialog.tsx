@@ -8,7 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/auth/useAuth";
 import type { ExamSection } from "@/education/examNetService";
+import { useStudents } from "@/education/educationQueries";
 import { readImportTable } from "@/education/importFile";
 import {
   columnLetter,
@@ -56,6 +58,20 @@ export function NetImportDialog({
   const [mapping, setMapping] = useState<NetImportMapping | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
+  // Eşleşmeyen numarayı açıklamak için: numara görülebilen başka bir öğrenciye
+  // mi ait (başka sınıfta), yoksa hiç yok mu (1.3, test turu 2026-10-18).
+  const { identity } = useAuth();
+  const isAdmin = identity?.membership?.role === "admin";
+  const visibleStudents = useStudents({ enabled: open });
+  const otherStudents = useMemo(
+    () =>
+      (visibleStudents.data?.rows ?? []).map(s => ({
+        code: s.code,
+        name: s.name,
+        group: s.group,
+      })),
+    [visibleStudents.data]
+  );
 
   const table = useMemo(
     () => loaded?.sheets[loaded.sheetIndex]?.table ?? [],
@@ -115,9 +131,18 @@ export function NetImportDialog({
             sections,
             students,
             absentStudentIds,
+            otherStudents,
           })
         : null,
-    [table, mapping, problem, sections, students, absentStudentIds]
+    [
+      table,
+      mapping,
+      problem,
+      sections,
+      students,
+      absentStudentIds,
+      otherStudents,
+    ]
   );
 
   const pick = (value: string) => (value === "" ? null : Number(value));
@@ -321,23 +346,54 @@ export function NetImportDialog({
                     atlanacak: {result.absent.join(", ")}.
                   </p>
                 ) : null}
-                {result.unknown.length > 0 ? (
-                  <details>
+                {result.unknown.some(u => u.elsewhere) ? (
+                  <details open>
                     <summary className="cursor-pointer font-bold text-amber-800">
-                      {result.unknown.length} numara bu sınavın öğrencileri
-                      arasında yok — atlanacak
+                      {result.unknown.filter(u => u.elsewhere).length} öğrenci
+                      bu sınavın sınıfında değil — atlanacak
                     </summary>
                     <ul className="mt-1 list-disc pl-5 text-[11px]">
-                      {result.unknown.slice(0, 20).map(u => (
-                        <li key={u.row}>
-                          {u.row}. satır: {u.number}
-                          {u.name ? ` (${u.name})` : ""}
-                        </li>
-                      ))}
+                      {result.unknown
+                        .filter(u => u.elsewhere)
+                        .slice(0, 20)
+                        .map(u => (
+                          <li key={u.row}>
+                            {u.row}. satır: {u.number} · {u.elsewhere!.name}
+                            {u.elsewhere!.group
+                              ? ` — ${u.elsewhere!.group} sınıfında`
+                              : " — sınıfı yok"}
+                          </li>
+                        ))}
                     </ul>
                     <p className="mt-1 text-[11px] text-slate-500">
-                      Öğrenci başka bir sınıftaysa ya da numarası ORBIT'te
-                      farklı yazılıysa eşleşmez.
+                      Öğrenci bu sınava girdiyse önce sınıfına ekleyin ya da
+                      sınavı kurum geneli açın.
+                    </p>
+                  </details>
+                ) : null}
+                {result.unknown.some(u => !u.elsewhere) ? (
+                  <details>
+                    <summary className="cursor-pointer font-bold text-amber-800">
+                      {result.unknown.filter(u => !u.elsewhere).length} numara{" "}
+                      {isAdmin
+                        ? "ORBIT'te hiçbir öğrencide yok"
+                        : "görebildiğiniz öğrenciler arasında yok"}{" "}
+                      — atlanacak
+                    </summary>
+                    <ul className="mt-1 list-disc pl-5 text-[11px]">
+                      {result.unknown
+                        .filter(u => !u.elsewhere)
+                        .slice(0, 20)
+                        .map(u => (
+                          <li key={u.row}>
+                            {u.row}. satır: {u.number}
+                            {u.name ? ` (${u.name})` : ""}
+                          </li>
+                        ))}
+                    </ul>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Numara ORBIT'te farklı yazılmış olabilir (Öğrenciler →
+                      öğrenci numarası) ya da öğrenci henüz kayıtlı değildir.
                     </p>
                   </details>
                 ) : null}
