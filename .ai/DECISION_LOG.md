@@ -162,6 +162,7 @@
 - İki geliştiricili çalışma düzeni
 - Yerel örnek veri SQL dosyasıyla değil, arayüzün API yolundan kurulur
 - Telefon tek biçimde saklanır, önekten bağımsız eşleşir
+- Toplu hesap açma ayrı bir fonksiyondur ve yalnız var olan, hesabı olmayan kayda açar
 
 ---
 
@@ -4201,3 +4202,26 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Reddedilen:** _İstemcide biçimlendirmek_ — içe aktarma ve Edge yolları atlanır, istemciye güvenilmez. _Telefonu E.164'e zorlamak ve tanınmayanı reddetmek_ — sabit hat dahilisi, yurt dışı numarası ve elle notlu girişler meşru; kurumun verisini reddetmek içe aktarmayı kırar.
 
 **Bilinen sınır:** Kurumda bu karardan önce açılmış kopya veli kayıtları kendiliğinden birleşmez (canlıda yok, ölçüldü). Gerekirse ayrı bir birleştirme aracı.
+
+---
+
+### Karar: Toplu hesap açma ayrı bir fonksiyondur ve yalnız var olan, hesabı olmayan kayda açar
+
+**Durum:** Kabul edildi · uygulandı (toplu hesap PR'ı, göç `20261109000000`)
+**Tarih:** 2026-10-23
+**Onaylayan:** Arda Bülent (_"tek tek ve toplu birlikte"_; ana plan 1.7–1.8)
+
+**Bağlam:** Kurum öğrencilerini Excel'le aktarıyor; hesaplar sonradan açılıyor. `create-member` yönetici başına saatte 60 hesapla sınırlı: 200 öğrencilik bir kurum (velileriyle 400 hesap) saatlerce bekler. Sınır, anahtarı ele geçirilmiş bir yöneticinin keyfi sayıda hesap üretmesine karşı konmuştu.
+
+**Karar:**
+
+1. **Ayrı Edge Function `create-members-bulk`.** Girdi ad değil **öğrenci kaydı kimliği** (en çok 10) ve "velilerine de" bayrağı. Ad ve şube kayıttan, **çağıranın kendi yetkisiyle (RLS)** okunur; göremediği kayıt `not_found` olur.
+2. **Yalnız hesabı olmayan kayda açar.** Hesabı olan kayıt atlanır; kardeşlerin ortak velisi tek hesap alır. Açılabilecek hesap sayısı kurumdaki kayıt sayısıyla sınırlıdır — 60/saat sınırının koruduğu risk (keyfi hesap üretimi) bu fonksiyonda yapısal olarak yok. Bu yüzden sınır çağrı başına: 30 çağrı/saat (saatte 300 öğrenci).
+3. **Aynı yol:** hesap `create-member` ile aynı adımlardan açılır (`_shared/memberAccount.ts`, ortak); kayda bağlama çağıranın yetkisiyle `link_*_account` RPC'leriyle. Kilit, denetim kaydı, tekrar koruması aynı.
+4. **Arayüz:** Öğrenciler → "Toplu hesap aç (N)": sınıfa göre süzme, seçim, "velilerine de"; 10'arlı partiler sırayla, ilerleme; sonuçta tablo ve A4'e 8 kesme çizgili yazdırılabilir fiş. Şifreler bir kez gösterilir; "fişleri aldım" denmeden pencere kapanmaz. Bir parti başarısız olursa durulur, açılanlar kaybolmaz.
+
+**Gerekçe:** Sınırı genişletmek yerine yetkiyi daraltmak: toplu işin ihtiyacı (çok hesap) ile güvenlik ihtiyacı (keyfi hesap yok) aynı anda karşılanıyor. Ayrı fonksiyon, tek tek açmanın sözleşmesini ve sınırını değiştirmiyor.
+
+**Reddedilen:** _`create-member`'ın sınırını yükseltmek_ — keyfi adla hesap üretimi de büyür. _İstemcide `create-member` döngüsü_ — 60/saat'e takılır; ad istemciden gelir. _Hesapları ve şifreleri CSV olarak indirmek_ — düz metin şifre dosyası cihazda kalır; yazdırma ve ekran yeterli.
+
+**Yan düzeltme:** Yazdırma kuralı yalnız `#root`'u gizliyordu; Radix pencereleri `body` altında olduğu için açık pencere fişin üstüne basılıyordu (tek fişte de). Artık yazdırma kökü dışındaki her şey gizlenir (`index.css`).

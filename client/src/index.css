@@ -718,7 +718,14 @@ input[type="checkbox"] {
 }
 
 @media print {
-  #root {
+  /*
+   * Yalnız `#root` değil, yazdırma kökü dışındaki HER ŞEY gizlenir
+   * (2026-10-23): Radix pencereleri ve bildirimler portal ile `body`
+   * altında, `#root`'un dışında duruyor. Yalnız `#root` gizlendiğinde açık
+   * pencere fişlerin üstüne basılıyordu — toplu fiş sayfasında görüldü, tek
+   * fişte de aynıydı.
+   */
+  body > *:not(#orbit-print-root) {
     display: none !important;
   }
 

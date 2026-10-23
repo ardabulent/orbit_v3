@@ -5,6 +5,7 @@ import type { OrganizationMember } from "@/organization/memberService";
 import type { Guardian } from "@/education/guardianService";
 import { GuardiansTab } from "./GuardiansTab";
 import { OpenAccountHost } from "./OpenAccountHost";
+import { BulkAccountsDialog } from "./BulkAccountsDialog";
 import type { StudentFilter } from "./studentFilters";
 import { StudentsTable } from "./StudentsTable";
 
@@ -89,6 +90,8 @@ export function StudentsPage({
   const [activeTab, setActiveTab] = useState<"students" | "guardians">(
     "students"
   );
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const withoutAccount = visibleStudents.filter(s => !s.hasAccount).length;
   return (
     <>
       <PageHeader
@@ -142,6 +145,15 @@ export function StudentsPage({
           >
             Veliler
           </button>
+          {activeTab === "students" && onLinkAccount && withoutAccount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setBulkOpen(true)}
+              className="ml-auto mb-1.5 self-center rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50"
+            >
+              Toplu hesap aç ({withoutAccount})
+            </button>
+          ) : null}
         </div>
       ) : null}
       {role === "admin" && activeTab === "guardians" ? (
@@ -186,6 +198,12 @@ export function StudentsPage({
       )}
       {/* Satırlar tazelense de hesap açma penceresi ve giriş fişi burada kalır (1.7). */}
       {role === "admin" ? <OpenAccountHost /> : null}
+      {bulkOpen ? (
+        <BulkAccountsDialog
+          students={visibleStudents}
+          onClose={() => setBulkOpen(false)}
+        />
+      ) : null}
     </>
   );
 }
