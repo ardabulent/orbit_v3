@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { userFacingErrorText } from "@/lib/userFacingError";
+import { loadStudents } from "./studentService";
 import { formatTrDate } from "./trDate";
 
 /**
@@ -66,11 +67,11 @@ export type LatestExamDetail = {
   name: string;
   examDate: string;
   maxScore: number | null;
-  /**
-   * Sınavın sınıf kimliği.
-   */
-  classId?: string;
+  /** Sınavın sınıfı; boşsa şube ya da kurum geneli (`branchId`). */
+  classId?: string | null;
   className?: string | null;
+  branchId?: string | null;
+  branchName?: string | null;
   /**
    * Sınava giren kişi sayısı — sınavın kendi sayısı, okuyanın gördüğü değil.
    * Çağıranın bu sayıyı görmeye yetkisi yoksa `null` kalır ve çizilmez.
@@ -101,9 +102,38 @@ export type StudentLatestExamScore = {
   maxScore: number | null;
 };
 
+/**
+ * Sınavın kapsamı (2026-10-23, ana plan 1.5): sınıf; sınıf boşsa şube; ikisi
+ * de boşsa kurum geneli. Etiketin tek kaynağı (K-06).
+ */
+export function examScopeLabel(scope: {
+  className?: string | null;
+  branchName?: string | null;
+  classId?: string | null;
+  branchId?: string | null;
+}): string {
+  if (scope.className) return scope.className;
+  if (scope.classId) return "Sınıf";
+  if (scope.branchName) return `${scope.branchName} şubesi`;
+  if (scope.branchId) return "Şube geneli";
+  return "Kurum geneli";
+}
+
+/** Ortalama etiketi: sınıf sınavında "Sınıf", şubede "Şube", kurumda "Kurum". */
+export function examAverageLabel(scope: {
+  classId?: string | null;
+  branchId?: string | null;
+}): string {
+  if (scope.classId) return "Sınıf ortalaması";
+  if (scope.branchId) return "Şube ortalaması";
+  return "Kurum ortalaması";
+}
+
 export type CreateExamInput = {
   organizationId: string;
-  classId: string;
+  /** Boşsa sınıfsız sınav: `branchId` doluysa şube geneli, değilse kurum geneli (yalnız yönetici). */
+  classId: string | null;
+  branchId?: string | null;
   subjectId?: string | null;
   name: string;
   examDate: string;
@@ -113,7 +143,9 @@ export type CreateExamInput = {
 };
 
 export type UpdateExamInput = {
-  classId?: string;
+  /** `null` sınıfsız (şube/kurum geneli) yapar; `branchId` ile birlikte verilir. */
+  classId?: string | null;
+  branchId?: string | null;
   subjectId?: string | null;
   name?: string;
   examDate?: string;
@@ -125,8 +157,11 @@ export type UpdateExamInput = {
 export type ExamDetail = {
   id: string;
   organizationId: string;
-  classId: string;
+  /** Boşsa şube ya da kurum geneli (`branchId`'ye bakın). */
+  classId: string | null;
   className: string | null;
+  branchId?: string | null;
+  branchName?: string | null;
   subjectId: string | null;
   subjectName: string | null;
   name: string;
@@ -138,6 +173,8 @@ export type ExamSheetStudent = {
   studentId: string;
   studentName: string;
   studentCode?: string;
+  /** Öğrencinin sınıfı — sınıfsız (şube/kurum geneli) sınavda süzmek için. */
+  group?: string | null;
   score: number | null;
   resultId?: string | null;
 };
@@ -444,7 +481,8 @@ export async function createExam(
 ): Promise<{ id: string }> {
   const payload: {
     organization_id: string;
-    class_id: string;
+    class_id: string | null;
+    branch_id?: string | null;
     subject_id?: string | null;
     name: string;
     exam_date: string;
@@ -456,6 +494,8 @@ export async function createExam(
     name: input.name.trim(),
     exam_date: input.examDate,
   };
+  // Şube yalnız sınıfsız sınavda anlamlı; veritabanı da ikisini birden reddeder.
+  if (!input.classId && input.branchId) payload.branch_id = input.branchId;
 
   if (input.subjectId) {
     payload.subject_id = input.subjectId;
@@ -492,7 +532,8 @@ export async function updateExam(
   updates: UpdateExamInput
 ): Promise<void> {
   const payload: {
-    class_id?: string;
+    class_id?: string | null;
+    branch_id?: string | null;
     subject_id?: string | null;
     name?: string;
     exam_date?: string;
@@ -501,6 +542,8 @@ export async function updateExam(
   } = {};
 
   if (updates.classId !== undefined) payload.class_id = updates.classId;
+  if (updates.branchId !== undefined)
+    payload.branch_id = updates.classId ? null : updates.branchId;
   if (updates.subjectId !== undefined) payload.subject_id = updates.subjectId;
   if (updates.name !== undefined) payload.name = updates.name.trim();
   if (updates.examDate !== undefined) payload.exam_date = updates.examDate;
@@ -575,12 +618,14 @@ export async function loadExamSheet(
       id,
       organization_id,
       class_id,
+      branch_id,
       subject_id,
       name,
       exam_date,
       max_score,
       archived_at,
       classes ( id, name, archived_at ),
+      branches ( id, name ),
       subjects ( id, name, archived_at )
     `
     )
@@ -609,11 +654,17 @@ export async function loadExamSheet(
   } | null;
   const subName = Array.isArray(sub) ? sub[0]?.name : sub?.name;
 
+  const br = examData.branches as
+    { name?: string } | { name?: string }[] | null;
+  const branchName = Array.isArray(br) ? br[0]?.name : br?.name;
+
   const exam: ExamDetail = {
     id: examData.id,
     organizationId: examData.organization_id,
     classId: examData.class_id,
     className: clsName?.trim() || null,
+    branchId: examData.branch_id ?? null,
+    branchName: branchName?.trim() || null,
     subjectId: examData.subject_id || null,
     subjectName: subName?.trim() || null,
     name: examData.name,
@@ -624,11 +675,33 @@ export async function loadExamSheet(
         : null,
   };
 
-  // 2. Sınıfa aktif kayıtlı öğrencileri çek
-  const { data: enrollmentsData, error: enrollError } = await supabase
-    .from("class_enrollments")
-    .select(
-      `
+  // 2. Sınıfsız sınav (şube ya da kurum geneli, 1.5): öğrenciler sınıf
+  // kaydından değil öğrenci listesinden; şube genelinde o şubeninkiler.
+  // Önceden burada `class_id=eq.null` sorgusu 400 dönüyordu (test turu B8).
+  const sheetStudents: {
+    id: string;
+    name: string;
+    code?: string;
+    group: string | null;
+  }[] = [];
+  if (!examData.class_id) {
+    const list = await loadStudents(organizationId);
+    for (const s of list.rows)
+      if (!examData.branch_id || s.branchId === examData.branch_id)
+        sheetStudents.push({
+          id: s.id,
+          name: s.name,
+          code: s.code,
+          group: s.group,
+        });
+  }
+
+  // 2b. Sınıf sınavı: sınıfa aktif kayıtlı öğrenciler
+  const { data: enrollmentsData, error: enrollError } = examData.class_id
+    ? await supabase
+        .from("class_enrollments")
+        .select(
+          `
       id,
       student_id,
       archived_at,
@@ -639,10 +712,11 @@ export async function loadExamSheet(
         archived_at
       )
     `
-    )
-    .eq("organization_id", organizationId)
-    .eq("class_id", examData.class_id)
-    .is("archived_at", null);
+        )
+        .eq("organization_id", organizationId)
+        .eq("class_id", examData.class_id)
+        .is("archived_at", null)
+    : { data: [], error: null };
 
   if (enrollError) {
     throw new Error(translateExamError(enrollError));
@@ -703,6 +777,17 @@ export async function loadExamSheet(
       studentCode,
       score,
       resultId,
+    });
+  }
+
+  for (const s of sheetStudents) {
+    students.push({
+      studentId: s.id,
+      studentName: s.name,
+      studentCode: s.code,
+      group: s.group,
+      score: scoreByStudentId.get(s.id) ?? null,
+      resultId: resultIdByStudentId.get(s.id) ?? null,
     });
   }
 

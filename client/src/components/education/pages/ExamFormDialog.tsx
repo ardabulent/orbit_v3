@@ -23,6 +23,7 @@ import {
   type SectionDraft,
 } from "@/education/examNetService";
 import { getOrbitToday } from "@/education/trDate";
+import { useSettingsBranches } from "@/settings/settingsQueries";
 import type { ClassGroup } from "../types";
 import { ExamSectionsEditor } from "./ExamSectionsEditor";
 import {
@@ -47,7 +48,24 @@ export type ExamFormDialogProps = {
   exam?: LatestExamDetail | null;
   organizationId: string;
   classes: ClassGroup[];
+  /** Yönetici: şube ve kurum geneli kapsamı seçilebilir (asıl sınır RLS'te). */
+  canChooseWide?: boolean;
 };
+
+/** Şube listesini okuyup bildirir; yalnız açık pencerede çizilir. */
+function BranchLoader({
+  organizationId,
+  onLoaded,
+}: {
+  organizationId: string;
+  onLoaded: (branches: { id: string; name: string }[]) => void;
+}) {
+  const { data } = useSettingsBranches(organizationId);
+  useEffect(() => {
+    if (data) onLoaded(data.map(b => ({ id: b.id, name: b.name })));
+  }, [data, onLoaded]);
+  return null;
+}
 
 export function ExamFormDialog({
   open,
@@ -56,9 +74,19 @@ export function ExamFormDialog({
   organizationId,
   classes = [],
   exam = null,
+  canChooseWide = false,
 }: ExamFormDialogProps) {
   const [name, setName] = useState("");
-  const [classId, setClassId] = useState("");
+  // Kapsam (1.5, 2026-10-23): "class:<id>", "branch:<id>" ya da "org".
+  // Şube ve kurum geneli yalnız yöneticiye; asıl sınır RLS'te (öğretmen
+  // sınıfsız sınav açamaz).
+  const [scope, setScope] = useState("");
+  const isAdmin = canChooseWide;
+  // Şubeler pencerenin içindeki alt bileşende okunur (pencere kapalıyken
+  // çizilmez; sayfa testleri sağlayıcısız çizer) ve buraya bildirilir.
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+  const classId = scope.startsWith("class:") ? scope.slice(6) : null;
+  const branchId = scope.startsWith("branch:") ? scope.slice(7) : null;
   const [examDate, setExamDate] = useState(() => getOrbitToday());
   const [maxScore, setMaxScore] = useState("");
   // Deneme netleri (karar 2026-09-28): tek puan ya da ders ders net.
@@ -72,7 +100,19 @@ export function ExamFormDialog({
   useEffect(() => {
     if (open) {
       setName(exam?.name ?? "");
-      setClassId(exam?.classId ?? classes[0]?.id ?? "");
+      setScope(
+        exam
+          ? exam.classId
+            ? `class:${exam.classId}`
+            : exam.branchId
+              ? `branch:${exam.branchId}`
+              : "org"
+          : classes[0]
+            ? `class:${classes[0].id}`
+            : isAdmin
+              ? "org"
+              : ""
+      );
       setExamDate(exam?.examDate ?? getOrbitToday());
       setMaxScore(exam?.maxScore != null ? String(exam.maxScore) : "");
       setScoring(choiceOf(exam?.netPenalty));
@@ -82,7 +122,7 @@ export function ExamFormDialog({
       setError(null);
       setSubmitting(false);
     }
-  }, [open, classes, exam]);
+  }, [open, classes, exam, isAdmin]);
 
   // Düzenlenen netli sınavın bölümleri.
   const editingNetExamId = open && exam?.netPenalty ? exam.id : null;
@@ -126,8 +166,8 @@ export function ExamFormDialog({
       setError(translateExamError({ code: "23514" }));
       return;
     }
-    if (!classId) {
-      setError("Lütfen bir sınıf seçin.");
+    if (!scope) {
+      setError("Lütfen sınavın kimlere ait olduğunu seçin.");
       return;
     }
 
@@ -162,6 +202,7 @@ export function ExamFormDialog({
       if (exam) {
         await updateExam(organizationId, exam.id, {
           classId,
+          branchId,
           name: trimmedName,
           examDate,
           maxScore: parsedMaxScore,
@@ -172,6 +213,7 @@ export function ExamFormDialog({
         const created = await createExam({
           organizationId,
           classId,
+          branchId,
           name: trimmedName,
           examDate,
           maxScore: parsedMaxScore,
@@ -199,6 +241,9 @@ export function ExamFormDialog({
         examDate,
         maxScore: parsedMaxScore,
         classId,
+        className: classes.find(c => c.id === classId)?.name ?? null,
+        branchId,
+        branchName: branches.find(b => b.id === branchId)?.name ?? null,
         participantCount: exam?.participantCount ?? null,
         netPenalty: penaltyOf(scoring),
       });
@@ -223,8 +268,8 @@ export function ExamFormDialog({
             </DialogTitle>
             <DialogDescription>
               {exam
-                ? "Sınavın adını, tarihini, sınıfını ve tam puanını güncelleyin."
-                : "Sınıf için yeni bir sınav kaydı oluşturun ve sonuç girişini başlatın."}
+                ? "Sınavın adını, tarihini, kapsamını ve tam puanını güncelleyin."
+                : "Bir sınıf, bir şube ya da bütün kurum için sınav kaydı oluşturun ve sonuç girişini başlatın."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -249,25 +294,53 @@ export function ExamFormDialog({
                 htmlFor="exam-class"
                 className="text-xs font-bold text-slate-700"
               >
-                Sınıf <span className="text-rose-500">*</span>
+                Kimler girecek <span className="text-rose-500">*</span>
               </Label>
               <select
                 id="exam-class"
-                value={classId}
-                onChange={e => setClassId(e.target.value)}
-                disabled={submitting || classes.length === 0}
+                value={scope}
+                onChange={e => setScope(e.target.value)}
+                disabled={submitting || (classes.length === 0 && !isAdmin)}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm outline-none focus:border-blue-500"
               >
-                {classes.length === 0 ? (
+                {classes.length === 0 && !isAdmin ? (
                   <option value="">Kayıtlı sınıf yok</option>
-                ) : (
-                  classes.map(cls => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </option>
-                  ))
-                )}
+                ) : null}
+                {classes.length > 0 ? (
+                  <optgroup label="Sınıf">
+                    {classes.map(cls => (
+                      <option key={cls.id} value={`class:${cls.id}`}>
+                        {cls.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {isAdmin ? (
+                  <optgroup label="Ortak deneme">
+                    <option value="org">Kurum geneli (bütün öğrenciler)</option>
+                    {branches.length > 1
+                      ? branches.map(branch => (
+                          <option key={branch.id} value={`branch:${branch.id}`}>
+                            {branch.name} şubesi geneli
+                          </option>
+                        ))
+                      : null}
+                  </optgroup>
+                ) : null}
               </select>
+              {isAdmin ? (
+                <BranchLoader
+                  organizationId={organizationId}
+                  onLoaded={setBranches}
+                />
+              ) : null}
+              {scope && !classId ? (
+                <p className="text-[11px] text-slate-500">
+                  Sonuç ekranında {branchId ? "bu şubenin" : "kurumun"} bütün
+                  öğrencileri listelenir; sınıfa göre süzebilirsiniz. Dosyadan
+                  aktarma numarayla hepsini eşler.
+                </p>
+              ) : null}
             </div>
             <div className="space-y-1.5">
               <Label
@@ -361,7 +434,7 @@ export function ExamFormDialog({
             </button>
             <button
               type="submit"
-              disabled={submitting || !name.trim() || !classId}
+              disabled={submitting || !name.trim() || !scope}
               className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-50"
             >
               {submitting

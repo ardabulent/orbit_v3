@@ -48,6 +48,8 @@ export function NetResultsGrid({
   examId,
   netPenalty,
   students,
+  visibleGroup = null,
+  averageLabel = "Sınıf ortalaması",
   canEdit,
   onSaved,
   onDirtyChange,
@@ -56,6 +58,10 @@ export function NetResultsGrid({
   examId: string;
   netPenalty: number;
   students: ExamSheetStudent[];
+  /** Yalnız çizilecek sınıf (şube/kurum geneli sınavda süzgeç); kayıt ve aktarma bütün listeyle. */
+  visibleGroup?: string | null;
+  /** "Sınıf / Şube / Kurum ortalaması" — `examAverageLabel`. */
+  averageLabel?: string;
   canEdit: boolean;
   /** Boş denemeye şablondan ders eklemek için (2026-09-30). */
   organizationId?: string;
@@ -335,116 +341,123 @@ export function NetResultsGrid({
             </tr>
           </thead>
           <tbody>
-            {students.map(student => {
-              let total = 0;
-              let any = false;
-              return (
-                <tr
-                  key={student.studentId}
-                  className="border-b border-slate-50 last:border-0"
-                >
-                  <td className="sticky left-0 bg-white px-4 py-2">
-                    <span className="block text-[12px] font-bold text-slate-800">
-                      {student.studentName}
-                    </span>
-                    {student.studentCode ? (
-                      <span className="block text-[10px] text-slate-400">
-                        {student.studentCode}
+            {students
+              .filter(
+                student =>
+                  visibleGroup === null ||
+                  (student.group ?? "") === visibleGroup
+              )
+              .map(student => {
+                let total = 0;
+                let any = false;
+                return (
+                  <tr
+                    key={student.studentId}
+                    className="border-b border-slate-50 last:border-0"
+                  >
+                    <td className="sticky left-0 bg-white px-4 py-2">
+                      <span className="block text-[12px] font-bold text-slate-800">
+                        {student.studentName}
                       </span>
-                    ) : null}
-                    <ExamAbsenceControl
-                      examId={examId}
-                      studentId={student.studentId}
-                      studentName={student.studentName}
-                      absence={absences.get(student.studentId)}
-                      canEdit={canEdit}
-                      hasResult={sections.some(
-                        section =>
-                          parse(initial[key(student.studentId, section.id)]) !==
-                          null
-                      )}
-                      onChanged={async () => {
-                        await netQuery.refetch();
-                        await onSaved?.();
-                      }}
-                    />
-                  </td>
-                  {sections.map(section => {
-                    const cell = cells[key(student.studentId, section.id)];
-                    const value = parse(cell);
-                    const over =
-                      value !== null &&
-                      value.correct + value.wrong > section.questionCount;
-                    const net = value
-                      ? netOf(value.correct, value.wrong, netPenalty)
-                      : null;
-                    if (net !== null && !over) {
-                      total += net;
-                      any = true;
-                    }
-                    return (
-                      <td key={section.id} className="px-2 py-2">
-                        <div className="flex items-center justify-center gap-1">
-                          <input
-                            type="number"
-                            min={0}
-                            inputMode="numeric"
-                            value={cell?.correct ?? ""}
-                            onChange={e =>
-                              setCell(student.studentId, section.id, {
-                                correct: e.target.value,
-                              })
-                            }
-                            disabled={
-                              !canEdit || absences.has(student.studentId)
-                            }
-                            placeholder="D"
-                            aria-label={`${student.studentName} ${section.name} doğru`}
-                            className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over || cleared.has(key(student.studentId, section.id)) ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
-                          />
-                          <input
-                            type="number"
-                            min={0}
-                            inputMode="numeric"
-                            value={cell?.wrong ?? ""}
-                            onChange={e =>
-                              setCell(student.studentId, section.id, {
-                                wrong: e.target.value,
-                              })
-                            }
-                            disabled={
-                              !canEdit || absences.has(student.studentId)
-                            }
-                            placeholder="Y"
-                            aria-label={`${student.studentName} ${section.name} yanlış`}
-                            className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over || cleared.has(key(student.studentId, section.id)) ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
-                          />
-                        </div>
-                        <span
-                          className={`mt-0.5 block text-center text-[10px] ${over ? "font-bold text-rose-600" : "text-slate-500"}`}
-                        >
-                          {cleared.has(key(student.studentId, section.id))
-                            ? "kayıtlı sonuç boşaltılamaz"
-                            : over
-                              ? "soru sayısını aşıyor"
-                              : net !== null
-                                ? `${formatNet(net)} net`
-                                : "—"}
+                      {student.studentCode ? (
+                        <span className="block text-[10px] text-slate-400">
+                          {student.studentCode}
                         </span>
-                      </td>
-                    );
-                  })}
-                  <td className="px-4 py-2 text-right text-[13px] font-extrabold tabular-nums text-slate-900">
-                    {any ? formatNet(Math.round(total * 100) / 100) : "—"}
-                  </td>
-                </tr>
-              );
-            })}
+                      ) : null}
+                      <ExamAbsenceControl
+                        examId={examId}
+                        studentId={student.studentId}
+                        studentName={student.studentName}
+                        absence={absences.get(student.studentId)}
+                        canEdit={canEdit}
+                        hasResult={sections.some(
+                          section =>
+                            parse(
+                              initial[key(student.studentId, section.id)]
+                            ) !== null
+                        )}
+                        onChanged={async () => {
+                          await netQuery.refetch();
+                          await onSaved?.();
+                        }}
+                      />
+                    </td>
+                    {sections.map(section => {
+                      const cell = cells[key(student.studentId, section.id)];
+                      const value = parse(cell);
+                      const over =
+                        value !== null &&
+                        value.correct + value.wrong > section.questionCount;
+                      const net = value
+                        ? netOf(value.correct, value.wrong, netPenalty)
+                        : null;
+                      if (net !== null && !over) {
+                        total += net;
+                        any = true;
+                      }
+                      return (
+                        <td key={section.id} className="px-2 py-2">
+                          <div className="flex items-center justify-center gap-1">
+                            <input
+                              type="number"
+                              min={0}
+                              inputMode="numeric"
+                              value={cell?.correct ?? ""}
+                              onChange={e =>
+                                setCell(student.studentId, section.id, {
+                                  correct: e.target.value,
+                                })
+                              }
+                              disabled={
+                                !canEdit || absences.has(student.studentId)
+                              }
+                              placeholder="D"
+                              aria-label={`${student.studentName} ${section.name} doğru`}
+                              className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over || cleared.has(key(student.studentId, section.id)) ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              inputMode="numeric"
+                              value={cell?.wrong ?? ""}
+                              onChange={e =>
+                                setCell(student.studentId, section.id, {
+                                  wrong: e.target.value,
+                                })
+                              }
+                              disabled={
+                                !canEdit || absences.has(student.studentId)
+                              }
+                              placeholder="Y"
+                              aria-label={`${student.studentName} ${section.name} yanlış`}
+                              className={`h-8 w-12 rounded-md border px-1 text-center text-xs ${over || cleared.has(key(student.studentId, section.id)) ? "border-rose-400 bg-rose-50" : "border-slate-200"}`}
+                            />
+                          </div>
+                          <span
+                            className={`mt-0.5 block text-center text-[10px] ${over ? "font-bold text-rose-600" : "text-slate-500"}`}
+                          >
+                            {cleared.has(key(student.studentId, section.id))
+                              ? "kayıtlı sonuç boşaltılamaz"
+                              : over
+                                ? "soru sayısını aşıyor"
+                                : net !== null
+                                  ? `${formatNet(net)} net`
+                                  : "—"}
+                          </span>
+                        </td>
+                      );
+                    })}
+                    <td className="px-4 py-2 text-right text-[13px] font-extrabold tabular-nums text-slate-900">
+                      {any ? formatNet(Math.round(total * 100) / 100) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
           <tfoot>
             <tr className="border-t border-slate-100 bg-slate-50/50 text-[11px] text-slate-500">
               <td className="sticky left-0 bg-slate-50 px-4 py-2 font-bold">
-                Sınıf ortalaması
+                {averageLabel}
               </td>
               {sections.map(section => {
                 const avg = averages.get(section.id);

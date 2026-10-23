@@ -31,6 +31,9 @@ export type StudentExam = {
   maxScore: number | null;
   netPenalty: number | null;
   className: string | null;
+  /** Sınıfsız sınavda kapsam (1.5): ortalama etiketi "Şube" / "Kurum" olur. */
+  classId?: string | null;
+  branchId?: string | null;
   /** Öğrencinin puanı ya da toplam neti; girilmemişse `null`. */
   score: number | null;
   classAverage: number | null;
@@ -66,6 +69,17 @@ export async function loadStudentExams(
     .eq("student_id", studentId)
     .is("archived_at", null);
   if (enrollmentError) throw new Error(translateExamError(enrollmentError));
+  // Şube geneli sınav (1.5) yalnız öğrencinin şubesine; RLS öğrenciye ve
+  // veliye kendi/çocuğunun kaydını açar.
+  const { data: studentRow, error: studentError } = await supabase
+    .from("students")
+    .select("branch_id")
+    .eq("organization_id", organizationId)
+    .eq("id", studentId)
+    .maybeSingle();
+  if (studentError) throw new Error(translateExamError(studentError));
+  const branchId = (studentRow as { branch_id?: string | null } | null)
+    ?.branch_id;
   const classIds = [
     ...new Set(
       ((enrollments ?? []) as { class_id: string }[]).map(e => e.class_id)
@@ -75,16 +89,17 @@ export async function loadStudentExams(
   let examQuery = supabase
     .from("exams")
     .select(
-      "id, name, exam_date, max_score, net_penalty, class_id, classes(name)"
+      "id, name, exam_date, max_score, net_penalty, class_id, branch_id, classes(name)"
     )
     .eq("organization_id", organizationId)
     .is("archived_at", null)
     .order("exam_date", { ascending: false })
     .limit(STUDENT_EXAM_LIMIT);
-  examQuery =
-    classIds.length > 0
-      ? examQuery.or(`class_id.is.null,class_id.in.(${classIds.join(",")})`)
-      : examQuery.is("class_id", null);
+  // Öğrencinin sınıfları + kurum geneli + (varsa) şubesinin geneli.
+  const scopes = ["and(class_id.is.null,branch_id.is.null)"];
+  if (branchId) scopes.push(`and(class_id.is.null,branch_id.eq.${branchId})`);
+  if (classIds.length > 0) scopes.push(`class_id.in.(${classIds.join(",")})`);
+  examQuery = examQuery.or(scopes.join(","));
 
   const [examsRes, resultsRes, sectionResultsRes, absencesRes] =
     await Promise.all([
@@ -116,6 +131,8 @@ export async function loadStudentExams(
     exam_date: string;
     max_score: number | string | null;
     net_penalty: number | null;
+    class_id?: string | null;
+    branch_id?: string | null;
     classes?: unknown;
   };
   const exams = (examsRes.data ?? []) as RawExam[];
@@ -174,6 +191,8 @@ export async function loadStudentExams(
       maxScore: row.max_score === null ? null : Number(row.max_score),
       netPenalty: penalty,
       className: relationName(row.classes),
+      classId: row.class_id ?? null,
+      branchId: row.branch_id ?? null,
       score: scores.get(row.id) ?? null,
       classAverage: avg?.average ?? null,
       absence: absences.get(row.id) ?? null,
