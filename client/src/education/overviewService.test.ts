@@ -159,8 +159,10 @@ describe("mapTodayLessonRow", () => {
       teacher_name: "Murat Kaya",
       attendance_taken: false,
       is_substitute: true,
+      substitute_until: "2026-10-30",
     });
     expect(lesson.isSubstitute).toBe(true);
+    expect(lesson.substituteUntil).toBe("2026-10-30");
     expect(lesson.teacher).toBe("Murat Kaya");
   });
 });

@@ -100,6 +100,8 @@ export type StudentLatestExamScore = {
   examName: string;
   examDate: string;
   maxScore: number | null;
+  /** Netli denemede doludur; `score` o zaman toplam nettir (B10, 2026-10-23). */
+  netPenalty?: number | null;
 };
 
 /**
@@ -362,6 +364,7 @@ export async function loadStudentLatestExamScores(
     exam_name: string;
     exam_date: string;
     max_score?: number | string | null;
+    net_penalty?: number | null;
   }[]) {
     const studentId = row.student_id;
     if (!studentId) continue;
@@ -384,6 +387,7 @@ export async function loadStudentLatestExamScores(
       examName: row.exam_name,
       examDate: row.exam_date,
       maxScore,
+      netPenalty: row.net_penalty ?? null,
     });
   }
 
@@ -594,6 +598,31 @@ export async function archiveExam(
   // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
   if (!data || data.length === 0) {
     throw new Error("Sınav bulunamadı veya arşivlenemedi.");
+  }
+}
+
+/**
+ * Arşivlenmiş sınavı geri yükler — arşiv bildirimindeki "Geri al" (test turu
+ * B13'ün eşi, 2026-10-23: öğrenci, sınıf, veli, ödev ve ödeme planında vardı,
+ * sınavda yoktu). Sonuçlar arşivlenmediği için sınav olduğu gibi döner.
+ */
+export async function restoreExam(
+  organizationId: string,
+  examId: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("exams")
+    .update({ archived_at: null })
+    .eq("organization_id", organizationId)
+    .eq("id", examId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translateExamError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Sınav bulunamadı veya geri yüklenemedi.");
   }
 }
 

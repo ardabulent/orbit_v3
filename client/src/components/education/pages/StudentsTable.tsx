@@ -69,14 +69,21 @@ export function StudentsTable({
   const classNames = useMemo(
     () =>
       Array.from(
-        new Set(students.map(s => s.group).filter((g): g is string => !!g))
+        new Set(
+          students
+            .flatMap(s => s.groups ?? (s.group ? [s.group] : []))
+            .filter((g): g is string => !!g)
+        )
       ).sort((a, b) => a.localeCompare(b, "tr")),
     [students]
   );
   const rows = students.filter(
     student =>
       matchesStudentFilter(student, filter) &&
-      (!classFilter || student.group === classFilter)
+      (!classFilter ||
+        (student.groups ?? (student.group ? [student.group] : [])).includes(
+          classFilter
+        ))
   );
 
   const handleArchive = async (student: Student) => {
@@ -299,7 +306,9 @@ function StudentRow(props: StudentRowProps) {
         </button>
       </td>
       <td className="px-5 py-4 font-semibold text-slate-600">
-        {student.group ?? <Badge tone="amber">Sınıfsız</Badge>}
+        {student.groups && student.groups.length > 1
+          ? student.groups.join(", ")
+          : (student.group ?? <Badge tone="amber">Sınıfsız</Badge>)}
       </td>
       <td className="px-5 py-4 text-slate-600">
         {student.parent ?? <Badge tone="amber">Velisiz</Badge>}
@@ -320,7 +329,7 @@ function StudentRow(props: StudentRowProps) {
               {student.latestExamMaxScore !== null &&
               student.latestExamMaxScore !== undefined
                 ? `${formatScore(student.score)} / ${formatScore(student.latestExamMaxScore)}`
-                : `${formatScore(student.score)} puan`}
+                : `${formatScore(student.score)} ${student.latestExamIsNet ? "net" : "puan"}`}
             </span>
             {student.latestExamName || student.latestExamDate ? (
               <p className="mt-0.5 text-[10px] text-slate-400">
@@ -438,7 +447,9 @@ function StudentCard(props: StudentRowProps) {
           {student.code ? <span>{student.code}</span> : null}
           {student.group ? (
             <span className="font-semibold text-slate-600">
-              {student.group}
+              {student.groups && student.groups.length > 1
+                ? student.groups.join(", ")
+                : student.group}
             </span>
           ) : (
             <Badge tone="amber">Sınıfsız</Badge>
@@ -459,7 +470,7 @@ function StudentCard(props: StudentRowProps) {
               {student.latestExamMaxScore !== null &&
               student.latestExamMaxScore !== undefined
                 ? `${formatScore(student.score)} / ${formatScore(student.latestExamMaxScore)}`
-                : `${formatScore(student.score)} puan`}
+                : `${formatScore(student.score)} ${student.latestExamIsNet ? "net" : "puan"}`}
             </span>
             {student.latestExamName ? ` · ${student.latestExamName}` : ""}
           </span>

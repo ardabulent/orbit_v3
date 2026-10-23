@@ -6,6 +6,7 @@ import {
   createStudent,
   extractBranchName,
   extractClassName,
+  extractClassNames,
   extractGuardianName,
   linkStudentAccount,
   loadStudents,
@@ -179,6 +180,44 @@ describe("studentService", () => {
     });
   });
 
+  describe("extractClassNames (B11: birden çok sınıf)", () => {
+    it("aktif sınıfların hepsini, sıralı ve tekrarsız döndürür", () => {
+      expect(
+        extractClassNames([
+          {
+            archived_at: null,
+            classes: { name: "Yaz Kampı", archived_at: null },
+          },
+          {
+            archived_at: null,
+            classes: [{ name: " 12-A ", archived_at: null }],
+          },
+          { archived_at: null, classes: { name: "12-A", archived_at: null } },
+        ])
+      ).toEqual(["12-A", "Yaz Kampı"]);
+    });
+
+    it("arşivlenmiş kaydı ve arşivlenmiş sınıfı atlar", () => {
+      expect(
+        extractClassNames([
+          {
+            archived_at: "2026-10-01",
+            classes: { name: "Eski", archived_at: null },
+          },
+          {
+            archived_at: null,
+            classes: { name: "Kapalı", archived_at: "2026-10-01" },
+          },
+          { archived_at: null, classes: { name: "11-B", archived_at: null } },
+        ])
+      ).toEqual(["11-B"]);
+    });
+
+    it("dizi değilse boş döner", () => {
+      expect(extractClassNames(null)).toEqual([]);
+    });
+  });
+
   describe("extractGuardianName", () => {
     it("aktif veli kaydını bulur ve adını döner", () => {
       const links = [
@@ -256,6 +295,7 @@ describe("studentService", () => {
         code: "2024-001",
         hasAccount: true,
         group: "12-C",
+        groups: ["12-C"],
         branch: "Beşiktaş Şubesi",
         branchId: "branch-abc",
         parent: "Kemal Demir",

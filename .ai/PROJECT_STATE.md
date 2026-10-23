@@ -179,6 +179,7 @@ client/src/
 │   ├── PlatformOrganizations.tsx / OrganizationCreateDialog.tsx
 │   ├── OrganizationProfileDialog.tsx # Kurum profili ve şifre sıfırlama
 │   ├── PlatformOperators.tsx / PlatformAuditLog.tsx
+│   ├── platformAuditLabels.ts # Platform denetim kodlarının Türkçe karşılığı; yazılan her kod için zorunlu (`platformAuditLabels.test.ts`, 2026-10-23)
 │   └── PlatformErrorReports.tsx # "Hata Kayıtları" sekmesi (#443)
 ├── errorReporting/         # Ekran hataları kendi veritabanımıza (v1.5-06, #443)
 │   ├── scrubErrorText.ts   # Kişisel veri ayıklama — sunucudaki `internal_scrub_error_text` ile aynı kurallar

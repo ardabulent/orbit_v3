@@ -43,6 +43,8 @@ export type TodayLesson = {
    * Yalnız `my_lessons_today` doldurur.
    */
   isSubstitute?: boolean;
+  /** Vekilliğin bitiş günü (YYYY-MM-DD); yalnız vekil satırında (1.6, 2026-10-23). */
+  substituteUntil?: string | null;
 };
 
 export type TeacherOverviewCounts = {
@@ -75,6 +77,7 @@ type RawTodayLessonRow = {
   attendance_taken: boolean | null;
   /** Yalnız `my_lessons_today` döner (`20261005000000`). */
   is_substitute?: boolean | null;
+  substitute_until?: string | null;
 };
 
 type RawTeacherCountsRow = {
@@ -117,6 +120,7 @@ export function mapTodayLessonRow(row: RawTodayLessonRow): TodayLesson {
     teacher: row.teacher_name?.trim() || null,
     attendanceTaken: row.attendance_taken ?? null,
     isSubstitute: row.is_substitute === true,
+    substituteUntil: row.substitute_until ?? null,
   };
 }
 

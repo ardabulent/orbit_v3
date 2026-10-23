@@ -10,7 +10,11 @@ import type {
   TodayLesson,
   UpcomingHomework,
 } from "@/education/overviewService";
-import { formatTrDate, getOrbitToday } from "@/education/trDate";
+import {
+  formatTrDate,
+  formatTrWeekLabel,
+  getOrbitToday,
+} from "@/education/trDate";
 import { Badge, CardSkeleton, EmptyState, ErrorState } from "../shared";
 import type { Section } from "../types";
 import type { StudentFilter } from "../pages/studentFilters";
@@ -322,6 +326,9 @@ function LessonRow({
       {lesson.isSubstitute ? (
         <Badge tone="violet">
           {lesson.teacher ? `${lesson.teacher} yerine` : "Vekil"}
+          {lesson.substituteUntil
+            ? ` · bitiş ${formatTrWeekLabel(lesson.substituteUntil)}`
+            : ""}
         </Badge>
       ) : null}
       {showAttendance ? (

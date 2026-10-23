@@ -17,7 +17,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(26);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -243,6 +243,14 @@ select results_eq(
      from public.my_lessons_today('7a000000-0000-0000-0000-00000000007a') $$,
   $$ values (1::bigint, true) $$,
   'today''s lesson of the absent teacher is the substitute''s lesson, marked as a substitution'
+);
+
+-- 2026-10-23 (ana plan 1.6): vekil dersinde vekilliğin bitiş günü taşınır.
+select is(
+  (select substitute_until from public.my_lessons_today('7a000000-0000-0000-0000-00000000007a') limit 1),
+  -- Bugün süren iki vekillik var (bugün bitiyor / yarın bitiyor): geç biten.
+  public.orbit_today() + 1,
+  'a substituted lesson carries the day the (latest) substitution ends'
 );
 
 select is(

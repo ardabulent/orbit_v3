@@ -1,5 +1,6 @@
 import { BookOpen } from "lucide-react";
 import type { TodayLesson } from "@/education/overviewService";
+import { formatTrWeekLabel } from "@/education/trDate";
 import { Badge, CardSkeleton, EmptyState, ErrorState } from "../shared";
 
 /**
@@ -92,7 +93,11 @@ export function AttendanceToday({
               </div>
               <div className="flex items-center gap-2">
                 {lesson.isSubstitute ? (
-                  <Badge tone="violet">Vekil</Badge>
+                  <Badge tone="violet">
+                    {lesson.substituteUntil
+                      ? `Vekil · bitiş ${formatTrWeekLabel(lesson.substituteUntil)}`
+                      : "Vekil"}
+                  </Badge>
                 ) : null}
                 {lesson.attendanceTaken === true ? (
                   <Badge tone="green">Alındı</Badge>
