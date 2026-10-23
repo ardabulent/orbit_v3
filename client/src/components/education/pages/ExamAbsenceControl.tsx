@@ -92,12 +92,15 @@ export function ExamAbsenceControl({
 
   return (
     <>
+      {/* Test turu B12: gri "Girmedi" bir durum etiketi gibi okunuyordu (sonucu
+          girilmiş öğrencide bile). Eylem olduğu metinden ve kenarlıktan belli. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`${LINK} text-slate-400 hover:text-amber-700`}
+        title={`${studentName} sınava girmedi olarak işaretle`}
+        className="rounded-md border border-dashed border-slate-300 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 transition hover:border-amber-400 hover:text-amber-700"
       >
-        Girmedi
+        Girmedi işaretle
       </button>
       <Dialog open={open} onOpenChange={o => !busy && setOpen(o)}>
         <DialogContent className="sm:max-w-[420px]">

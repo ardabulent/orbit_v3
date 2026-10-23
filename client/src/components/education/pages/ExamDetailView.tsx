@@ -9,6 +9,7 @@ import {
   formatExamSummary,
   loadExamSheet,
   archiveExam,
+  restoreExam,
   saveExamResults,
   translateExamError,
   type LatestExamDetail,
@@ -354,8 +355,26 @@ export function ExamDetailView({
     setIsArchiving(true);
     try {
       await archiveExam(organizationId, activeExam.id);
+      const archived = activeExam;
       toast.success("Sınav arşivlendi", {
-        description: `"${activeExam.name}" listeden kaldırıldı.`,
+        description: `"${archived.name}" listeden kaldırıldı.`,
+        action: {
+          label: "Geri al",
+          onClick: () => {
+            void restoreExam(organizationId, archived.id)
+              .then(() => {
+                toast.success("Sınav geri yüklendi", {
+                  description: `"${archived.name}" sonuçlarıyla birlikte listede.`,
+                });
+                onSaved?.();
+              })
+              .catch((err: unknown) => {
+                toast.error("Sınav geri yüklenemedi", {
+                  description: translateExamError(err),
+                });
+              });
+          },
+        },
       });
       setActiveExam(null);
       setSheet(null);

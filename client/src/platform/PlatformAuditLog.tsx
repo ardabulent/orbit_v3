@@ -1,16 +1,6 @@
 import { PlatformEmptyState, PlatformSection } from "./PlatformShell";
+import { PLATFORM_ACTION_LABELS as ACTION_LABELS } from "./platformAuditLabels";
 import type { PlatformAuditEvent } from "./platformService";
-
-/**
- * Bilinen olay kodlarının okunabilir karşılıkları. Bilinmeyen kod ham haliyle
- * gösterilir — gizlenirse denetim kaydı, kaydı yazan koddan habersiz kalır.
- */
-const ACTION_LABELS: Record<string, string> = {
-  "platform.organization_created": "Kurum oluşturuldu",
-  "platform.operator_added": "Operatör eklendi",
-  "platform.operator_suspended": "Operatör askıya alındı",
-  "platform.admin_password_reset": "Kurum yöneticisine yeni şifre üretildi",
-};
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString("tr-TR", {

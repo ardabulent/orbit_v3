@@ -12,6 +12,8 @@ export type Student = {
   name: string;
   code?: string;
   group: string | null;
+  /** Bütün aktif sınıfları (birden çoksa listede hepsi; B11). */
+  groups?: string[];
   branch: string | null;
   branchId?: string | null;
   parent: string | null;
@@ -21,6 +23,8 @@ export type Student = {
   latestExamName?: string;
   latestExamDate?: string;
   latestExamMaxScore?: number | null;
+  /** Son sınav netli deneme: puan değil net gösterilir (B10). */
+  latestExamIsNet?: boolean;
   homework?: string;
   payment?: "Güncel" | "Takip gerekli";
   risk?: "Dengeli" | "Takip gerekli";

@@ -188,6 +188,19 @@ export function ClassEnrollmentDialog({
               />
             </div>
 
+            {/* Kontenjan yalnız bilgiydi ve dolu sınıfa uyarısız eklenebiliyordu
+                (test turu B4). Engel değil — kurum bilerek aşabilir — ama
+                eklemeden önce söylenir ve düğme "Yine de ekle" olur. */}
+            {isFull && isSearchActive ? (
+              <p
+                role="status"
+                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-900"
+              >
+                Kontenjan dolu ({enrollments.length} / {classData.capacity}).
+                Eklerseniz sınıf kontenjanı aşar.
+              </p>
+            ) : null}
+
             {/* Arama Sonuçları */}
             {isSearchActive ? (
               <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/50 p-2 space-y-1">
@@ -232,7 +245,9 @@ export function ClassEnrollmentDialog({
                         <span>
                           {enrollingStudentId === student.id
                             ? "Ekleniyor…"
-                            : "Ekle"}
+                            : isFull
+                              ? "Yine de ekle"
+                              : "Ekle"}
                         </span>
                       </button>
                     </div>

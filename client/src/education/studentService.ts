@@ -181,6 +181,26 @@ export function extractClassName(enrollments: unknown): string | null {
   return cls?.name || null;
 }
 
+/**
+ * Öğrencinin bütün aktif sınıfları (test turu B11, 2026-10-23): birden çok
+ * sınıfa kayıtlı öğrencinin listede yalnız biri görünüyordu. `group` geriye
+ * dönük olarak ilk sınıfı taşımaya devam eder (süzgeçler eşitlikle bakar).
+ */
+export function extractClassNames(enrollments: unknown): string[] {
+  if (!Array.isArray(enrollments)) return [];
+  const names: string[] = [];
+  for (const e of enrollments) {
+    if (!e || typeof e !== "object") continue;
+    if (e.archived_at !== null && e.archived_at !== undefined) continue;
+    const cls = Array.isArray(e.classes) ? e.classes[0] : e.classes;
+    if (!cls || typeof cls !== "object") continue;
+    if (cls.archived_at !== null && cls.archived_at !== undefined) continue;
+    const name = typeof cls.name === "string" ? cls.name.trim() : "";
+    if (name && !names.includes(name)) names.push(name);
+  }
+  return names.sort((a, b) => a.localeCompare(b, "tr"));
+}
+
 export function extractGuardianName(links: unknown): string | null {
   if (!Array.isArray(links)) return null;
   const activeGuardians = links
@@ -222,6 +242,7 @@ export function mapStudentRow(
   let latestExamName: string | undefined;
   let latestExamDate: string | undefined;
   let latestExamMaxScore: number | null | undefined;
+  let latestExamIsNet: boolean | undefined;
 
   if (typeof latestExamScore === "number") {
     score = latestExamScore;
@@ -231,6 +252,7 @@ export function mapStudentRow(
     latestExamName = latestExamScore.examName;
     latestExamDate = latestExamScore.examDate;
     latestExamMaxScore = latestExamScore.maxScore;
+    latestExamIsNet = Boolean(latestExamScore.netPenalty);
   }
 
   return {
@@ -239,6 +261,7 @@ export function mapStudentRow(
     code: row.student_number ?? undefined,
     hasAccount: Boolean(row.auth_user_id),
     group: extractClassName(row.class_enrollments),
+    groups: extractClassNames(row.class_enrollments),
     branch: extractBranchName(row.branches),
     branchId: row.branch_id ?? null,
     parent: extractGuardianName(row.student_guardians),
@@ -248,6 +271,7 @@ export function mapStudentRow(
     latestExamName,
     latestExamDate,
     latestExamMaxScore,
+    latestExamIsNet,
     payment: paymentStatus,
     homework: homeworkRatio,
     // Kaynağı olmayan ve henüz türetilmeyen alanlar dürüstçe undefined bırakılır:
