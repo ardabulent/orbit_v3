@@ -212,6 +212,13 @@ jobs:
         if: steps.degisiklik.outputs.gerekli == 'true'
         run: bash supabase/tests/functions/create_member_chain.sh
 
+      # Toplu hesap açma (2026-10-23, ana plan 1.8): fonksiyonun güvenlik
+      # iddiaları — başka kurumun kaydı görünmez, hesabı olana ikinci hesap
+      # açılmaz, öğretmen açamaz, tekrar istek işi yinelemez ve şifre döndürmez.
+      - name: Toplu hesap açma zinciri
+        if: steps.degisiklik.outputs.gerekli == 'true'
+        run: node supabase/tests/functions/bulk_accounts_chain.mjs
+
       - name: Test ortamını kapat
         if: always() && steps.degisiklik.outputs.gerekli == 'true'
         run: supabase stop --no-backup

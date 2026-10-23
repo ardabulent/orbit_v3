@@ -143,6 +143,7 @@ client/src/
 │   ├── examNetService.ts   # Sınav listesi ve deneme netleri (ders bölümü, doğru/yanlış → net)
 │   ├── studentImport.ts / importMapping.ts # Toplu öğrenci aktarımı (`import_students`) ve sütun eşleme (2026-09-29, 10-01)
 │   ├── newStudentFlow.ts   # "Yeni öğrenci" tek akışı: öğrenci + veli + sınıf (karar 2026-09-28)
+│   ├── bulkAccounts.ts     # Toplu hesap açma: `create-members-bulk`, 10'arlı partiler (1.8, 2026-10-23); ekranı `pages/BulkAccountsDialog.tsx`, fişler `credentials/PrintableSlipSheet.tsx`
 │   ├── accountForRecord.ts / useOpenAccountForRecord.ts # Var olan öğrenci/veli kaydına hesap aç + bağla; liste fiş kapanınca tazelenir (1.7, 2026-10-23). Ekranı `pages/AssignAccountPopover.tsx` (öğrenci + veli ortak), pencere sayfada sabit: `OpenAccountHost.tsx` + `openAccountRequest.ts` → `OpenAccountDialog.tsx`
 │   ├── overviewService.ts  # Yönetici Genel Bakış kartlarının verisi
 │   ├── attentionReasons.ts # Dikkat listesindeki öğrencinin nedenleri, ekranda okunacak haliyle
@@ -210,7 +211,7 @@ client/src/
 
 **Bağlayıcı kural — taşınabilirlik:** `components/` ve `pages/` altındaki dosyalar Supabase istemcisini **doğrudan import edemez**; veri erişimi yukarıdaki servis modüllerinden geçer. Kural ESLint ile zorlanır (`eslint.config.js`). Gerekçe: `DECISION_LOG.md` — "Taşınabilirlik sınırı".
 
-**Edge Function'ların ortak katmanı:** `supabase/functions/_shared/` — `http.ts` (origin listesi, CORS, JSON yanıtı), `temporaryPassword.ts` (ömür sabiti ve üretici), `syntheticEmail.ts` (giriş adresi alan adı). `mailer.ts` + `mailMessage.ts` (2026-10-13): paketsiz SMTP istemcisi ve ileti biçimi; ayarları `SMTP_*` gizli değerlerinden okur, Edge'den yalnız 465 açık. Alt çizgiyle başladığı için ayrı bir fonksiyon olarak deploy edilmez. `syntheticEmail.ts`'in istemci tarafında derleyicinin göremediği bir ikizi var: `client/src/auth/loginIdentifier.ts` giriş numarasını bu adresten çözer, dolayısıyla ikisi birlikte değişir.
+**Edge Function'ların ortak katmanı:** `supabase/functions/_shared/` — `http.ts` (origin listesi, CORS, JSON yanıtı), `temporaryPassword.ts` (ömür sabiti ve üretici), `syntheticEmail.ts` (giriş adresi alan adı), `memberAccount.ts` (numara tahsisi → auth kullanıcısı → üyelik; `create-member` ve `create-members-bulk` ortak, 2026-10-23). `mailer.ts` + `mailMessage.ts` (2026-10-13): paketsiz SMTP istemcisi ve ileti biçimi; ayarları `SMTP_*` gizli değerlerinden okur, Edge'den yalnız 465 açık. Alt çizgiyle başladığı için ayrı bir fonksiyon olarak deploy edilmez. `syntheticEmail.ts`'in istemci tarafında derleyicinin göremediği bir ikizi var: `client/src/auth/loginIdentifier.ts` giriş numarasını bu adresten çözer, dolayısıyla ikisi birlikte değişir.
 
 **Ölçüm tohumu — `supabase/perf/seed_olcum.sql` (eklendi 2026-09-17):** bir dershane-yılı sentetik veri (20 kurum, ~520 bin satır, 205 MB) üreten tek dosya. Kimlikleri `md5(anahtar)::uuid` ile ürettiği için **tekrarlanabilir**: iki koşu aynı kimlikleri verir ve iki `EXPLAIN ANALYZE` çıktısı karşılaştırılabilir kalır. Ölçümleri `ROADMAP` §4.17'de.
 

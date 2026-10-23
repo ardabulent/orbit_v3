@@ -4,11 +4,7 @@ import {
   jsonResponse,
   preflightResponse,
 } from "../_shared/http.ts";
-import {
-  generateTemporaryPassword,
-  temporaryPasswordExpiresAt,
-} from "../_shared/temporaryPassword.ts";
-import { syntheticEmailFor } from "../_shared/syntheticEmail.ts";
+import { createMemberAccount } from "../_shared/memberAccount.ts";
 import {
   beginFunctionCall,
   finishFunctionCall,
@@ -124,66 +120,29 @@ Deno.serve(async request => {
     return jsonResponse({ error: "service_unavailable" }, 503, origin);
   }
 
-  const { data: slot, error: slotError } = await adminClient
-    .rpc("internal_allocate_member_slot", {
-      caller_user_id: userData.user.id,
-      target_branch_id: input.branchId ?? null,
-    })
-    .maybeSingle<{
-      organization_id: string;
-      organization_code: number;
-      person_code: number;
-    }>();
-  if (slotError) {
-    console.error("[create-member] slot allocation failed");
-    return jsonResponse({ error: "service_unavailable" }, 503, origin);
-  }
-  if (!slot) {
-    return jsonResponse({ error: "forbidden" }, 403, origin);
-  }
-
-  const loginNumber = `${slot.organization_code}${slot.person_code}`;
-  const temporaryPassword = generateTemporaryPassword();
-  const passwordExpiresAt = temporaryPasswordExpiresAt();
-  const { data: created, error: createError } =
-    await adminClient.auth.admin.createUser({
-      email: syntheticEmailFor(loginNumber),
-      password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: { full_name: input.fullName.trim() },
-    });
-  if (createError || !created.user) {
-    console.error("[create-member] auth user creation failed");
-    return jsonResponse({ error: "member_create_failed" }, 409, origin);
-  }
-
-  const { data: membershipId, error: membershipError } = await adminClient.rpc(
-    "internal_create_membership",
+  // Numara tahsisi, auth kullanıcısı ve üyelik ortak yardımcıda
+  // (`_shared/memberAccount.ts`); toplu açma da aynı yolu kullanır.
+  const account = await createMemberAccount(
+    adminClient,
+    userData.user.id,
     {
-      caller_user_id: userData.user.id,
-      member_user_id: created.user.id,
-      organization_id: slot.organization_id,
-      branch_id: input.branchId ?? null,
-      person_code: slot.person_code,
-      member_role: input.role,
-      member_full_name: input.fullName.trim(),
-      login_number: loginNumber,
-      // v1.2-16: kilit artık bu RPC'nin işleminde yazılıyor. Öncesinde
-      // aşağıda ayrı bir UPDATE vardı ve başarısız olduğunda üye geçici
-      // şifresiyle **süresiz** kalıyordu.
-      password_expires_at: passwordExpiresAt,
-    }
+      fullName: input.fullName,
+      role: input.role,
+      branchId: input.branchId ?? null,
+    },
+    "[create-member]"
   );
-  if (membershipError || typeof membershipId !== "string") {
-    const { error: cleanupError } = await adminClient.auth.admin.deleteUser(
-      created.user.id
-    );
-    if (cleanupError) {
-      console.error("[create-member] auth user cleanup failed");
-    }
-    console.error("[create-member] membership creation failed");
-    return jsonResponse({ error: "member_create_failed" }, 409, origin);
+  if (!account.ok) {
+    const status =
+      account.error === "forbidden"
+        ? 403
+        : account.error === "service_unavailable"
+          ? 503
+          : 409;
+    return jsonResponse({ error: account.error }, status, origin);
   }
+  const { loginNumber, temporaryPassword, passwordExpiresAt, membershipId } =
+    account;
 
   // Kilit ve denetim kaydı, üyelikle **aynı işlemde** yazıldı. RPC bir üyelik
   // kimliği döndürdüyse üçü de vardır; ayrı bir adım kalmadığı için ayrıca

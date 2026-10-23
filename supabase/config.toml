@@ -424,6 +424,10 @@ verify_jwt = true
 [functions.create-member]
 verify_jwt = true
 
+# Toplu hesap açma (2026-10-23, ana plan 1.8).
+[functions.create-members-bulk]
+verify_jwt = true
+
 [functions.delete-organization]
 verify_jwt = true
 

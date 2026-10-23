@@ -320,7 +320,7 @@ async function readFunctionErrorPayload(
   }
 }
 
-async function readFunctionErrorCode(error: unknown): Promise<unknown> {
+export async function readFunctionErrorCode(error: unknown): Promise<unknown> {
   const payload = await readFunctionErrorPayload(error);
   return payload?.error;
 }
