@@ -96,6 +96,29 @@ describe("netImport (deneme sonucu dosyadan, v1.5-16)", () => {
     expect(result.matchedStudents).toBe(4);
   });
 
+  // 1.3 (test turu, 2026-10-18): "kurumda yok" ile "başka sınıfta" ayrı söylenir.
+  it("sınavın dışında görülebilen öğrenciye ait numarayı 'başka sınıfta' diye ayırır", () => {
+    const result = buildNetImport({
+      table: TABLE,
+      mapping: guessNetMapping(TABLE, SECTIONS),
+      sections: SECTIONS,
+      students: STUDENTS,
+      absentStudentIds: new Set(),
+      otherStudents: [
+        { code: "1001", name: "Ayşe", group: "12-A" },
+        { code: "09999", name: "Kaan Er", group: "11-B" },
+      ],
+    });
+    expect(result.unknown).toEqual([
+      {
+        row: 6,
+        number: "9999",
+        name: "",
+        elsewhere: { name: "Kaan Er", group: "11-B" },
+      },
+    ]);
+  });
+
   it("numara sütunu yoksa aktarılamaz", () => {
     const mapping = guessNetMapping([["Ad", "D", "Y"]], SECTIONS);
     expect(netMappingProblem(mapping, SECTIONS)).toContain("numarası");

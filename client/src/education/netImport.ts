@@ -41,8 +41,17 @@ export type NetImportResult = {
   /** `${studentId}|${sectionId}` → hücre; yalnız dosyada değeri olanlar. */
   cells: Record<string, NetCell>;
   matchedStudents: number;
-  /** Dosyada var, bu sınavın öğrencileri arasında numarası yok. */
-  unknown: { row: number; number: string; name: string }[];
+  /**
+   * Dosyada var, bu sınavın öğrencileri arasında numarası yok. `elsewhere`
+   * doluysa numara görülebilen başka bir öğrenciye ait (çoğu zaman başka
+   * sınıfta); boşsa görülebilen öğrenciler arasında hiç yok (1.3, 2026-10-23).
+   */
+  unknown: {
+    row: number;
+    number: string;
+    name: string;
+    elsewhere?: { name: string; group: string | null };
+  }[];
   /** Sınava girmedi işaretli öğrenci: atlandı. */
   absent: string[];
   problems: { row: number; message: string }[];
@@ -205,8 +214,11 @@ export function buildNetImport(input: {
   sections: ExamSection[];
   students: NetImportStudent[];
   absentStudentIds: Set<string>;
+  /** Sınavın dışında, çağıranın görebildiği öğrenciler (eşleşmeyeni açıklamak için). */
+  otherStudents?: { code?: string; name: string; group: string | null }[];
 }): NetImportResult {
   const { table, mapping, sections, students, absentStudentIds } = input;
+  const otherStudents = input.otherStudents ?? [];
   const result: NetImportResult = {
     cells: {},
     matchedStudents: 0,
@@ -230,7 +242,19 @@ export function buildNetImport(input: {
       s => s.studentCode && sameStudentNumber(s.studentCode, number)
     );
     if (!student) {
-      result.unknown.push({ row: rowNo, number, name });
+      const other = otherStudents.find(
+        s => s.code && sameStudentNumber(s.code, number)
+      );
+      result.unknown.push(
+        other
+          ? {
+              row: rowNo,
+              number,
+              name,
+              elsewhere: { name: other.name, group: other.group },
+            }
+          : { row: rowNo, number, name }
+      );
       continue;
     }
     if (seen.has(student.studentId)) {

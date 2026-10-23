@@ -40,6 +40,30 @@ describe("sütun eşleme (2026-10-01)", () => {
     });
   });
 
+  // Test turu B9 (2026-10-18): "ŞUBESİ" sınıf sayılmıyordu; okul sistemleri
+  // başlıkları Türkçe karaktersiz ya da birleşik de veriyor.
+  it.each([
+    [["S.NO", "OKUL NO", "ADI SOYADI", "ŞUBESİ", "VELİ TEL"], 3],
+    [["Ogrenci No", "Adi Soyadi", "Subesi", "Veli Telefonu"], 2],
+    [["NO", "AD SOYAD", "SINIFI/ŞUBESİ"], 2],
+    [["NO", "AD SOYAD", "Sınıf - Şube"], 2],
+    [["NO", "AD SOYAD", "SINIF VE ŞUBE"], 2],
+  ])("sınıf başlığı tanınır: %j", (header, classColumn) => {
+    expect(guessMapping(header as string[]).class_name).toBe(classColumn);
+  });
+
+  it("Türkçe karaktersiz başlıklar da eşlenir", () => {
+    expect(
+      guessMapping(["OGRENCI NO", "ADI SOYADI", "VELISI", "VELI CEP"])
+    ).toEqual({
+      ...EMPTY_MAPPING,
+      student_number: 0,
+      full_name: 1,
+      guardian_name: 2,
+      guardian_phone: 3,
+    });
+  });
+
   it("noktalama ve büyük harf fark etmez", () => {
     expect(guessMapping(["ÖĞRENCİ NO:", "AD SOYAD", "Veli Adı"])).toEqual({
       ...EMPTY_MAPPING,

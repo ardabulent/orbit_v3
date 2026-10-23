@@ -59,11 +59,27 @@ export const IMPORT_FIELDS: {
   },
 ];
 
+/**
+ * Başlık karşılaştırma biçimi: küçük harf, noktalama ve ayraçlar boşluk,
+ * Türkçe harfler katlanmış (ş→s, ı→i …). Okul sistemlerinden çıkan listeler
+ * başlıkları çoğu zaman Türkçe karaktersiz yazar ("SUBESI", "Ogrenci No") ya
+ * da birleşik verir ("SINIFI/ŞUBESİ") — test turu B9, 2026-10-18.
+ */
+const FOLD: Record<string, string> = {
+  ç: "c",
+  ğ: "g",
+  ı: "i",
+  i̇: "i",
+  ö: "o",
+  ş: "s",
+  ü: "u",
+};
 const normalize = (value: string) =>
   value
     .trim()
     .toLocaleLowerCase("tr")
-    .replace(/[.:_*()-]/g, " ")
+    .replace(/[çğıöşü]|i̇/g, letter => FOLD[letter] ?? letter)
+    .replace(/[.:_*()/\\-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -96,7 +112,21 @@ const SYNONYMS: Record<ImportField, string[]> = {
     "no",
     "numarası",
   ],
-  class_name: ["sınıf", "sınıfı", "şube", "sınıf şube", "sınıf adı", "grup"],
+  class_name: [
+    "sınıf",
+    "sınıfı",
+    "şube",
+    "şubesi",
+    "sınıf şube",
+    "sınıfı şubesi",
+    "sınıf ve şube",
+    "sınıfı ve şubesi",
+    "sınıf şubesi",
+    "sınıf adı",
+    "kayıt sınıfı",
+    "grup",
+    "grubu",
+  ],
   guardian_name: [
     "veli ad soyad",
     "veli adı soyadı",
