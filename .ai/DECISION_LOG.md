@@ -166,6 +166,7 @@
 - Sınavın kapsamı sınıf, şube ya da kurum genelidir
 - Veri şimdilik Supabase'de (Frankfurt) kalır
 - Uygulama içi mesajlar 30 gün saklanır; süresi dolan kayıtları gece işi siler
+- Yazı tipleri npm paketiyle kendi sitemizden sunulur
 
 ---
 
@@ -4281,3 +4282,19 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Neden `pg_cron`:** düz Postgres eklentisidir; kendi sunucuya taşınınca aynı satır çalışır (`AGENTS.md` kısıt 6). Reddedilen: GitHub Actions'tan gece çağrısı (sır gerektirir, sır ajan işi değil) ve Edge Function zamanlayıcısı (sağlayıcıya özgü).
 
 **Durdurmak:** `select cron.unschedule('orbit-saklama-temizligi');`. Süre değişirse fonksiyondaki tek sabit değişir.
+
+**Sonradan ek (2026-10-23, göç `20261116000000`):** silme izsiz kalıyordu — `pg_cron` fonksiyonun dönüş değerini saklamıyor. Artık bir şey silinen gece platform denetim kaydına `platform.retention_purged` satırı düşer: yalnız tablo başına sayılar, içerik değil. Operatör panelinde "Saklama süresi (30 gün) dolan kayıtlar silindi · Sistem (gece işi) · 12 mesaj, 3 mesaj bildirimi" biçiminde görünür. Hiçbir şey silinmeyen gece satır yazılmaz.
+
+---
+
+### Karar: Yazı tipleri npm paketiyle kendi sitemizden sunulur
+
+**Durum:** Kabul edildi · uygulandı (#494)
+**Tarih:** 2026-10-23
+**Onaylayan:** Arda Bülent (_"npm paketi (Önerilen)"_)
+
+**Bağlam:** Üç yazı tipi Google Fonts'tan yükleniyordu: her ziyaretçinin IP'si Google'a gidiyordu (KVKK) ve metin görünmeden üç ardışık istek gerekiyordu (`PLATFORM_SETTINGS.md` §5, ana plan 2.2).
+
+**Karar:** `@fontsource-variable/dm-sans`, `/manrope`, `/plus-jakarta-sans` (OFL-1.1, 5.3.0'a sabit) bağımlılık olarak eklendi; CSP'den `fonts.googleapis.com` ve `fonts.gstatic.com` çıktı.
+
+**Reddedilen:** woff2 dosyalarını elle indirip `client/public/fonts`'a koymak — bağımlılık yok ama güncellemesi elle; paket sürümünü Dependabot izliyor. Paketler çalışan kod içermez, yalnız yazı tipi dosyası ve CSS.

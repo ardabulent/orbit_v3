@@ -1,7 +1,10 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { PLATFORM_ACTION_LABELS } from "../../../client/src/platform/platformAuditLabels";
+import {
+  PLATFORM_ACTION_LABELS,
+  platformActionDetail,
+} from "../../../client/src/platform/platformAuditLabels";
 
 /**
  * Platform denetim kodlarının Türkçe karşılığı (2026-10-23, ana plan 1.6).
@@ -50,5 +53,25 @@ describe("platform denetim kodları", () => {
 
   it("tarayıcı en az bilinen dört kodu buluyor (desen boş dönmüyor)", () => {
     expect(yazilanKodlar().length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("gece temizliğinin ayrıntısı", () => {
+  it("yalnız sıfırdan büyük sayıları Türkçe yazar", () => {
+    expect(
+      platformActionDetail("platform.retention_purged", {
+        messages: 12,
+        message_notifications: 3,
+        conversations: 0,
+        client_error_reports: 1,
+        email_deliveries: 0,
+      })
+    ).toBe("12 mesaj, 3 mesaj bildirimi, 1 ekran hata kaydı");
+  });
+
+  it("başka olayda ayrıntı çizmez", () => {
+    expect(
+      platformActionDetail("platform.organization_created", { messages: 1 })
+    ).toBeNull();
   });
 });
