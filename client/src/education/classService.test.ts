@@ -462,7 +462,7 @@ describe("classService", () => {
     it("23505 sınıf bağlamında 'Bu isimde bir sınıf bu kurumda zaten var' döner", () => {
       const err = { code: "23505", message: "duplicate key value" };
       expect(translateClassError(err, "class")).toBe(
-        "Bu isimde bir sınıf bu kurumda zaten var. Farklı bir sınıf adı girin."
+        "Bu isimde bir sınıf bu kurumda zaten var (büyük/küçük harf fark etmez). Farklı bir sınıf adı girin."
       );
     });
 
