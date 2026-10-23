@@ -102,5 +102,6 @@ Bir PR bir kararı, bir durumu veya bir panel ayarını değiştiriyorsa ilgili 
 - Bir mimari karar alındı veya değişti → `DECISION_LOG.md` (indekse satır eklemeyi unutma)
 - Panelden bir ayar değiştirildi → `PLATFORM_SETTINGS.md`
 - Klasör yapısı veya servis katmanı değişti → `PROJECT_STATE.md` §5
+- Bağımlılık, Postgres eklentisi ya da zamanlanmış iş (`pg_cron`) eklendi → `PROJECT_STATE.md` §4 (eklenti ve iş için `PLATFORM_SETTINGS.md` §3.4 da); karar gerektirdiyse `DECISION_LOG.md`. Eklenti ve iş adını `extensionsAreDocumented.test.ts` zorlar (2026-10-23)
 
 Geçmiş kayıtlar **silinmez.** Bir kayıt sonradan yanlış çıkarsa üzerine `**Sonradan düzeltme (tarih):**` satırı eklenir. Gerekçe: `DECISION_LOG.md` — "Hafıza kayıtları ileriye doğru düzeltilir".
