@@ -1,3 +1,4 @@
+-- ALLOW-DESTRUCTIVE: fonksiyon gövdesi yeniden tanımlanıyor; içindeki "delete from"lar #495'teki (20261115000000) saklama silmeleriyle birebir aynı, yalnız 30 günü dolmuş satırlar. Eklenen tek şey silinen sayıların denetim kaydına yazılması.
 -- Gece temizliği ne sildiğini kayda yazar (2026-10-23, ana plan 2.3/2.14).
 --
 -- `internal_purge_expired_records()` silinen sayıları döndürüyordu ama
