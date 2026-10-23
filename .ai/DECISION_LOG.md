@@ -164,6 +164,8 @@
 - Telefon tek biçimde saklanır, önekten bağımsız eşleşir
 - Toplu hesap açma ayrı bir fonksiyondur ve yalnız var olan, hesabı olmayan kayda açar
 - Sınavın kapsamı sınıf, şube ya da kurum genelidir
+- Veri şimdilik Supabase'de (Frankfurt) kalır
+- Uygulama içi mesajlar 30 gün saklanır; süresi dolan kayıtları gece işi siler
 
 ---
 
@@ -4245,3 +4247,37 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 4. **Ekran:** sınav açarken "Kimler girecek": sınıflar + (yöneticiye) "Kurum geneli" ve her şube için "şubesi geneli". Sınıfsız sınavın sonuç ekranı ilgili bütün öğrencileri listeler, sınıfa göre süzülür (süzgeç yalnız çizimi süzer; kayıt ve dosyadan aktarma bütün listeyle). Ortalama "Sınıf / Şube / Kurum ortalaması" diye adlandırılır. Öğrenci ve veli kendi sınıflarının, şubesinin ve kurumun ortak sınavlarını görür.
 
 **Reddedilen:** _Her sınıf için ayrı sınav_ — 8 sınıflı kurumda aynı deneme dosyası 8 kez yüklenir, karşılaştırma raporu ortak sınavı göremez. _Çok sınıflı sınav (sınav ↔ sınıflar ara tablosu)_ — şube/kurum kapsamı ihtiyacı karşılıyor; ara tablo her okumaya bir birleştirme ekler.
+
+---
+
+### Karar: Veri şimdilik Supabase'de (Frankfurt) kalır
+
+**Durum:** Kabul edildi
+**Tarih:** 2026-10-23
+**Onaylayan:** Arda Bülent (_"2.1 için şimdilik supabase'den devam edicez bunu sürekli bana sormana gerek yok"_)
+
+**Bağlam:** Kişisel veri Supabase'in eu-central-1 (Frankfurt) bölgesinde tutuluyor. `PLATFORM_SETTINGS.md` §5 bunu "kayda geçmemiş karar" diye işaretliyordu; ana plan 2.1 bu kararı istiyordu.
+
+**Karar:** Şimdilik Supabase / Frankfurt ile devam edilir. Bu madde ajanlar tarafından tekrar karar sorusu olarak açılmaz.
+
+**Yeniden açan tetikleyiciler:** avukat görüşünün yurt dışı aktarımı engellemesi, bir müşterinin yurt içi barındırma şartı, ya da kendi sunucuya (Hetzner) taşınma kararı (`AGENTS.md` kısıt 6). KVKK aydınlatma metni ve envanter işi ayrıca sürer; bu karar onun yerine geçmez.
+
+---
+
+### Karar: Uygulama içi mesajlar 30 gün saklanır; süresi dolan kayıtları gece işi siler
+
+**Durum:** Kabul edildi · uygulandı (saklama PR'ı, göç `20261115000000`)
+**Tarih:** 2026-10-23
+**Onaylayan:** Arda Bülent (_"2.3 için şimdilik 30 kalsın"_; gece işi için _"Evet, aç"_)
+
+**Bağlam:** Mesajlar süresiz duruyordu (ana plan 2.3). Ekran hata kayıtları ve e-posta defteri "30 gün" diyordu ama ayıklama yalnız bir sonraki yazmada oluyordu; yazma gelmezse kayıt kalıyordu (2.14).
+
+**Karar:**
+
+1. **Mesajlar 30 gün** (e-posta defteriyle aynı). Mesaj bildirimi mesajın ilk 200 karakterini taşıdığı için onunla birlikte gider; mesajı kalmamış sohbet de. Öteki bildirim türleri bu kararın kapsamında değildir.
+2. **Gece işi:** `pg_cron` eklentisi açıldı; `orbit-saklama-temizligi` her gün 00:00 UTC'de (03:00 Türkiye) `internal_purge_expired_records()`'ı çağırır. Fonksiyon yalnız beş tablodaki 30 günden eski satırları siler ve silinen sayıları döndürür; kullanıcıya kapalıdır.
+3. **Ekran da süreye uyar:** hata paneli son 30 günü gösterir.
+
+**Neden `pg_cron`:** düz Postgres eklentisidir; kendi sunucuya taşınınca aynı satır çalışır (`AGENTS.md` kısıt 6). Reddedilen: GitHub Actions'tan gece çağrısı (sır gerektirir, sır ajan işi değil) ve Edge Function zamanlayıcısı (sağlayıcıya özgü).
+
+**Durdurmak:** `select cron.unschedule('orbit-saklama-temizligi');`. Süre değişirse fonksiyondaki tek sabit değişir.
