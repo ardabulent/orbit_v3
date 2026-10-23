@@ -18,6 +18,8 @@ export type ExamListItem = {
   netPenalty: number | null;
   classId: string | null;
   className: string | null;
+  branchId?: string | null;
+  branchName?: string | null;
   subjectName: string | null;
   /** Girilmiş sonuç sayısı (`exam_averages`); yetkisizse `null`. */
   resultCount: number | null;
@@ -67,7 +69,9 @@ type RawExamRow = {
   max_score: number | string | null;
   net_penalty: number | null;
   class_id: string | null;
+  branch_id?: string | null;
   classes?: unknown;
+  branches?: unknown;
   subjects?: unknown;
 };
 
@@ -93,7 +97,7 @@ export async function loadExams(
   let query = supabase
     .from("exams")
     .select(
-      "id, name, exam_date, max_score, net_penalty, class_id, classes(name), subjects(name)"
+      "id, name, exam_date, max_score, net_penalty, class_id, branch_id, classes(name), branches(name), subjects(name)"
     )
     .eq("organization_id", organizationId)
     .is("archived_at", null)
@@ -117,6 +121,8 @@ export async function loadExams(
       netPenalty: row.net_penalty,
       classId: row.class_id,
       className: relationName(row.classes),
+      branchId: row.branch_id ?? null,
+      branchName: relationName(row.branches),
       subjectName: relationName(row.subjects),
       resultCount: total?.resultCount ?? null,
       average: total?.average ?? null,

@@ -4,6 +4,8 @@ import { ArrowLeft, BarChart3, Save } from "lucide-react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
 import {
+  examAverageLabel,
+  examScopeLabel,
   formatExamSummary,
   loadExamSheet,
   archiveExam,
@@ -65,6 +67,10 @@ export type ExamDetailViewProps = {
  * Öğrenci ve veli şimdilik bu görünümü son sınav için görür; kendi
  * ekranları ayrı dilimde.
  */
+/** Sınıfı olmayan öğrencilerin süzgeç değeri ("Tüm sınıflar" boş değerdir). */
+const NO_GROUP = "__sinifsiz__";
+const groupKey = (group: string | null | undefined) => group || NO_GROUP;
+
 export function ExamDetailView({
   role,
   exam,
@@ -84,6 +90,10 @@ export function ExamDetailView({
   const isPersonal = role === "student" || role === "parent";
   const canManageExams = role === "admin" || role === "teacher";
 
+  // Sınıfsız (şube/kurum geneli) sınavda liste uzun: sınıfa göre süzme (1.5).
+  // Yalnız çizimi süzer; girilen değerler ve kayıt bütün listeyle çalışır.
+  const [groupFilter, setGroupFilter] = useState("");
+
   const [activeExam, setActiveExam] = useState<LatestExamDetail | null>(() => {
     if (exam) return exam;
     if (initialSheet?.exam) {
@@ -94,6 +104,8 @@ export function ExamDetailView({
         maxScore: initialSheet.exam.maxScore,
         classId: initialSheet.exam.classId,
         className: initialSheet.exam.className,
+        branchId: initialSheet.exam.branchId ?? null,
+        branchName: initialSheet.exam.branchName ?? null,
         participantCount: null,
       };
     }
@@ -144,6 +156,23 @@ export function ExamDetailView({
     }
     return null;
   });
+
+  const groupOptions = useMemo(
+    () =>
+      activeExam && !activeExam.classId
+        ? [
+            ...new Set((sheet?.students ?? []).map(s => groupKey(s.group))),
+          ].sort((a, b) => a.localeCompare(b, "tr"))
+        : [],
+    [activeExam, sheet?.students]
+  );
+  const visibleStudents = useMemo(
+    () =>
+      (sheet?.students ?? []).filter(
+        s => !groupFilter || groupKey(s.group) === groupFilter
+      ),
+    [sheet?.students, groupFilter]
+  );
   const [scores, setScores] = useState<Record<string, string>>(() => {
     if (initialSheet) {
       const initial: Record<string, string> = {};
@@ -520,6 +549,7 @@ export function ExamDetailView({
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <Badge tone="slate">{examScopeLabel(activeExam)}</Badge>
                 <Badge tone="blue">Kayıtlı Sınav</Badge>
                 {canManageExams ? (
                   <>
@@ -570,8 +600,26 @@ export function ExamDetailView({
                   Sınav Sonuçları
                 </h3>
                 <p className="mt-0.5 text-[11px] text-slate-500">
-                  {sheet?.students.length ?? 0} kayıtlı öğrenci
+                  {sheet?.students.length ?? 0} öğrenci
+                  {groupFilter ? ` · ${visibleStudents.length} görünüyor` : ""}
                 </p>
+                {groupOptions.length > 1 ? (
+                  <label className="mt-2 flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                    Sınıf
+                    <select
+                      value={groupFilter}
+                      onChange={e => setGroupFilter(e.target.value)}
+                      className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-semibold text-slate-800"
+                    >
+                      <option value="">Tüm sınıflar</option>
+                      {groupOptions.map(g => (
+                        <option key={g} value={g}>
+                          {g === NO_GROUP ? "Sınıfsız" : g}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
               </div>
               {canManageExams && !isPersonal && !activeExam.netPenalty ? (
                 <button
@@ -608,8 +656,14 @@ export function ExamDetailView({
             ) : (sheet?.students ?? []).length === 0 ? (
               <div className="p-6">
                 <EmptyState
-                  title="Sınıfta öğrenci bulunamadı"
-                  description="Bu sınavın sınıfına henüz kayıtlı öğrenci bulunmuyor."
+                  title="Öğrenci bulunamadı"
+                  description={
+                    activeExam.classId
+                      ? "Bu sınavın sınıfına henüz kayıtlı öğrenci bulunmuyor."
+                      : activeExam.branchId
+                        ? "Bu şubede henüz kayıtlı öğrenci bulunmuyor."
+                        : "Kurumda henüz kayıtlı öğrenci bulunmuyor."
+                  }
                 />
               </div>
             ) : activeExam.netPenalty && !activeDemo ? (
@@ -617,6 +671,14 @@ export function ExamDetailView({
                 examId={activeExam.id}
                 netPenalty={activeExam.netPenalty}
                 students={sheet?.students ?? []}
+                visibleGroup={
+                  groupFilter
+                    ? groupFilter === NO_GROUP
+                      ? ""
+                      : groupFilter
+                    : null
+                }
+                averageLabel={examAverageLabel(activeExam)}
                 canEdit={canManageExams && !isPersonal}
                 onSaved={onSaved}
                 onDirtyChange={onDirtyChange}
@@ -632,7 +694,7 @@ export function ExamDetailView({
                     </tr>
                   </thead>
                   <tbody>
-                    {(sheet?.students ?? []).map(student => {
+                    {visibleStudents.map(student => {
                       const currentVal = scores[student.studentId] ?? "";
                       return (
                         <tr
@@ -726,6 +788,7 @@ export function ExamDetailView({
           }}
           organizationId={organizationId}
           classes={classes}
+          canChooseWide={role === "admin"}
           exam={examUnderEdit}
           onDone={savedExam => {
             // Uydurma yok: diyalog kullanıcının yazdığı değerleri geri veriyor.

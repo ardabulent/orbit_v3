@@ -163,6 +163,7 @@
 - Yerel örnek veri SQL dosyasıyla değil, arayüzün API yolundan kurulur
 - Telefon tek biçimde saklanır, önekten bağımsız eşleşir
 - Toplu hesap açma ayrı bir fonksiyondur ve yalnız var olan, hesabı olmayan kayda açar
+- Sınavın kapsamı sınıf, şube ya da kurum genelidir
 
 ---
 
@@ -4225,3 +4226,22 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Reddedilen:** _`create-member`'ın sınırını yükseltmek_ — keyfi adla hesap üretimi de büyür. _İstemcide `create-member` döngüsü_ — 60/saat'e takılır; ad istemciden gelir. _Hesapları ve şifreleri CSV olarak indirmek_ — düz metin şifre dosyası cihazda kalır; yazdırma ve ekran yeterli.
 
 **Yan düzeltme:** Yazdırma kuralı yalnız `#root`'u gizliyordu; Radix pencereleri `body` altında olduğu için açık pencere fişin üstüne basılıyordu (tek fişte de). Artık yazdırma kökü dışındaki her şey gizlenir (`index.css`).
+
+---
+
+### Karar: Sınavın kapsamı sınıf, şube ya da kurum genelidir
+
+**Durum:** Kabul edildi · uygulandı (kurum geneli deneme PR'ı, göç `20261111000000`)
+**Tarih:** 2026-10-23
+**Onaylayan:** Arda Bülent (_"Ekrana açılsın"_; ana plan 1.5)
+
+**Bağlam:** Dershanelerde TYT/AYT denemesi birden çok sınıfın aynı gün girdiği ortak sınavdır. Veritabanı kurum geneli sınavı (`class_id` boş) baştan destekliyordu; sınav açma ekranı ise sınıfı zorunlu tutuyor, sonuç ekranı öğrenciyi yalnız sınıf kaydından topluyordu (`class_id=eq.null` → 400, test turu B8). Ortak deneme her sınıf için ayrı sınav açılarak ve aynı dosya her biri için ayrı yüklenerek yapılabiliyordu.
+
+**Karar:**
+
+1. **Üç kapsam:** `class_id` dolu → sınıf sınavı; `class_id` boş, `branch_id` dolu → şube geneli; ikisi de boş → kurum geneli. İkisi birden dolu olamaz (CHECK).
+2. **Sonucun sınava ait olması** tetikleyicide: sınıf sınavında sınıfa kayıt, şube genelinde öğrencinin şubesi, kurum genelinde kurumun her öğrencisi. Kapsam daraltılırken sonucu dışarıda kalacak öğrenci varsa reddedilir (tek puanlı ve netli sonuçlar birlikte sayılır).
+3. **Yetki değişmedi:** öğretmen yalnız okuttuğu sınıfa sınav açar; şube ve kurum geneli sınavı yönetici açar (RLS zaten `class_id is not null` şartıyla öğretmene izin veriyordu).
+4. **Ekran:** sınav açarken "Kimler girecek": sınıflar + (yöneticiye) "Kurum geneli" ve her şube için "şubesi geneli". Sınıfsız sınavın sonuç ekranı ilgili bütün öğrencileri listeler, sınıfa göre süzülür (süzgeç yalnız çizimi süzer; kayıt ve dosyadan aktarma bütün listeyle). Ortalama "Sınıf / Şube / Kurum ortalaması" diye adlandırılır. Öğrenci ve veli kendi sınıflarının, şubesinin ve kurumun ortak sınavlarını görür.
+
+**Reddedilen:** _Her sınıf için ayrı sınav_ — 8 sınıflı kurumda aynı deneme dosyası 8 kez yüklenir, karşılaştırma raporu ortak sınavı göremez. _Çok sınıflı sınav (sınav ↔ sınıflar ara tablosu)_ — şube/kurum kapsamı ihtiyacı karşılıyor; ara tablo her okumaya bir birleştirme ekler.

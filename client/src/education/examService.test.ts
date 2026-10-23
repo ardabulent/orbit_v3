@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   archiveExam,
   createExam,
+  examAverageLabel,
+  examScopeLabel,
   formatExamSummary,
   loadExamParticipantCount,
   loadExamSheet,
@@ -1013,5 +1015,26 @@ describe("examService", () => {
       // Diyalog kapalıyken düzenleme başlığı çizilmez.
       expect(html).not.toContain("Sınavı Düzenle");
     });
+  });
+});
+
+// Ana plan 1.5 (2026-10-23): sınavın kapsamı sınıf, şube ya da kurum geneli.
+describe("examScopeLabel / examAverageLabel", () => {
+  it("sınıf adını, şubeyi ya da kurum genelini söyler", () => {
+    expect(examScopeLabel({ classId: "c", className: "12-A" })).toBe("12-A");
+    expect(examScopeLabel({ branchId: "b", branchName: "Kadıköy" })).toBe(
+      "Kadıköy şubesi"
+    );
+    expect(examScopeLabel({ classId: null, branchId: null })).toBe(
+      "Kurum geneli"
+    );
+  });
+
+  it("ortalama etiketi kapsama göre", () => {
+    expect(examAverageLabel({ classId: "c" })).toBe("Sınıf ortalaması");
+    expect(examAverageLabel({ classId: null, branchId: "b" })).toBe(
+      "Şube ortalaması"
+    );
+    expect(examAverageLabel({})).toBe("Kurum ortalaması");
   });
 });

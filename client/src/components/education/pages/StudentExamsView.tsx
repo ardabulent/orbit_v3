@@ -1,4 +1,5 @@
 import { CalendarClock } from "lucide-react";
+import { examAverageLabel } from "@/education/examService";
 import { useStudentExams, useStudents } from "@/education/educationQueries";
 import type { StudentExam } from "@/education/studentExamService";
 import { formatTrDate, getOrbitToday } from "@/education/trDate";
@@ -175,8 +176,8 @@ function ExamResultCard({ exam }: { exam: StudentExam }) {
             </p>
             <p className="text-[11px] text-slate-500">
               {exam.classAverage !== null
-                ? `Sınıf ortalaması ${formatNumber(exam.classAverage)} ${unit}`
-                : "Sınıf ortalaması 3 sonuçtan sonra görünür"}
+                ? `${examAverageLabel(exam)} ${formatNumber(exam.classAverage)} ${unit}`
+                : `${examAverageLabel(exam)} 3 sonuçtan sonra görünür`}
             </p>
           </div>
         )}
@@ -192,7 +193,9 @@ function ExamResultCard({ exam }: { exam: StudentExam }) {
                 <th className="px-2 py-2 text-center">Yanlış</th>
                 <th className="px-2 py-2 text-center">Boş</th>
                 <th className="px-2 py-2 text-right">Net</th>
-                <th className="py-2 pl-2 text-right">Sınıf ort.</th>
+                <th className="py-2 pl-2 text-right">
+                  {examAverageLabel(exam).replace(" ortalaması", " ort.")}
+                </th>
               </tr>
             </thead>
             <tbody>

@@ -24,8 +24,10 @@ function toDetail(exam: ExamListItem): LatestExamDetail {
     name: exam.name,
     examDate: exam.examDate,
     maxScore: exam.maxScore,
-    classId: exam.classId ?? undefined,
+    classId: exam.classId ?? null,
     className: exam.className,
+    branchId: exam.branchId ?? null,
+    branchName: exam.branchName ?? null,
     participantCount: exam.resultCount,
     netPenalty: exam.netPenalty,
   };
@@ -139,6 +141,7 @@ export function AssessmentsPage(props: AssessmentsPageProps) {
         onOpenChange={setCreateOpen}
         organizationId={organizationId}
         classes={classes}
+        canChooseWide={role === "admin"}
         onDone={exam => {
           void onSaved?.();
           setSelected(exam);

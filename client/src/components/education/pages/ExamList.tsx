@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import { examScopeLabel } from "@/education/examService";
 import type { ExamListItem } from "@/education/examNetService";
 import { formatTrDate } from "@/education/trDate";
 import { Badge, EmptyState } from "../shared";
@@ -103,7 +104,7 @@ function ExamGroup({
                   <span className="block text-[11px] text-slate-500">
                     {[
                       formatTrDate(exam.examDate),
-                      exam.className ?? "Kurum geneli",
+                      examScopeLabel(exam),
                       exam.subjectName,
                     ]
                       .filter(Boolean)
