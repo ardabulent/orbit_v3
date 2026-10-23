@@ -375,6 +375,7 @@ function StudentActions({
               student={student}
               members={linkableMembers}
               onLink={onLinkAccount}
+              canOpenAccount
             />
           ) : null}
           {onEdit ? (

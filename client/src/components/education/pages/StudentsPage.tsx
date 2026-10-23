@@ -4,6 +4,7 @@ import type { Role, Student } from "../types";
 import type { OrganizationMember } from "@/organization/memberService";
 import type { Guardian } from "@/education/guardianService";
 import { GuardiansTab } from "./GuardiansTab";
+import { OpenAccountHost } from "./OpenAccountHost";
 import type { StudentFilter } from "./studentFilters";
 import { StudentsTable } from "./StudentsTable";
 
@@ -183,6 +184,8 @@ export function StudentsPage({
           />
         </>
       )}
+      {/* Satırlar tazelense de hesap açma penceresi ve giriş fişi burada kalır (1.7). */}
+      {role === "admin" ? <OpenAccountHost /> : null}
     </>
   );
 }

@@ -143,6 +143,7 @@ client/src/
 │   ├── examNetService.ts   # Sınav listesi ve deneme netleri (ders bölümü, doğru/yanlış → net)
 │   ├── studentImport.ts / importMapping.ts # Toplu öğrenci aktarımı (`import_students`) ve sütun eşleme (2026-09-29, 10-01)
 │   ├── newStudentFlow.ts   # "Yeni öğrenci" tek akışı: öğrenci + veli + sınıf (karar 2026-09-28)
+│   ├── accountForRecord.ts / useOpenAccountForRecord.ts # Var olan öğrenci/veli kaydına hesap aç + bağla; liste fiş kapanınca tazelenir (1.7, 2026-10-23). Ekranı `pages/AssignAccountPopover.tsx` (öğrenci + veli ortak), pencere sayfada sabit: `OpenAccountHost.tsx` + `openAccountRequest.ts` → `OpenAccountDialog.tsx`
 │   ├── overviewService.ts  # Yönetici Genel Bakış kartlarının verisi
 │   ├── attentionReasons.ts # Dikkat listesindeki öğrencinin nedenleri, ekranda okunacak haliyle
 │   ├── reportCsv.ts        # Sınıf karşılaştırması → Excel'in Türkçe ayarında açılan CSV (`;`, BOM, ondalık virgül)

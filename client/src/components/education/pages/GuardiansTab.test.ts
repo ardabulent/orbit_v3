@@ -174,4 +174,31 @@ describe("LinkGuardianAccountPopover — R1 ve Boş Durum Güvenceleri", () => {
     expect(html).toContain("Boşta veli hesabı yok.");
     expect(html).not.toContain("<select");
   });
+
+  // Ana plan 1.7 (2026-10-23): eski metin "Ayarlar → Üyeler'den açın" diyordu;
+  // oradaki "Üye ekle" yalnız öğretmen açar.
+  it("yanlış yere yönlendirmez; hesap açma yalnız izin verilince çizilir", () => {
+    const izinsiz = renderToStaticMarkup(
+      createElement(LinkGuardianAccountPopover, {
+        guardian: dummyGuardian,
+        members: [],
+        onLink: vi.fn(),
+        open: true,
+      })
+    );
+    expect(izinsiz).not.toContain("Ayarlar");
+    expect(izinsiz).not.toContain("Yeni hesap aç");
+
+    const izinli = renderToStaticMarkup(
+      createElement(LinkGuardianAccountPopover, {
+        guardian: dummyGuardian,
+        members: [],
+        onLink: vi.fn(),
+        open: true,
+        canOpenAccount: true,
+      })
+    );
+    expect(izinli).toContain("Yeni hesap aç ve bağla");
+    expect(izinli).toContain("Yukarıdan yeni bir hesap açabilirsiniz.");
+  });
 });
