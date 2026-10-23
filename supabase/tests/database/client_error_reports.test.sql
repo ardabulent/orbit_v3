@@ -10,11 +10,12 @@
 --   8. Anonim çağrı fonksiyonu çalıştıramaz.
 --   9. Bilinmeyen tür ve boş mesaj sessizce düşer.
 --  10. 30 günden eski kayıt bir sonraki yazmada ayıklanır.
+--  11. Boşluklu/tireli telefon, ayraçlı TC ve IBAN da ayıklanır (2026-10-23, B6).
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(17);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -69,6 +70,28 @@ select is(
     where user_id = 'e1100000-0000-0000-0000-0000000e1100'),
   'e2100000-0000-0000-0000-0000000e2100'::uuid,
   'the reporter''s institution is recorded'
+);
+
+-- 11 · Ayraçlı kişisel numaralar (test turu B6, 2026-10-23)
+select is(
+  public.internal_scrub_error_text('Veli 0532 111 22 33 ve +90 (532) 111-22-33 aranamadı', 500),
+  'Veli [sayı] ve [sayı] aranamadı',
+  'spaced and dashed phone numbers are scrubbed'
+);
+select is(
+  public.internal_scrub_error_text('TC 123-456-789-01, IBAN TR33 0006 1005 1978 6457 8413 26', 500),
+  'TC [sayı], IBAN [iban]',
+  'a separated national id and a spaced IBAN are scrubbed'
+);
+select is(
+  public.internal_scrub_error_text('app.js:120:45 HTTP 403 vite 8.3.5 saat 09:00', 500),
+  'app.js:120:45 HTTP 403 vite 8.3.5 saat 09:00',
+  'line numbers, status codes, versions and times are kept'
+);
+select is(
+  public.internal_scrub_error_text('tarih 2026-10-23', 500),
+  'tarih [sayı]',
+  'a date is scrubbed on purpose (it may be a birth date)'
 );
 
 -- 3 · Doğrudan erişim yok
