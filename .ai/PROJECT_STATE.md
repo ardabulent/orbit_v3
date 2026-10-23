@@ -50,15 +50,20 @@
 
 > **Sonradan düzeltme (2026-09-16):** Bu listenin sürüm numaraları dört yerde eskimişti (Vite 7.1, TypeScript 5.9, Vitest 2.1, ESLint 9) ve aşağıdakiler **yüklü paketlerden okunarak** düzeltildi. Sebep yapısaldı ve kayda geçiyor: `AGENTS.md`'nin "Belgeyi güncel tutmak" listesinde **bağımlılık/yığın değişikliği için bir satır yok** — yani bu bölümü güncelleyecek bir tetikleyici hiç tanımlanmamıştı. Dependabot sürümleri yükseltiyor, burayı kimse güncellemiyor (**K-06** + **K-21**).
 
-- **Frontend:** Vite 7.3 + React 19.2 + TypeScript 6.0
+> **Sonradan düzeltme (2026-10-23):** kayıt denetiminde yüklü paketlerden ve test koşusundan yeniden okundu. Eskimiş dört bilgi düzeltildi: Vite 7.3 → **8.3**, React 19.2 → **19.3**, test sayıları (2026-09-18 → 2026-10-23), "gerçek veri Faz 3'te" (2026-08-29'dan beri canlıda gerçek oturum ve veri). Eklenti satırı da düzeltildi: #496 `pgcrypto`/`uuid-ossp`/`pg_stat_statements`'ı "göçle açılan" diye yazmıştı; üçü Supabase'in varsayılanı, göçle açılan tek eklenti `pg_cron`. Bu satırın bir daha eskimemesi için göçlerdeki her `create extension` ve `cron.schedule`'ın burada adıyla geçmesini `supabase/tests/deployment/extensionsAreDocumented.test.ts` zorlar.
+
+- **Frontend:** Vite 8.3 + React 19.3 + TypeScript 6.0
 - **Yönlendirme:** `wouter` (pnpm patch: `patches/wouter@3.7.1.patch`)
 - **UI & Stil:** Radix UI + Tailwind CSS v4 + shadcn/ui (`components.json`) + Lucide Icons + Sonner Toast
 - **Yazı tipleri:** `@fontsource-variable/dm-sans`, `/manrope`, `/plus-jakarta-sans` 5.3.0 — siteyle aynı adresten (2026-10-23, #494; Google Fonts kalktı)
-- **Postgres eklentileri (göçle açılan):** `pgcrypto`, `uuid-ossp`, `pg_stat_statements` (Supabase varsayılanı) · **`pg_cron`** 2026-10-23'ten beri (#495) — tek iş `orbit-saklama-temizligi`, ayrıntı `PLATFORM_SETTINGS.md` §3.4
+- **Postgres eklentileri:** Supabase varsayılanı `pgcrypto`, `uuid-ossp`, `pg_stat_statements`, `supabase_vault` · **göçle açılan:** `pg_cron` (2026-10-23, #495)
+- **Zamanlanmış işler (`pg_cron`):** `orbit-saklama-temizligi` — her gün 00:00 UTC, 30 günü dolan kayıtları siler ve sildiğini platform denetim kaydına yazar (#495, #496); ayrıntı `PLATFORM_SETTINGS.md` §3.4
 - **Form / Doğrulama:** `react-hook-form` + `zod`
 - **Sunucu State:** `@tanstack/react-query` v5
-- **Veri Saklama:** React State + Yerel Kalıcılık (Local Persistence) & bağlı Supabase projesi (Faz 1'de deny-by-default RLS; gerçek veri kullanımı Faz 3'te)
-- **Test:** Vitest 5.0 — 67 dosya, **1007 test** (2026-09-18'de koşuldu) + pgTAP **58 dosya, 970 iddia** (259 olumsuz)
+- **Veri Saklama:** Supabase Postgres (eu-central-1, Frankfurt — karar: `DECISION_LOG.md` "Veri şimdilik Supabase'de (Frankfurt) kalır"), yetki RLS'te; demo kipi yerel örnek veriyle çalışır
+- **Test:** Vitest 5.0 — 130 dosya, **1361 test** + pgTAP **96 dosya, 1401 iddia** (2026-10-23'te koşuldu) + HTTP zincir testleri (`create_member_chain.sh`, `bulk_accounts_chain.mjs`)
+- **Edge Functions:** 11 (Deno) — yalnız kimlik ve hesap işleri; liste `supabase/functions/`
+- **Göçler:** 122 (2026-10-23; canlıyla eşit, sayıyı `migrationOrderIsMonotonic.test.ts` tutar)
 - **Kod Kalitesi:** ESLint 10 (flat config) + typescript-eslint + eslint-plugin-react-hooks **v7** (üç yeni kural `error` seviyesinde etkin, 2026-09-09'da açıldı) + eslint-plugin-react-refresh
 - **CI/CD & Dağıtım:** GitHub Actions + Vercel (`https://orbit-v3-kappa.vercel.app`)
 - **Paket Yöneticisi:** pnpm (v10.4.1)
