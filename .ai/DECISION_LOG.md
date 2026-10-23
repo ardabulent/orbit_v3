@@ -3705,6 +3705,7 @@ Bu, **K-30**'un ürün tarafındaki karşılığıdır: bir ortamda görünmeyen
 - Yazma `report_client_error` ile, okuma `list_client_error_reports` ile yapılır; okuma yalnız kilitsiz platform operatörüne açık.
 - Platform panelinde "Hata Kayıtları" sekmesi var.
 - Kişisel veri istemcide **ve** sunucuda ayıklanır: e-posta, 6+ haneli sayı, adres sorgusu.
+  - **Sonradan düzeltme (2026-10-23):** kural boşluklu ve tireli numaraları kaçırıyordu (`0532 111 22 33`, `+90 (532) 111-22-33`, `123-456-789-01`; test turu B6/B14) ve panel yine "ayıklanmıştır" diyordu. Göç `20261107000000`: sırayla e-posta → TR IBAN → ayraçlı rakam grupları (2–4 haneli en az üç grup; tarih ve IP de bilerek düşer) → 6+ bitişik rakam. Mevcut kayıtlar aynı göçte yeniden ayıklandı. İstemci ile sunucunun aynı kuralı taşıması artık bir testle zorlanıyor (`supabase/tests/deployment/scrubRulesTwin.test.ts`); önceden elle eşit tutuluyordu.
 - Operatöre kullanıcı kimliği gösterilmez, yalnız kurum adı gösterilir.
 - Kişi başına saatte 30, sayfa açılışı başına 20 kayıt; kayıtlar 30 gün saklanır.
   - **Sonradan düzeltme (2026-10-21):** "30 gün saklanır" tam doğru değil. 30 günden eski kayıtlar yalnız **bir sonraki hata yazılırken** ayıklanıyor; arka plan işi yok. Hata gelmezse eski kayıtlar kalır ve panel ("son 30 gün" yazsa da) onları da listeler; `list_client_error_reports`'ta tarih süzgeci yok. Aynısı `email_deliveries` için geçerli. Düzeltme ana planın Faz 2'sinde (saklama süreleri); o güne kadar tablo yorumları da bu nottaki gibi okunmalı.
