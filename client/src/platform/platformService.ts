@@ -44,6 +44,7 @@ export type PlatformAuditEvent = {
   organizationId: string | null;
   organizationName: string | null;
   createdAt: string;
+  metadata?: Record<string, unknown> | null;
 };
 
 export type CreateOrganizationInput = {
@@ -222,7 +223,7 @@ export async function loadAuditEvents(
   let query = supabase
     .from("platform_audit_events")
     .select(
-      "id, actor_user_id, action, entity_type, entity_id, organization_id, created_at"
+      "id, actor_user_id, action, entity_type, entity_id, organization_id, created_at, metadata"
     )
     .order("id", { ascending: false });
 
@@ -270,6 +271,7 @@ export async function loadAuditEvents(
       ? (organizationNames.get(row.organization_id) ?? null)
       : null,
     createdAt: row.created_at,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? null,
   }));
 
   return {

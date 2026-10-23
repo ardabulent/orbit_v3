@@ -7,11 +7,12 @@
 --   5. Hata paneli 30 günden eskiyi göstermez.
 --   6. Gece işi tanımlı, her gün 00:00 UTC.
 --   7. ⛔ Fonksiyon oturum açmış kullanıcıya kapalı.
+--   8. Silinen gecede denetim kaydına sayılar yazılır; boş gecede yazılmaz.
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(13);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 select ('5a' || n || '00000-0000-0000-0000-0000000005a' || n)::uuid,
@@ -88,6 +89,22 @@ select ok(pg_temp.panelde('saklama-yeni'), 'the error panel shows a 29-day-old r
 select ok(not pg_temp.panelde('saklama-eski'), 'the error panel hides a 31-day-old report before the purge runs');
 
 select public.internal_purge_expired_records();
+
+-- 8 · Silme izsiz kalmaz (20261116000000): yalnız sayılar yazılır.
+select is(
+  (select metadata from public.platform_audit_events
+    where action = 'platform.retention_purged' and created_at >= now()),
+  jsonb_build_object('messages', 2, 'message_notifications', 1, 'conversations', 1,
+                     'client_error_reports', 1, 'email_deliveries', 1),
+  'a purge that deleted something leaves a receipt with the counts only'
+);
+select public.internal_purge_expired_records();
+select is(
+  (select count(*) from public.platform_audit_events
+    where action = 'platform.retention_purged' and created_at >= now()),
+  1::bigint,
+  'a purge that deleted nothing writes no receipt'
+);
 
 -- 1
 select is(

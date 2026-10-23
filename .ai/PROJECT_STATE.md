@@ -53,6 +53,8 @@
 - **Frontend:** Vite 7.3 + React 19.2 + TypeScript 6.0
 - **Yönlendirme:** `wouter` (pnpm patch: `patches/wouter@3.7.1.patch`)
 - **UI & Stil:** Radix UI + Tailwind CSS v4 + shadcn/ui (`components.json`) + Lucide Icons + Sonner Toast
+- **Yazı tipleri:** `@fontsource-variable/dm-sans`, `/manrope`, `/plus-jakarta-sans` 5.3.0 — siteyle aynı adresten (2026-10-23, #494; Google Fonts kalktı)
+- **Postgres eklentileri (göçle açılan):** `pgcrypto`, `uuid-ossp`, `pg_stat_statements` (Supabase varsayılanı) · **`pg_cron`** 2026-10-23'ten beri (#495) — tek iş `orbit-saklama-temizligi`, ayrıntı `PLATFORM_SETTINGS.md` §3.4
 - **Form / Doğrulama:** `react-hook-form` + `zod`
 - **Sunucu State:** `@tanstack/react-query` v5
 - **Veri Saklama:** React State + Yerel Kalıcılık (Local Persistence) & bağlı Supabase projesi (Faz 1'de deny-by-default RLS; gerçek veri kullanımı Faz 3'te)

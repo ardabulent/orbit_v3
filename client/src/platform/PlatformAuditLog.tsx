@@ -1,5 +1,8 @@
 import { PlatformEmptyState, PlatformSection } from "./PlatformShell";
-import { PLATFORM_ACTION_LABELS as ACTION_LABELS } from "./platformAuditLabels";
+import {
+  PLATFORM_ACTION_LABELS as ACTION_LABELS,
+  platformActionDetail,
+} from "./platformAuditLabels";
 import type { PlatformAuditEvent } from "./platformService";
 
 function formatDateTime(value: string): string {
@@ -58,12 +61,22 @@ export function PlatformAuditLog({
                       okunup okunamadığı. Depo deseni (SettingsMembersSection)
                       sistemin durumunu söylüyor. Aynı kusur v1.4-10'da
                       "İsimsiz Veli" olarak bulunup düzeltilmişti (K-22). */}
-                  {event.actorName ?? (
-                    <span className="italic">adı okunamadı</span>
-                  )}
+                  {/* Gece temizliğini kişi değil zamanlayıcı yazar. Yalnız bu
+                      olayda: silinmiş operatörün satırı da kişisiz kalır. */}
+                  {event.actorName ??
+                    (event.action === "platform.retention_purged" ? (
+                      "Sistem (gece işi)"
+                    ) : (
+                      <span className="italic">adı okunamadı</span>
+                    ))}
                   {event.organizationName ? ` · ${event.organizationName}` : ""}
                   {` · ${event.entityType}`}
                 </p>
+                {platformActionDetail(event.action, event.metadata) ? (
+                  <p className="mt-1 text-[11px] text-slate-300">
+                    {platformActionDetail(event.action, event.metadata)}
+                  </p>
+                ) : null}
               </li>
             ))}
           </ol>
