@@ -68,7 +68,7 @@ values ('9a000000-0000-0000-0000-00000000a001',
 select is(
   (select phone from public.guardians
    where id = '9a000000-0000-0000-0000-00000000a001'),
-  '0532 000 00 00',
+  '+90 532 000 00 00',  -- tek biçimde saklanır (2026-10-23, phone_shape)
   'a guardian without a login account still carries a phone number'
 );
 
@@ -218,7 +218,7 @@ select is(
 select is(
   (select phone from public.guardians
    where id = '9b000000-0000-0000-0000-00000000b001'),
-  '0532 111 11 11',
+  '+90 532 111 11 11',  -- tek biçimde saklanır (2026-10-23)
   'a guardian can read their own record including the phone'
 );
 

@@ -161,6 +161,7 @@
 - Koyu mod paletin ters çevrilmesiyle yapılır; yalnız kurum panelinde, tercih cihazda saklanır
 - İki geliştiricili çalışma düzeni
 - Yerel örnek veri SQL dosyasıyla değil, arayüzün API yolundan kurulur
+- Telefon tek biçimde saklanır, önekten bağımsız eşleşir
 
 ---
 
@@ -4178,3 +4179,25 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Bilinen sınır:** Bilinen bir şifreyle hesap açar; yerel adres kontrolü bu yüzden betiğin ilk işidir. pgTAP'in boş veritabanı varsayımı ayrı bir iştir; o güne kadar tarif "önce `db reset`, sonra test, sonra tohum".
 
 **Sonradan düzeltme (2026-10-22):** sayım eksikti — _"7 dosya, 11 iddia"_ yalnız `Failed test` satırları sayılarak çıkmıştı. İki dosya daha (`person_code`, `platform_operator_reads`) örnek kurumun `10001000@orbit.invalid` adresiyle çakışıp **hiç koşamıyordu** ve o satırı üretmiyordu; doğrusu 9 dosya, 15 iddia. Hepsi düzeltildi (ana plan 0.11): tüm tabloyu sayan iddialar yalnız testin kendi işleminde yazılan satırları sayar (`created_at >= now()`, `realtime.messages` için `inserted_at`), sabit test adresleri 9000'li aralığa taşındı. pgTAP artık boş ve tohumlu veritabanında aynı sonucu verir (1350/1350, ikisi de ölçüldü); "önce `db reset`" adımı kalktı.
+
+---
+
+### Karar: Telefon tek biçimde saklanır, önekten bağımsız eşleşir
+
+**Durum:** Kabul edildi · uygulandı (telefon PR'ı, göç `20261108000000`)
+**Tarih:** 2026-10-23
+**Onaylayan:** Arda Bülent (ana plan Faz 1 — 1.2)
+
+**Bağlam:** Test turu B1: içe aktarma veliyi telefonun rakamlarıyla tanıyordu; `0532 111 22 33` (05321112233) ile `+90 (532) 111-22-33` (905321112233) farklı sayıldı, kardeşlerin velisi iki kayda bölündü. Aynı numara kurumda üç ayrı yazımla durabiliyordu.
+
+**Karar:**
+
+1. **Karşılaştırma anahtarı `phone_key`:** rakamlar; baştaki `0090`, `90` (12 hane) ya da `0` (11 hane) atılır. Telefonla eşleşen her yer bunu kullanır (bugün `import_students`).
+2. **Saklama biçimi `phone_display`:** anahtar 10 haneli bir TR numarasıysa (2–5 ile başlar, `+` varsa `+90`) `+90 5XX XXX XX XX`; değilse girildiği gibi, kırpılmış. Yurt dışı ve tanınmayan biçim korunur — `guardians.phone` yorumundaki _"biçim doğrulanmaz"_ kararı geçerli, yalnız tanınan biçim tekleşiyor.
+3. **Tek nokta:** `guardians.phone` ve `profiles.phone` üzerinde BEFORE tetikleyici (`normalize_phone_column`). İçe aktarma, "Yeni öğrenci", veli düzenleme ve profil — hangi yoldan yazılırsa yazılsın aynı biçim. Mevcut telefonlar aynı göçte çevrildi (canlıda 1 profil telefonu, 0 veli telefonu vardı).
+
+**Gerekçe:** Eşleşmeyi her yazma yolunda ayrı ayrı düzeltmek, bir yolun unutulmasını beklemek olurdu; tetikleyici veritabanında tek yerde durur (taşınabilirlik kuralıyla da uyumlu, düz Postgres). Kopya veliyi sonradan birleştirmek, oluşmasını önlemekten pahalı.
+
+**Reddedilen:** _İstemcide biçimlendirmek_ — içe aktarma ve Edge yolları atlanır, istemciye güvenilmez. _Telefonu E.164'e zorlamak ve tanınmayanı reddetmek_ — sabit hat dahilisi, yurt dışı numarası ve elle notlu girişler meşru; kurumun verisini reddetmek içe aktarmayı kırar.
+
+**Bilinen sınır:** Kurumda bu karardan önce açılmış kopya veli kayıtları kendiliğinden birleşmez (canlıda yok, ölçüldü). Gerekirse ayrı bir birleştirme aracı.
