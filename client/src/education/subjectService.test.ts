@@ -187,7 +187,7 @@ describe("subjectService (v1.4-11 · #287)", () => {
       await expect(
         createSubject({ organizationId: "org-1", name: "Matematik" })
       ).rejects.toThrow(
-        "Bu isimde aktif bir ders zaten var. Lütfen farklı bir ders adı seçin."
+        "Bu isimde aktif bir ders zaten var (büyük/küçük harf fark etmez). Lütfen farklı bir ders adı seçin."
       );
     });
   });
@@ -412,7 +412,7 @@ describe("subjectService (v1.4-11 · #287)", () => {
 
     it("23505 ad çakışması hatasını kullanıcı dostu açıklar", () => {
       expect(translateSubjectError({ code: "23505" })).toBe(
-        "Bu isimde aktif bir ders zaten var. Lütfen farklı bir ders adı seçin."
+        "Bu isimde aktif bir ders zaten var (büyük/küçük harf fark etmez). Lütfen farklı bir ders adı seçin."
       );
     });
 

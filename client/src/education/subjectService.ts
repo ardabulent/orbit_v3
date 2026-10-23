@@ -280,7 +280,7 @@ export function translateSubjectError(error: unknown): string {
   }
 
   if (code === "23505") {
-    return "Bu isimde aktif bir ders zaten var. Lütfen farklı bir ders adı seçin.";
+    return "Bu isimde aktif bir ders zaten var (büyük/küçük harf fark etmez). Lütfen farklı bir ders adı seçin.";
   }
 
   if (code === "23514") {

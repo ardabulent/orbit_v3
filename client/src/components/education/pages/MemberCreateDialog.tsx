@@ -15,7 +15,11 @@ import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
 import { DEMO_TEMPORARY_PASSWORD } from "@/components/credentials/IssuedCredentials";
 import { useAuth } from "@/auth/useAuth";
-import { useSettingsBranches } from "@/settings/settingsQueries";
+import {
+  useSettingsBranches,
+  useSettingsMembers,
+} from "@/settings/settingsQueries";
+import { turkishNameKey } from "@/education/turkishSearch";
 import {
   createMember,
   resolveBranchSelection,
@@ -55,6 +59,20 @@ export function MemberCreateDialog({
     isLoading: branchQueryLoading,
     error: branchQueryError,
   } = useSettingsBranches(organizationId, { enabled: open });
+
+  // Aynı adlı üye (test turu B7, 2026-10-23): engel değil — aynı adlı iki
+  // gerçek kişi olabilir — ama aynı kişiye ikinci hesap açmadan önce görünsün.
+  const { data: members = [] } = useSettingsMembers({
+    organizationId,
+    enabled: open,
+  });
+  const sameNameMembers = useMemo(() => {
+    const key = turkishNameKey(fullName);
+    if (key.length < 2) return [];
+    return members.filter(
+      m => m.displayName && turkishNameKey(m.displayName) === key
+    );
+  }, [members, fullName]);
 
   const branches = useMemo(
     () => (demoMode ? [] : branchList),
@@ -238,6 +256,25 @@ export function MemberCreateDialog({
               placeholder="Ad Soyad"
               autoComplete="off"
             />
+            {sameNameMembers.length > 0 ? (
+              <p
+                role="status"
+                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] leading-5 text-amber-900"
+              >
+                Kurumda bu adla{" "}
+                {sameNameMembers.length === 1
+                  ? "bir üye"
+                  : `${sameNameMembers.length} üye`}{" "}
+                zaten var
+                {sameNameMembers
+                  .map(m =>
+                    m.loginNumber ? ` (giriş no ${m.loginNumber})` : ""
+                  )
+                  .join(",")}
+                . Aynı kişiyse yeni hesap açmayın; şifresini Üyeler listesinden
+                sıfırlayabilirsiniz.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-2">

@@ -91,7 +91,7 @@ export function translateClassError(
   if (code === "23505") {
     return context === "enrollment"
       ? "Bu öğrenci zaten bu sınıfa kayıtlı."
-      : "Bu isimde bir sınıf bu kurumda zaten var. Farklı bir sınıf adı girin.";
+      : "Bu isimde bir sınıf bu kurumda zaten var (büyük/küçük harf fark etmez). Farklı bir sınıf adı girin.";
   }
   if (code === "23514") {
     return context === "enrollment"
