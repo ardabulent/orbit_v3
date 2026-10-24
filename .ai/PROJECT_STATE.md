@@ -154,7 +154,8 @@ client/src/
 │   ├── accountForRecord.ts / useOpenAccountForRecord.ts # Var olan öğrenci/veli kaydına hesap aç + bağla; liste fiş kapanınca tazelenir (1.7, 2026-10-23). Ekranı `pages/AssignAccountPopover.tsx` (öğrenci + veli ortak), pencere sayfada sabit: `OpenAccountHost.tsx` + `openAccountRequest.ts` → `OpenAccountDialog.tsx`
 │   ├── overviewService.ts  # Yönetici Genel Bakış kartlarının verisi
 │   ├── attentionReasons.ts # Dikkat listesindeki öğrencinin nedenleri, ekranda okunacak haliyle
-│   ├── reportCsv.ts        # Sınıf karşılaştırması → Excel'in Türkçe ayarında açılan CSV (`;`, BOM, ondalık virgül)
+│   ├── reportCsv.ts        # Sınıf karşılaştırması → Excel'in Türkçe ayarında açılan CSV (biçim kuralları `lib/turkishCsv.ts`)
+│   ├── dataExportService.ts # Kurum verisini dışa aktarma: 5 küme → Excel/CSV; önce denetim kaydı (`record_data_export`), sonra dosya (2026-10-24)
 │   └── studentExamService.ts / studentHomeworkService.ts # Öğrenci ve velinin sınav ve ödev görünümü (karar 2026-09-28)
 ├── audit/                  # Kurum denetim kaydı
 │   ├── auditService.ts     # İmleçli sayfalama; sıra sütunu `id`, `created_at` DEĞİL
@@ -203,6 +204,8 @@ client/src/
 │   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)
 │   ├── cspConnectSrc.ts    # CSP connect-src ↔ VITE_SUPABASE_URL denetleyicisi; `vite.config.ts` çağırır (v1.5-09)
 │   ├── pagedRead.ts        # Sayfa sayfa okuma: READ_PAGE_SIZE 500, `*_TOTAL_CAP` tavanları (#435)
+│   ├── turkishCsv.ts       # Türkçe Excel'de açılan CSV: `;`, BOM, ondalık virgül, formül enjeksiyonu koruması (2026-10-24)
+│   ├── xlsxWriter.ts       # Bağımlılıksız .xlsx yazıcı (sıkıştırmasız zip + satır içi metin); `read-excel-file` ile geri okunarak sınanır (2026-10-24)
 │   ├── tabSessionKey.ts    # Sekmeye özgü oturum anahtarı — bir sekmedeki giriş öbürünü düşürmez (#451)
 │   └── userFacingError.ts  # Kullanıcıya gösterilecek hata metni: ağ → Türkçe, veritabanı uyarısı aynen (#453)
 └── pages/

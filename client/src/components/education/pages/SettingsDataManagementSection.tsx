@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DataExportPanel } from "./DataExportPanel";
 
 export function SettingsDataManagementSection({
   onResetDemoData,
@@ -35,7 +36,7 @@ export function SettingsDataManagementSection({
       <p className="mt-1 text-[11px] text-slate-500">
         {isDemoMode
           ? "Dışa aktarma ve demo verilerini sıfırlama."
-          : "Dışa aktarma. Arşivlenen kayıtlar Ayarlar → Arşiv'de."}
+          : "Kurum verisini Excel ya da CSV olarak indirin. Arşivlenen kayıtlar Ayarlar → Arşiv'de."}
       </p>
       <div
         className={`mt-5 grid gap-4 ${isDemoMode ? "md:grid-cols-2" : "max-w-xl"}`}
@@ -52,13 +53,13 @@ export function SettingsDataManagementSection({
               <p className="mt-0.5 text-[10px] text-slate-500">
                 {isDemoMode
                   ? "Seçili biçimde bir dışa aktarma hazırlanır."
-                  : "Henüz yok; aşağıdaki nota bakın."}
+                  : "Öğrenci, veli, yoklama, sınav sonuçları ve ödemeler."}
               </p>
             </div>
           </div>
-          {/* Biçim seçimi ve düğme yalnız demoda (2026-10-11): üretimde hiçbir
-              şey yapmayan bir düğme gösteriliyordu. Özelliğin henüz olmadığını
-              aşağıdaki not söylüyor. */}
+          {/* Gerçek kipte dışa aktarma 2026-10-24'ten beri çalışıyor (ana plan
+              2.4, `DataExportPanel`). Demoda gerçek veri olmadığı için eski
+              bilgilendirme kalır. */}
           {isDemoMode ? (
             <>
               <div className="mt-4">
@@ -83,16 +84,17 @@ export function SettingsDataManagementSection({
               >
                 Dışa Aktarmayı Hazırla
               </button>
+              <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                <span>
+                  Demo kipinde dışa aktarılacak gerçek veri yok; gerçek kurum
+                  hesabında bu bölümden Excel ya da CSV indirilir.
+                </span>
+              </p>
             </>
-          ) : null}
-          <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-            <span>
-              <strong>Dışa aktarma özelliği henüz aktif değildir.</strong>{" "}
-              Gerçek dışa aktarma bir sonraki kalıcı veri fazında
-              etkinleştirilecektir.
-            </span>
-          </p>
+          ) : (
+            <DataExportPanel />
+          )}
         </section>
         {isDemoMode ? (
           <section className="rounded-2xl border border-rose-100 bg-rose-50/40 p-5">

@@ -198,6 +198,7 @@ const ACTION_LABELS: Record<string, string> = {
     )
   ),
   "organization.bootstrap": "Kurum kuruldu",
+  "organization.data_exported": "Kurum verisi dışa aktarıldı",
   "membership.created": "Üye eklendi",
   "membership.removed": "Üyelik kaldırıldı",
   "membership.role_changed": "Üyenin rolü değişti",
