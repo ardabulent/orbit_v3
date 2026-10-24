@@ -1,18 +1,14 @@
--- v1.2-05 — Sınav sonuçları ve güvenli sıralama.
+-- v1.2-05 — Sınav sonuçları ve görünürlüğü.
 --
--- Bu dosyanın merkezi `exam_ranking()`. Test edilmesi gereken şey iki yönlü ve
--- ikisi de aynı anda doğru olmalı:
+-- Bu dosyanın merkezi önceden `exam_ranking()` idi: öğrenciye tüm sıralamayı
+-- maskeli isimlerle veren fonksiyon. İstemci onu hiç çağırmadı ve az katılımlı
+-- bir sınavda maskeli satırlar kimin kaç aldığını ele veriyordu (iki kişilik
+-- sınavda öbür satır, öbür kişidir). Ana plan 5.5'te (2026-10-25) kaldırıldı.
 --
---   * Öğrenci **tüm sıralamayı** görebilmeli — kaçıncı olduğunu bilmesi için
---     kaç kişinin önünde olduğunu görmesi gerekiyor.
---   * Ama yalnızca **kendi ismini** görmeli.
---
--- Tek yönlü bir test yanıltıcıdır: "öğrenci 3 satır görüyor" doğru ama yetersiz,
--- "öğrenci 1 isim görüyor" da öyle. İkisi birlikte ölçülmeli, çünkü bozuk bir
--- uygulama birini sağlayıp diğerini sağlamayabilir.
---
--- Ayrıca sınava hiç girmemiş ve orada kimseyi okutmayan birinin **hiçbir şey**
--- görmediği ölçülüyor: isimsiz bir puan dağılımı bile ona ait bir bilgi değil.
+-- Görünürlük artık uygulamanın gerçekten okuduğu yoldan sınanıyor: sonuç
+-- tablosunun kendisi. Sorular aynı: yönetici her sonucu, öğretmen yalnız
+-- okuttuğu öğrencilerinkini, öğrenci yalnız kendisininkini, veli yalnız
+-- çocuğununkini görür; sınava girmeyen hiçbir şey görmez.
 
 begin;
 
@@ -207,23 +203,26 @@ select set_config('request.jwt.claim.role', 'authenticated', true);
 select set_config('request.jwt.claim.sub', '11000000-0000-0000-0000-000000000011', true);
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')),
+  (select count(*) from public.exam_results where exam_id = 'e0000000-0000-0000-0000-0000000000e1'),
   3::bigint,
-  'an admin sees every position in the ranking'
+  'an admin reads every result of the exam'
 );
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where student_name is not null),
+  (select count(*) from public.exam_results as sonuc
+     join public.students as ogrenci on ogrenci.id = sonuc.student_id
+    where sonuc.exam_id = 'e0000000-0000-0000-0000-0000000000e1'),
   3::bigint,
-  'an admin sees every name'
+  'an admin reads the student behind every result'
 );
 
 select is(
-  (select student_name from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where rank_position = 1),
+  (select ogrenci.full_name from public.exam_results as sonuc
+     join public.students as ogrenci on ogrenci.id = sonuc.student_id
+    where sonuc.exam_id = 'e0000000-0000-0000-0000-0000000000e1'
+    order by sonuc.score desc limit 1),
   'İkinci Öğrenci',
-  'the ranking is ordered by score, highest first'
+  'the highest score belongs to the expected student'
 );
 
 -- Öğretmen — 12-A'yı okutuyor, 12-B'yi okutmuyor -----------------------------------
@@ -231,16 +230,17 @@ select is(
 select set_config('request.jwt.claim.sub', '22000000-0000-0000-0000-000000000022', true);
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')),
-  3::bigint,
-  'a teacher sees every position too'
+  (select count(*) from public.exam_results
+    where student_id = '50000000-0000-0000-0000-000000000003'),
+  0::bigint,
+  'a teacher does not see the result of a student they do not teach'
 );
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where student_name is not null),
+  (select count(*) from public.exam_results as sonuc
+     join public.students as ogrenci on ogrenci.id = sonuc.student_id),
   2::bigint,
-  'a teacher sees names only inside their own scope — the third row stays anonymous'
+  'a teacher sees the names behind their own students results only'
 );
 
 select is(
@@ -249,42 +249,41 @@ select is(
   'reading the results table directly gives a teacher only their own students'
 );
 
--- Öğrenci — sıralamanın tamamını görür, tek ismi görür --------------------------------
+-- Öğrenci — yalnız kendi sonucu --------------------------------------------------------
 
 select set_config('request.jwt.claim.sub', '33000000-0000-0000-0000-000000000033', true);
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')),
-  3::bigint,
-  'a student sees the whole distribution — otherwise their own rank is meaningless'
+  (select count(*) from public.exam_results
+    where student_id <> '50000000-0000-0000-0000-000000000001'),
+  0::bigint,
+  'a student sees no other student result'
 );
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where student_name is not null),
+  (select count(*) from public.exam_results as sonuc
+     join public.students as ogrenci on ogrenci.id = sonuc.student_id),
   1::bigint,
-  'a student sees exactly one name'
+  'a student sees exactly one name behind the results'
 );
 
 select is(
-  (select student_name from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where student_name is not null),
+  (select ogrenci.full_name from public.exam_results as sonuc
+     join public.students as ogrenci on ogrenci.id = sonuc.student_id),
   'Birinci Öğrenci',
   'the one name a student sees is their own'
 );
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where student_id is not null),
-  1::bigint,
-  'the identity column is masked too, not just the name'
+  (select score from public.exam_results),
+  80.00::numeric,
+  'a student reads their own score'
 );
 
 select is(
-  (select rank_position from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where is_own),
-  2::bigint,
-  'a student can read their own position out of the ranking'
+  (select count(*) from public.exams where id = 'e0000000-0000-0000-0000-0000000000e1'),
+  1::bigint,
+  'the exam itself is visible to a student who sat it'
 );
 
 select is(
@@ -298,15 +297,14 @@ select is(
 select set_config('request.jwt.claim.sub', '55000000-0000-0000-0000-000000000055', true);
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where student_name is not null),
+  (select count(*) from public.exam_results),
   1::bigint,
-  'a guardian sees one name — their own child'
+  'a guardian sees one result, their own child'
 );
 
 select is(
-  (select student_name from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')
-     where is_own),
+  (select ogrenci.full_name from public.exam_results as sonuc
+     join public.students as ogrenci on ogrenci.id = sonuc.student_id),
   'Birinci Öğrenci',
   'the child a guardian sees is theirs'
 );
@@ -316,9 +314,9 @@ select is(
 select set_config('request.jwt.claim.sub', '66000000-0000-0000-0000-000000000066', true);
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')),
+  (select count(*) from public.exam_results),
   0::bigint,
-  'a student who did not sit the exam sees nothing — not even an anonymous distribution'
+  'a student who did not sit the exam sees no result at all'
 );
 
 -- Yazma yetkileri -------------------------------------------------------------------------
@@ -472,9 +470,9 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '11000000-0000-0000-0000-000000000011', true);
 
 select is(
-  (select count(*) from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')),
+  (select count(*) from public.exam_results),
   0::bigint,
-  'the ranking is closed to an admin who must change their password'
+  'results are closed to an admin who must change their password'
 );
 
 reset role;
@@ -487,11 +485,10 @@ select throws_ok(
   'anon cannot read exam results'
 );
 
-select throws_ok(
-  $sql$select * from public.exam_ranking('e0000000-0000-0000-0000-0000000000e1')$sql$,
-  '42501',
-  null,
-  'anon cannot call the ranking function at all'
+reset role;
+select hasnt_function(
+  'public', 'exam_ranking', array['uuid'],
+  'the unused ranking function is gone (ana plan 5.5)'
 );
 
 select * from finish();
