@@ -11,6 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
+import { OrganizationClosureSection } from "./OrganizationClosureSection";
+import { describeContent, totalContentRows } from "./organizationContent";
 import { useOrganizationStats } from "./platformQueries";
 import {
   deleteOrganization,
@@ -150,6 +152,10 @@ export function OrganizationProfileDialog({
   };
 
   const nameMatches = confirmName.trim() === organization.name.trim();
+  // İçerik varken silme sunucuda reddedilir (ORB01); düğme baştan kapalı ve
+  // yol gösteriliyor (ana plan 2.5).
+  const contentLines = describeContent(stats?.content);
+  const contentTotal = totalContentRows(contentLines);
   const adminLoginNumber = organization.code ? `${organization.code}1000` : "—";
 
   if (view === "credentials" && credentials) {
@@ -274,6 +280,18 @@ export function OrganizationProfileDialog({
               )}
             </div>
 
+            {contentTotal > 0 ? (
+              <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                Kurumda <strong>{contentTotal}</strong> içerik kaydı var (
+                {contentLines
+                  .slice(0, 3)
+                  .map(line => `${line.rows} ${line.label}`)
+                  .join(", ")}
+                {contentLines.length > 3 ? ", …" : ""}). Bu hâliyle silinemez:
+                önce kurumu kapatın, 30 gün sonra boşaltın.
+              </p>
+            ) : null}
+
             <p className="text-muted-foreground">
               Platform operatörlüğü veya başka bir kurumda üyeliği olan
               kişilerin hesapları <strong>silinmez</strong>; yalnızca bu kurumla
@@ -312,8 +330,14 @@ export function OrganizationProfileDialog({
             <button
               type="button"
               onClick={handleDelete}
-              disabled={!nameMatches || submitting}
-              title={nameMatches ? undefined : "Kurum adını birebir yazın"}
+              disabled={!nameMatches || submitting || contentTotal > 0}
+              title={
+                contentTotal > 0
+                  ? "Kurumda içerik var; önce boşaltın"
+                  : nameMatches
+                    ? undefined
+                    : "Kurum adını birebir yazın"
+              }
               className="rounded-xl bg-rose-600 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-rose-500 disabled:opacity-40"
             >
               {submitting ? "Siliniyor…" : "Kurumu kalıcı olarak sil"}
@@ -408,6 +432,12 @@ export function OrganizationProfileDialog({
             <h3 className="text-[10px] font-bold uppercase tracking-[.14em] text-rose-600 dark:text-rose-400">
               Tehlikeli işlemler
             </h3>
+            <OrganizationClosureSection
+              organization={organization}
+              stats={stats}
+              statsLoading={statsLoading}
+              onChanged={onChanged}
+            />
             <button
               type="button"
               onClick={() => setView("delete-confirm")}
@@ -415,8 +445,9 @@ export function OrganizationProfileDialog({
             >
               <span className="font-bold">Kurumu sil</span>
               <span className="mt-0.5 block text-[11px] opacity-80">
-                Kurum, kullanıcıları ve tüm kayıtları kalıcı olarak silinir.
-                Yöneticiyi değiştirmek için bu işlemi kullanmayın.
+                Kurum, kullanıcı hesapları ve şubeleri kalıcı olarak silinir.
+                İçerik kaydı olan kurum önce kapatılıp boşaltılmalı. Yöneticiyi
+                değiştirmek için bu işlemi kullanmayın.
               </span>
             </button>
           </section>

@@ -168,6 +168,7 @@
 - Uygulama içi mesajlar 30 gün saklanır; süresi dolan kayıtları gece işi siler
 - Yazı tipleri npm paketiyle kendi sitemizden sunulur
 - Kurum verisi dışa aktarılırken önce iz yazılır, sonra dosya verilir
+- Ayrılan kurum önce kapatılır, 30 gün sonra boşaltılır
 
 ---
 
@@ -1133,6 +1134,8 @@ Bu K-04'ün ("bilinmeyende güvenli tarafta kal") şema seviyesindeki karşılı
 **Sınır — dürüstçe kayda geçiyor:** koruma yalnızca `organization_id` sütununa bakar. Kuruma dolaylı bağlanan bir tablo (yalnızca `class_id` taşıyan bir `class_enrollments` gibi) doğrudan görülmez; pratikte kapsanır, çünkü böyle bir kayıt ancak `classes` doluyken var olabilir. Yine de v1.2'nin her dilimi şunu beyan etmelidir: **kuruma ait her tablo `organization_id` taşır.** Taşımayan bir tablo yalnızca bu korumayı değil, tenant modelinin tamamını deler.
 
 **Koşullu kısım — K-12 gereği sahibi yazılıyor.** Bugün dolu bir kurumu silmenin **hiçbir yolu yok**; koruma mutlak. Bu bilinçli: gerçek öğrenci verisi taşıyan bir kurumun tek çağrıyla yok edilebilmesi, çözdüğünden çok sorun üretir. Ama KVKK'nın silme hakkı er ya da geç bir yol gerektirecek. **Şart:** ilk gerçek kurum verisi girdikten sonra bir silme/anonimleştirme talebi geldiğinde. **Kontrol edecek adım:** `v2.0-01` (hesap silme ve anonimleştirme) diliminin açılışı. **Yapılacak iş:** kaldırma yolunu ayrı bir yetki ve ayrı bir denetim kaydıyla tasarlamak — bu fonksiyonun korumasını gevşetmek değil.
+
+> **Sonradan düzeltme (2026-10-25):** yol tasarlandı ve tarif edildiği gibi kuruldu — bu fonksiyonun koruması gevşetilmedi. Ayrı yetki: `platform_purge_organization`, yalnız kapatılmış ve 30 günü dolmuş kurumda, kurum kodu onayıyla; ayrı iz: `platform.organization_purged`. Ayrıca bu kaydın "kapsam dışı" bıraktığı onay ekranı sayıları artık her içerik tablosunu kapsıyor. Bkz. "Ayrılan kurum önce kapatılır, 30 gün sonra boşaltılır" (ana plan 2.5).
 
 **Alternatifler:**
 
@@ -2212,6 +2215,9 @@ RLS zinciri geçici bir satırla ölçüldü (işlem içinde, geri alındı): `a
 **Alternatifler:**
 
 - **`internal_delete_organization`'a hedefli temizlik adımı:** Reddedildi. Kurum taşımayan bir tabloyu silme fonksiyonuna tanıtmak, tablonun kavramını bozardı.
+
+> **Sonradan düzeltme (2026-10-25):** kalan kalıntı (bir daha çağırmayan kullanıcının 7 günden eski satırları) gece işiyle temizleniyor: `internal_purge_expired_records` defterin kendi süresini (7 gün) herkese uyguluyor ve sayıyı `function_calls` olarak makbuza yazıyor. Silme fonksiyonuna dokunulmadı; red gerekçesi geçerli. Bkz. "Ayrılan kurum önce kapatılır, 30 gün sonra boşaltılır".
+
 - **Olduğu gibi bırakmak:** Reddedildi. Tablo bugün boş, yani göç maliyeti sıfır; ilk gerçek kurum verisi girdikten sonra aynı karar bir veri temizliği işine dönerdi.
 
 ---
@@ -4320,3 +4326,27 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 6. **Excel yazıcı kendimizin:** `lib/xlsxWriter.ts` (sıkıştırmasız zip + satır içi metin, formül yazmaz). Yeni bağımlılık eklenmedi; doğruluğu depodaki okuyucuyla (`read-excel-file`) ve openpyxl ile sınandı.
 
 **Reddedilen:** _Sunucuda (Edge Function) dosya üretmek_ — veri zaten RLS'le istemciye okunabiliyor; sunucu yolu yeni bir yetki yüzeyi ve sağlayıcıya bağlı kod ekler. _Excel kütüphanesi eklemek_ (`write-excel-file`, `exceljs`) — yalnız veri yazıyoruz, 200 satırlık yazıcı yetiyor. _İz yazmadan indirmek_ — KVKK'da "kim kişisel veriyi dışarı aldı" sorusunun cevabı olmazdı.
+
+---
+
+### Karar: Ayrılan kurum önce kapatılır, 30 gün sonra boşaltılır
+
+**Durum:** Kabul edildi · uygulandı (kapatma/boşaltma PR'ı, göç `20261118000000`)
+**Tarih:** 2026-10-25
+**Onaylayan:** Arda Bülent ("İki adım + 30 gün" seçeneği)
+
+**Bağlam:** İçinde öğrenci, not veya ödeme olan bir kurum hiçbir yolla silinemiyordu (bilinçli; "Silme koruması korunacakları değil, korunmayacakları sayar", 2026-09-02). Ama ayrılan kurumun verisini KVKK gereği silmek zorundayız ve o kararın kendisi yolu tarif etmişti: ayrı yetki, ayrı iz, korumayı gevşetmeden. Ana plan 2.5 ayrıca onay ekranındaki sayıların eksik olduğunu ve kapı defterinin temizlenmediğini yazıyordu.
+
+**Karar:**
+
+1. **Kapatma** (`platform_close_organization`) — platform operatörü yapar, geri alınabilir (`platform_reopen_organization`). `organizations.archived_at` dolar; kurumun bütün kullanıcıları (üyelik, öğrenci ve veli bağı) kilitlenir, veri yerinde durur. İkinci kapatma saati yeniden başlatmaz.
+2. **Kilit tek yerden:** yeni bir kural 112 politikaya eklenmedi. Politikaların 108'i ve kilit soran RPC'ler zaten `current_user_must_change_password()` soruyor; kapalı kurumun kullanıcısı o soruya "evet" alır. Edge Function kapısı (`internal_begin_function_call`) da aynı kilidi uygular. Platform operatörü bu kilitten muaftır. İstemci kapalı kurumu görüp "Kurumunuzun ORBIT kullanımı kapatıldı" der.
+3. **Bekleme:** kapanıştan **30 gün** sonra boşaltılabilir (`organization_purge_waiting_period()`, tek kaynak). Yanlış kurum ya da fikir değişikliği için pay.
+4. **Boşaltma** (`platform_purge_organization`) — geri alınamaz. Kurum kodu onay olarak sunucuda doğrulanır. İçerik listesi katalogdan gelir (silme korumasıyla aynı ölçüt), yabancı anahtarla birbirini tutan tablolar turlarla silinir; ilerleme durursa hiçbir şey silinmez. Kurumun denetim kaydı da (kişi adları taşır) içerikle gider. İz `platform_audit_events`'e tablo başına **sayılarla** yazılır (`platform.organization_purged`), içerik yazılmaz.
+5. **Sonra silme:** hesapları, üyelikleri ve şubeleri bugünkü "Kurumu sil" kaldırır; o fonksiyona ve korumasına dokunulmadı.
+6. **Sayaç eksiksiz:** `platform_organization_stats` her içerik tablosunun sayısını (`content`) ve kapanış anlarını verir; silme onayı içerik varken düğmeyi kapatıp yolu gösterir.
+7. **Kapı defteri:** gece işi `internal_function_calls`'un 7 günden eski satırlarını siler (defterin kendi süresi).
+
+**Reddedilen:** _Beklemesiz iki adım_ — tek koruma kodu yazmak olurdu. _Kapatmada hesapları GoTrue'da yasaklamak (ban)_ — sağlayıcıya bağlı, açık oturum bir saate kadar sürer, yeniden açmada geri almak gerekir; SQL kilidi anında ve taşınabilir. _Silme fonksiyonuna `force` eklemek_ — 2026-09-02 kararının reddettiği kaçış yolu. _Kilidi her politikaya ayrı yazmak_ — 112 politika, aynı soruyu ikinci kez sormak.
+
+**Bilinen sınır:** kilit tablolarda kanıtlı (pgTAP: kapalı kurumun yöneticisi ve öğrencisi bütün içerik tablolarında sıfır satır görür). Kilit sormayan `security definer` RPC'ler şifre kilidinde nasılsa burada da öyle; arayüz kapalı kurumun kullanıcısını içeri almadığı için bunlara ulaşılmaz.

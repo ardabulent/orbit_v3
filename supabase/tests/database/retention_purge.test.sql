@@ -95,7 +95,9 @@ select is(
   (select metadata from public.platform_audit_events
     where action = 'platform.retention_purged' and created_at >= now()),
   jsonb_build_object('messages', 2, 'message_notifications', 1, 'conversations', 1,
-                     'client_error_reports', 1, 'email_deliveries', 1),
+                     'client_error_reports', 1, 'email_deliveries', 1,
+                     -- Kapı defteri (20261118000000): bu testte eski satır yok.
+                     'function_calls', 0),
   'a purge that deleted something leaves a receipt with the counts only'
 );
 select public.internal_purge_expired_records();

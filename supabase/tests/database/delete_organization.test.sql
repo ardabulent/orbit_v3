@@ -124,8 +124,11 @@ select is(
 );
 
 select is(
+  -- Yalnız bu kurumun kaydı sayılır: veritabanında başka silinmiş kurumların
+  -- izi olabilir (yerel yığın, 2026-10-25).
   (select count(*) from public.platform_audit_events
-     where action = 'platform.organization_deleted'),
+     where action = 'platform.organization_deleted'
+       and entity_id = 'd1000000-0000-0000-0000-000000000001'),
   0::bigint,
   'a refused deletion writes no "deleted" audit record'
 );

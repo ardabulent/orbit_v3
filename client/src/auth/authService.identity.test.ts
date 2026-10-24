@@ -107,6 +107,43 @@ describe("loadAuthenticatedIdentity", () => {
     expect(identity.platformOperator?.role).toBe("owner");
   });
 
+  it("kapatılmış kurumun üyesini doğru sebeple reddeder", async () => {
+    mockTables({
+      organization_memberships: membershipRow,
+      organizations: ok({
+        name: "Orbit Dershane",
+        code: 1042,
+        archived_at: "2026-10-25T09:00:00Z",
+      }),
+      branches: branchRow,
+      platform_operators: empty,
+      profiles: ok({ display_name: "Test Kişi" }),
+    });
+
+    await expect(loadAuthenticatedIdentity(user)).rejects.toThrow(
+      /ORBIT kullanımı kapatıldı/
+    );
+  });
+
+  it("kapatılmış kurumda üyeliği olan operatör yalnız operatör olarak girer", async () => {
+    mockTables({
+      organization_memberships: membershipRow,
+      organizations: ok({
+        name: "Orbit Dershane",
+        code: 1042,
+        archived_at: "2026-10-25T09:00:00Z",
+      }),
+      branches: branchRow,
+      platform_operators: operatorRow,
+      profiles: ok({ display_name: "Kurucu" }),
+    });
+
+    const identity = await loadAuthenticatedIdentity(user);
+
+    expect(identity.membership).toBeNull();
+    expect(identity.platformOperator?.role).toBe("owner");
+  });
+
   it("iki eksen de boşsa reddeder", async () => {
     mockTables({
       organization_memberships: empty,
