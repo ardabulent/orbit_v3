@@ -23,8 +23,11 @@ import { syntheticEmailFor } from "../_shared/syntheticEmail.ts";
  * gönderimi kadar uzun sürseydi, süreye bakarak hangi numaraların gerçek
  * olduğu öğrenilebilirdi.
  *
- * Hız sınırı SQL'de (`internal_claim_password_reset`): kişi başına saatte 3,
- * sistemde saatte 100 gönderim.
+ * Hız sınırı SQL'de (`internal_claim_password_reset`): kaynak başına saatte
+ * 10 istek, kişi başına saatte 3, sistemde saatte 100 gönderim. Kaynak
+ * (2026-10-25, ana plan 2.13) Cloudflare'in yazdığı `cf-connecting-ip`'dir;
+ * istemci onu taklit edemez. IP veritabanına gitmez, yalnız servis anahtarıyla
+ * alınmış HMAC özeti gider (bir gün saklanır).
  */
 
 const requestSchema = z.object({
@@ -36,6 +39,30 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 declare const EdgeRuntime:
   { waitUntil(promise: Promise<unknown>): void } | undefined;
+
+/**
+ * İsteğin kaynağının özeti. IP'nin kendisi hiçbir yere yazılmaz; anahtarlı
+ * özet, anahtar olmadan IP'ye geri çevrilemez (IPv4 uzayı küçük olduğu için
+ * düz SHA-256 çevrilebilirdi).
+ */
+async function sourceKey(address: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const mac = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(`password-reset:${address}`)
+  );
+  return [...new Uint8Array(mac)]
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 function loginEmailFor(identifier: string): string | null {
   const value = identifier.replace(/\s+/g, "");
@@ -91,9 +118,23 @@ Deno.serve(async request => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  // Başlık gelmezse kaynak "bilinmiyor" kovasıdır; SQL o kovaya sistem
+  // sınırını uygular, yani bugünkü davranış sürer.
+  const clientAddress = request.headers.get("cf-connecting-ip")?.trim() || null;
+
   const work = (async () => {
+    if (!clientAddress) {
+      console.warn("[request-password-reset] source header missing");
+    }
     const { data: target, error: claimError } = await adminClient
-      .rpc("internal_claim_password_reset", { target_login_email: loginEmail })
+      .rpc("internal_claim_password_reset", {
+        target_login_email: loginEmail,
+        request_source: await sourceKey(
+          clientAddress ?? "bilinmiyor",
+          serviceRoleKey
+        ),
+        request_source_known: clientAddress !== null,
+      })
       .maybeSingle<{
         user_id: string;
         auth_email: string;

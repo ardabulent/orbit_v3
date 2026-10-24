@@ -170,6 +170,7 @@
 - Kurum verisi dışa aktarılırken önce iz yazılır, sonra dosya verilir
 - Ayrılan kurum önce kapatılır, 30 gün sonra boşaltılır
 - Her Edge Function'ın hız sınırı açıkça yazılır; değerler ilk pilottan sonra ölçülür
+- Şifre sıfırlama kaynak başına sınırlanır; IP saklanmaz, anahtarlı özeti bir gün tutulur
 
 ---
 
@@ -4370,3 +4371,26 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 4. Kurum içi filtresiz okumanın freni Supabase'in rol başına sorgu süresi (`authenticated` 8 s, `anon` 3 s). Canlıdan okundu, değiştirilmedi.
 
 **Reddedilen:** _Uygulama düzeyinde PostgREST okuma sınırı (istek sayacı)_ — Postgres'te istek başına sayaç her okumayı yazmaya çevirir; sorgu süresi sınırı aynı işi bedelsiz görüyor. _Varsayılanı kaldırıp bilinmeyen adı reddetmek_ — yeni bir fonksiyon CI'dan önce canlıya çıkamaz, test zaten yakalıyor; çalışma anında reddetmek yalnız kesinti üretirdi.
+
+---
+
+### Karar: Şifre sıfırlama kaynak başına sınırlanır; IP saklanmaz, anahtarlı özeti bir gün tutulur
+
+**Durum:** Kabul edildi · uygulandı (2.13 PR'ı, göç `20261120000000`)
+**Tarih:** 2026-10-25
+**Onaylayan:** Arda Bülent (ana plan 2.13 sırası; "devam et")
+
+**Bağlam:** "Şifremi unuttum" oturumsuz çağrılır. Sınırlar kişi başına saatte 3 ve sistemde saatte 100 gönderimdi. Giriş numaraları tahmin edilebilir (kurum kodu + sıra); tek bir kaynaktan 34 gerçek numaraya üçer istek sistem sınırını doldurur ve bir saat boyunca **hiç kimse** şifresini sıfırlayamaz. Sistem sınırı kaldırılamaz: posta kotasını (kişisel Gmail SMTP) koruyor.
+
+**Karar:**
+
+1. Üçüncü katman: **kaynak başına saatte 10 istek.** Hesap aranmadan önce sayılır, var olmayan numaralar da sayılır. Sınırı aşan istek satır yazmaz. Yanıt her durumda aynıdır (hesabın varlığı ve sınır sızmaz).
+2. **Kaynak = `cf-connecting-ip`.** Cloudflare bu başlığı kendisi yazar, istemcinin gönderdiğini ezer; canlı ağ geçidi günlüklerinde görüldü. `x-forwarded-for`'un ilk değeri istemcinin elindedir, kullanılmadı.
+3. **IP saklanmaz.** Edge Function servis anahtarıyla HMAC-SHA256 özeti alır. Düz SHA-256 IPv4 uzayında geri çevrilebilirdi. Özetler bir gün sonra gece işiyle silinir (KVKK: kötüye kullanımı önleme amacı, en kısa süre).
+4. **Başlık gelmezse bugünkü davranış:** kaynak "bilinmiyor" kovasına düşer, o kovanın sınırı sistem sınırına (100) eşittir. Herkesin ortak bir kovaya kilitlenmesi riski yok. Günlüğe uyarı düşer; `source_known` sütunu canlıda başlığın geldiğini gösterir.
+
+**Reddedilen:** _CAPTCHA_ — üçüncü taraf bağımlılığı ve kişisel veri aktarımı; gerekirse sonraki adım. _Sistem sınırını yükseltmek_ — posta kotası. _`x-forwarded-for`_ — istemci tarafından yazılabilir. _IP'yi düz saklamak_ — KVKK'da gereksiz kişisel veri.
+
+**Bilinen sınır:** on ayrı kaynağı olan bir saldırgan sistem sınırını yine doldurabilir. Bedeli artık tek bilgisayardan yapılamayacak kadar yüksek. Görülürse sıradaki adım CAPTCHA.
+
+**Doğrulama borcu (K-12):** birleşmeden sonra canlıda bir "Şifremi unuttum" isteğiyle `source_known = true` görülmeli. `false` çıkarsa başlık fonksiyona ulaşmıyor demektir; koruma o hâlde kapalıdır ama hiçbir şeyi bozmaz.
