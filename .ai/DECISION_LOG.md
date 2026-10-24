@@ -169,6 +169,7 @@
 - Yazı tipleri npm paketiyle kendi sitemizden sunulur
 - Kurum verisi dışa aktarılırken önce iz yazılır, sonra dosya verilir
 - Ayrılan kurum önce kapatılır, 30 gün sonra boşaltılır
+- Her Edge Function'ın hız sınırı açıkça yazılır; değerler ilk pilottan sonra ölçülür
 
 ---
 
@@ -4350,3 +4351,22 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Reddedilen:** _Beklemesiz iki adım_ — tek koruma kodu yazmak olurdu. _Kapatmada hesapları GoTrue'da yasaklamak (ban)_ — sağlayıcıya bağlı, açık oturum bir saate kadar sürer, yeniden açmada geri almak gerekir; SQL kilidi anında ve taşınabilir. _Silme fonksiyonuna `force` eklemek_ — 2026-09-02 kararının reddettiği kaçış yolu. _Kilidi her politikaya ayrı yazmak_ — 112 politika, aynı soruyu ikinci kez sormak.
 
 **Bilinen sınır:** kilit tablolarda kanıtlı (pgTAP: kapalı kurumun yöneticisi ve öğrencisi bütün içerik tablolarında sıfır satır görür). Kilit sormayan `security definer` RPC'ler şifre kilidinde nasılsa burada da öyle; arayüz kapalı kurumun kullanıcısını içeri almadığı için bunlara ulaşılmaz.
+
+---
+
+### Karar: Her Edge Function'ın hız sınırı açıkça yazılır; değerler ilk pilottan sonra ölçülür
+
+**Durum:** Kabul edildi · uygulandı (2.8 PR'ı, göç `20261119000000`)
+**Tarih:** 2026-10-25
+**Onaylayan:** Arda Bülent (ana plan 2.8 sırası; "devam et")
+
+**Bağlam:** Ana plan 2.8 "altyapı var; değerler pilot verisiyle ayarlanır" diyordu. Pilot verisi yok. Gözden geçirmede bütün sınırlar okundu (`PLATFORM_SETTINGS` §3.3a). Bulunan tek boşluk: `recovery-email` kapının listesinde yoktu ve varsayılan 10/saat'e düşüyordu. Değer uygundu ama kimse seçmemişti.
+
+**Karar:**
+
+1. Kapıya verilen her fonksiyon adının sınırı `internal_begin_function_call`'da **açıkça** yazılır. Varsayılan (10) bir emniyet ağı olarak kalır, karar yerine geçmez. `functionRateLimits.test.ts` hem bunu hem de oturumla çağrılan her fonksiyonun ortak kapıdan geçtiğini zorlar.
+2. `recovery-email` aynı değerle (10) yazıldı. Davranış değişmedi.
+3. **Değerler bugün değiştirilmedi.** Veri olmadan değiştirmek tahmini başka bir tahminle değiştirmek olurdu. **Şart ve sahip (K-12):** ilk pilot kurumun ilk haftasından sonra, çağrı defteri ve `rate_limited` cevaplarıyla yeniden bakılır; kontrol noktası ana plan Faz 3'ün pilot başlangıcı.
+4. Kurum içi filtresiz okumanın freni Supabase'in rol başına sorgu süresi (`authenticated` 8 s, `anon` 3 s). Canlıdan okundu, değiştirilmedi.
+
+**Reddedilen:** _Uygulama düzeyinde PostgREST okuma sınırı (istek sayacı)_ — Postgres'te istek başına sayaç her okumayı yazmaya çevirir; sorgu süresi sınırı aynı işi bedelsiz görüyor. _Varsayılanı kaldırıp bilinmeyen adı reddetmek_ — yeni bir fonksiyon CI'dan önce canlıya çıkamaz, test zaten yakalıyor; çalışma anında reddetmek yalnız kesinti üretirdi.
