@@ -48,6 +48,7 @@ export function platformActionDetail(
     ["client_error_reports", "ekran hata kaydı"],
     ["email_deliveries", "e-posta kaydı"],
     ["function_calls", "eski çağrı kaydı"],
+    ["password_reset_sources", "şifre sıfırlama kaynak kaydı"],
   ];
   const text = parts
     .map(([key, label]) => {

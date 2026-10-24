@@ -116,8 +116,8 @@ reset role;
 -- 8
 select ok(
   not has_function_privilege('authenticated', 'public.internal_start_recovery_email_challenge(uuid, text)', 'EXECUTE')
-  and not has_function_privilege('authenticated', 'public.internal_claim_password_reset(text)', 'EXECUTE')
-  and not has_function_privilege('anon', 'public.internal_claim_password_reset(text)', 'EXECUTE'),
+  and not has_function_privilege('authenticated', 'public.internal_claim_password_reset(text, text, boolean)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.internal_claim_password_reset(text, text, boolean)', 'EXECUTE'),
   'the internal functions cannot be called with a session');
 
 -- 9
