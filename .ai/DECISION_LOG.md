@@ -167,6 +167,7 @@
 - Veri şimdilik Supabase'de (Frankfurt) kalır
 - Uygulama içi mesajlar 30 gün saklanır; süresi dolan kayıtları gece işi siler
 - Yazı tipleri npm paketiyle kendi sitemizden sunulur
+- Kurum verisi dışa aktarılırken önce iz yazılır, sonra dosya verilir
 
 ---
 
@@ -4298,3 +4299,24 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Karar:** `@fontsource-variable/dm-sans`, `/manrope`, `/plus-jakarta-sans` (OFL-1.1, 5.3.0'a sabit) bağımlılık olarak eklendi; CSP'den `fonts.googleapis.com` ve `fonts.gstatic.com` çıktı.
 
 **Reddedilen:** woff2 dosyalarını elle indirip `client/public/fonts`'a koymak — bağımlılık yok ama güncellemesi elle; paket sürümünü Dependabot izliyor. Paketler çalışan kod içermez, yalnız yazı tipi dosyası ve CSS.
+
+---
+
+### Karar: Kurum verisi dışa aktarılırken önce iz yazılır, sonra dosya verilir
+
+**Durum:** Kabul edildi · uygulandı (dışa aktarma PR'ı, göç `20261117000000`)
+**Tarih:** 2026-10-24
+**Onaylayan:** Arda Bülent (ana plan 2.4 sırası; "devam et")
+
+**Bağlam:** Gerçek kipte dışa aktarma "henüz aktif değil" diyordu (ana plan 2.4). Kurumun kendi verisini alabilmesi hem pratik (yedek, muhasebe, taşınma) hem KVKK (veri taşınabilirliği) gereği; ama dosya kişisel veriyi (veli telefonu, yoklama, not, ödeme) sistemin dışına çıkarır.
+
+**Karar:**
+
+1. **Kim:** yalnız kurum yöneticisi (Ayarlar → Veri Yönetimi). Okuma RLS'ten geçer; yeni yetki yok.
+2. **Ne:** beş küme — öğrenciler, veliler, yoklama, sınav sonuçları, ödemeler. Öğrenci ve velide arşivdekiler "Durum" sütunuyla gelir; yoklama, sınav ve ödemede arşivlenmiş oturum/sınav/plan gelmez.
+3. **Biçim:** tek Excel dosyası (küme başına sayfa) ya da küme başına CSV. Türkiye telefonu yerel biçimde (`0532 111 22 33`): "+" ile başlayan hücreyi Excel CSV'de formül sanıyor.
+4. **Önce iz:** dosyalar hazırlandıktan sonra `record_data_export` denetim kaydına kim / hangi kümeler / kaç satır yazar (`organization.data_exported`); yazılamazsa dosya verilmez. İçerik yazılmaz.
+5. **Kesme yok:** bir küme 200.000 satırı aşarsa eksik dosya verilmez, hata verilir.
+6. **Excel yazıcı kendimizin:** `lib/xlsxWriter.ts` (sıkıştırmasız zip + satır içi metin, formül yazmaz). Yeni bağımlılık eklenmedi; doğruluğu depodaki okuyucuyla (`read-excel-file`) ve openpyxl ile sınandı.
+
+**Reddedilen:** _Sunucuda (Edge Function) dosya üretmek_ — veri zaten RLS'le istemciye okunabiliyor; sunucu yolu yeni bir yetki yüzeyi ve sağlayıcıya bağlı kod ekler. _Excel kütüphanesi eklemek_ (`write-excel-file`, `exceljs`) — yalnız veri yazıyoruz, 200 satırlık yazıcı yetiyor. _İz yazmadan indirmek_ — KVKK'da "kim kişisel veriyi dışarı aldı" sorusunun cevabı olmazdı.
