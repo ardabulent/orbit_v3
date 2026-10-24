@@ -41,7 +41,7 @@ function displayNameFromUser(user: User): string {
  */
 async function loadMembershipIdentity(
   userId: string
-): Promise<MembershipIdentity | null> {
+): Promise<{ identity: MembershipIdentity; closed: boolean } | null> {
   const { data: membership, error: membershipError } = await supabase
     .from("organization_memberships")
     .select("id, organization_id, branch_id, role")
@@ -68,9 +68,13 @@ async function loadMembershipIdentity(
   const [organizationResult, branchResult] = await Promise.all([
     supabase
       .from("organizations")
-      .select("name, code")
+      .select("name, code, archived_at")
       .eq("id", membership.organization_id)
-      .single<{ name: string; code: number | null }>(),
+      .single<{
+        name: string;
+        code: number | null;
+        archived_at: string | null;
+      }>(),
     membership.branch_id
       ? supabase
           .from("branches")
@@ -91,15 +95,28 @@ async function loadMembershipIdentity(
   }
 
   return {
-    membershipId: membership.id,
-    role: membership.role,
-    organizationId: membership.organization_id,
-    organizationName: organizationResult.data.name,
-    organizationCode: organizationResult.data.code,
-    branchId: branchResult.data?.id ?? membership.branch_id,
-    branchName: branchResult.data?.name ?? null,
+    identity: {
+      membershipId: membership.id,
+      role: membership.role,
+      organizationId: membership.organization_id,
+      organizationName: organizationResult.data.name,
+      organizationCode: organizationResult.data.code,
+      branchId: branchResult.data?.id ?? membership.branch_id,
+      branchName: branchResult.data?.name ?? null,
+    },
+    closed: Boolean(organizationResult.data.archived_at),
   };
 }
+
+/**
+ * Kurum platform operatörü tarafından kapatıldığında (ana plan 2.5,
+ * 2026-10-25) gösterilen cümle. Kilit sunucuda: kapalı kurumun kullanıcısı
+ * hiçbir tablodan satır okuyamaz (`current_user_must_change_password`). Bu
+ * kontrol yalnız kullanıcıya boş bir panel ya da yanlış bir "şifrenizi
+ * değiştirin" ekranı yerine doğru sebebi göstermek içindir.
+ */
+export const ORGANIZATION_CLOSED_MESSAGE =
+  "Kurumunuzun ORBIT kullanımı kapatıldı. Bilgi için kurumunuzla iletişime geçin.";
 
 /**
  * Kullanıcının platform operatörlüğünü çözer. Operatör değilse `null` döner.
@@ -180,10 +197,19 @@ async function fetchProfileWithRetry(userId: string) {
 export async function loadAuthenticatedIdentity(
   user: User
 ): Promise<AuthIdentity> {
-  const [membership, platformOperator] = await Promise.all([
+  const [resolvedMembership, platformOperator] = await Promise.all([
     loadMembershipIdentity(user.id),
     loadPlatformOperatorIdentity(user.id),
   ]);
+
+  // Operatör kapalı kurum yüzünden kilitlenmez (sunucu da öyle); yalnız o
+  // kurumun paneli ona gösterilmez.
+  if (resolvedMembership?.closed && !platformOperator) {
+    throw new Error(ORGANIZATION_CLOSED_MESSAGE);
+  }
+  const membership = resolvedMembership?.closed
+    ? null
+    : (resolvedMembership?.identity ?? null);
 
   if (!membership && !platformOperator) {
     throw new Error(

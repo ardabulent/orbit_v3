@@ -85,7 +85,7 @@ export function PlatformOrganizations({
                   <td className="px-4 py-3">
                     {organization.archivedAt ? (
                       <span className="rounded-md bg-amber-400/15 px-2 py-1 text-[10px] font-bold text-amber-300">
-                        Arşivlendi
+                        Kapatıldı
                       </span>
                     ) : (
                       <span className="rounded-md bg-emerald-400/15 px-2 py-1 text-[10px] font-bold text-emerald-300">

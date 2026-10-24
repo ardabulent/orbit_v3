@@ -527,6 +527,12 @@ export type OrganizationStats = {
   adminCount: number;
   branchCount: number;
   auditEventCount: number;
+  /** Her dolu içerik tablosunun satır sayısı (`{tablo: adet}`), 2026-10-25. */
+  content: Record<string, number>;
+  /** Kurum kapatıldıysa ne zaman; açıksa `null`. */
+  closedAt: string | null;
+  /** Boşaltmanın mümkün olacağı an (kapanış + 30 gün); açıksa `null`. */
+  purgeAvailableAt: string | null;
 };
 
 function toFiniteInteger(value: unknown): number | null {
@@ -562,11 +568,14 @@ export async function loadOrganizationStats(
   const branchCount = toFiniteInteger(payload.branch_count);
   const auditEventCount = toFiniteInteger(payload.audit_event_count);
 
+  const content = toCountMap(payload.content);
+
   if (
     memberCount === null ||
     adminCount === null ||
     branchCount === null ||
-    auditEventCount === null
+    auditEventCount === null ||
+    content === null
   ) {
     return null;
   }
@@ -576,5 +585,102 @@ export async function loadOrganizationStats(
     adminCount,
     branchCount,
     auditEventCount,
+    content,
+    closedAt: typeof payload.closed_at === "string" ? payload.closed_at : null,
+    purgeAvailableAt:
+      typeof payload.purge_available_at === "string"
+        ? payload.purge_available_at
+        : null,
+  };
+}
+
+/** `{tablo: adet}`; tek bir bozuk değer bütün haritayı okunamaz yapar. */
+function toCountMap(value: unknown): Record<string, number> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const result: Record<string, number> = {};
+  for (const [key, raw] of Object.entries(value)) {
+    const count = toFiniteInteger(raw);
+    if (count === null) return null;
+    result[key] = count;
+  }
+  return result;
+}
+
+// --- Kurum kapatma ve boşaltma (2026-10-25, ana plan 2.5) -----------------
+
+const LIFECYCLE_ERROR_MESSAGES: Record<string, string> = {
+  "42501": "Bu işlem için platform operatörü yetkisi gerekiyor.",
+  "23503": "Kurum bulunamadı. Listeyi yenileyip tekrar deneyin.",
+  "22023": "Yazdığınız kod kurum koduyla eşleşmiyor. Boşaltma yapılmadı.",
+  ORB02: "Kurum kapatılmadan boşaltılamaz.",
+  ORB04:
+    "Kurum boşaltılamadı: kayıtlar birbirini tutuyor. Hiçbir şey silinmedi; geliştirme ekibine bildirin.",
+};
+
+function lifecycleError(
+  error: { code?: string; details?: string | null },
+  fallback: string
+): Error {
+  if (error.code === "ORB03") {
+    // Postgres zaman damgasını metin olarak verir ("2026-11-23 22:06:07+00");
+    // tarayıcının okuyacağı ISO biçimine çevrilir. Gün Türkiye saatine göre.
+    const until = error.details
+      ? new Date(
+          error.details.replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00")
+        )
+      : null;
+    return new Error(
+      until && !Number.isNaN(until.getTime())
+        ? `Bekleme süresi dolmadı. Kurum ${until.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Istanbul" })} tarihinden sonra boşaltılabilir.`
+        : "Bekleme süresi dolmadı."
+    );
+  }
+  return new Error(
+    (error.code && LIFECYCLE_ERROR_MESSAGES[error.code]) || fallback
+  );
+}
+
+/**
+ * Kurumu kapatır: kullanıcıları kilitlenir, veri yerinde kalır, geri
+ * alınabilir. Kilit ve yetki sunucuda (`platform_close_organization`).
+ */
+export async function closeOrganization(organizationId: string): Promise<void> {
+  const { error } = await supabase.rpc("platform_close_organization", {
+    target_organization_id: organizationId,
+  });
+  if (error) throw lifecycleError(error, "Kurum kapatılamadı.");
+}
+
+export async function reopenOrganization(
+  organizationId: string
+): Promise<void> {
+  const { error } = await supabase.rpc("platform_reopen_organization", {
+    target_organization_id: organizationId,
+  });
+  if (error) throw lifecycleError(error, "Kurum yeniden açılamadı.");
+}
+
+export type PurgeOrganizationResult = {
+  deleted: Record<string, number>;
+  deletedTotal: number;
+};
+
+/**
+ * Kapalı ve 30 günü dolmuş kurumun bütün içeriğini siler. **Geri alınamaz.**
+ * Kurum kodu sunucuda da doğrulanır.
+ */
+export async function purgeOrganization(
+  organizationId: string,
+  confirmationCode: number
+): Promise<PurgeOrganizationResult> {
+  const { data, error } = await supabase.rpc("platform_purge_organization", {
+    target_organization_id: organizationId,
+    confirmation_code: confirmationCode,
+  });
+  if (error) throw lifecycleError(error, "Kurum boşaltılamadı.");
+  const payload = (data ?? {}) as Record<string, unknown>;
+  return {
+    deleted: toCountMap(payload.deleted) ?? {},
+    deletedTotal: toFiniteInteger(payload.deleted_total) ?? 0,
   };
 }
