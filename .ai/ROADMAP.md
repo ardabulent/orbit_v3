@@ -6,7 +6,7 @@ Bu dosya **nerede olduğumuzu** (§0) ve **sırada ne olduğunu** (§4.27) tutar
 
 ## 0. Durum
 
-> Son güncelleme: **2026-10-25** (Faz 0 ve 1 kapandı — 0.2 hariç; Faz 2'de 2.1–2.5, 2.8 ve 2.14 bitti, 2.13 PR'da). Bu bölüm kısa tutulur; madde madde durum **§4.27**'nin tablosundadır ve burada tekrar edilmez (**K-06**: iki yerde tutulan durumun biri eskir).
+> Son güncelleme: **2026-10-25** (Faz 0 ve 1 kapandı — 0.2 hariç; Faz 2'de 2.1–2.5, 2.8, 2.13 ve 2.14 bitti; 2026-10-25 sıra kararıyla şimdi Faz 5'ten 5.1, 5.2, 5.3, 5.5 yapılıyor — §4.27 başındaki "Sıra kararı"). Bu bölüm kısa tutulur; madde madde durum **§4.27**'nin tablosundadır ve burada tekrar edilmez (**K-06**: iki yerde tutulan durumun biri eskir).
 
 - **Ürün:** v1.0 – v1.4 kapandı. **v1.5 (işlevsel MVP ve kapalı beta) yürüyor.** Ekranların hepsi dört rolde gerçek veriye bağlı; ilk gerçek kurumdan önce gereken işler §4.27 **Faz 2**'de, pilot işleri **Faz 3**'te.
 - **Sıradaki iş:** §4.27 — ana plan. Faz sırasıyla ilerlenir; bir fazın içinde sıra tablodaki sıradır. 🟡 işaretli satır yarıda kalmış iştir.
@@ -45,6 +45,21 @@ Bu dosya **nerede olduğumuzu** (§0) ve **sırada ne olduğunu** (§4.27) tutar
 ## 4.27 Ana plan (2026-10-18'den itibaren)
 
 Test turu (arşiv §4.26), depo denetimi ve deponun "ileride yapılacak" diye bıraktığı bütün maddeler tek sırada. Kurum sahibi sırayı onayladı (_"planını uygun gördüm … toplu bir sürece başlayalım"_). **Sıradaki iş buradan seçilir**; v1.5 dilim tablosu (arşiv §4.6) kaynak olarak durur, maddeler oraya `Kaynak` sütunuyla bağlıdır. Durum: ✅ tamam · 🟡 sürüyor · ⬜ başlanmadı.
+
+### Sıra kararı (2026-10-25)
+
+Kurum sahibi: _"şimdi yapacaklarımız 5.1, 5.2, 5.3, 5.5 … sadece bunları yapalım"_; geri kalanların _"çoğunu şimdi yapmıycaz ama ileride işimize gerekebilir"_. Faz sırası bu karar için bilinçli olarak bozuldu: Faz 2'nin kalan maddeleri bütçe, panel ya da kurum sahibinin kararını bekliyor; Faz 5'in bu dört maddesi beklemiyor.
+
+**Şimdi (sırasıyla, her biri ayrı PR):** 5.5 depo hijyeni → 5.1 kalan satır başı yetki kuralları → 5.2 personel açılışında tek çağrı → 5.3 iki büyük dosyanın bölünmesi.
+
+**Ertelenenler ve neyi bekledikleri** — madde ayrıntısı aşağıdaki tablolarda; bu liste yalnız "neden bekliyor" sorusunu cevaplar:
+
+| Bekleme nedeni                                  | Maddeler                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kurum sahibinin kararı, bütçesi ya da panel işi | 0.2 (ortağın GitHub adı, squash ayarı) · 2.6 (alan adı ve e-posta) · 2.7 (Supabase Pro) · 2.9 (staging) · 2.10 (anahtar yenileme) · 2.11 (panel ayarı; etkileşim ölçümü ajanın) · 4.2 (arka plan sunucusu) · 4.3 (mobil yol) · 7.1 (şirketleşme) · 7.2 (tahsilat; "taksit" anlamı) |
+| Ajan yapabilir, sırası gelmedi                  | 2.12 (MFA; başlarken rol ve zorunluluk sorulacak) · 3.3 (kurum senaryosu CI'da) · 4.1 · 4.4 · 4.5 · 4.6 · 4.7 · 4.8 · 7.3 · 7.4 (runbook; pilot öncesine çekilmesi önerildi)                                                                                                       |
+| Bir şartın gerçekleşmesi                        | 3.1, 3.2 (pilot kurum) · 4.9 (ihtiyaç) · 5.4 (veri büyümesi) · 6.1 – 6.5 (her birinin tetikleyicisi satırında) · 7.5 (hepsi)                                                                                                                                                       |
+| Açık doğrulama borcu                            | 2.13 — canlıda bir "Şifremi unuttum" isteğinden sonra `password_reset_sources.source_known = true` görülmeli (DECISION_LOG, 2026-10-25)                                                                                                                                            |
 
 #### Faz 0 — Repo standardı ve ortak hazırlığı
 
@@ -114,7 +129,7 @@ Depoda "ilk gerçek kurum verisi girmeden önce" diye bağlanmış maddeler. Pil
 | 2.10 | ⬜       | **Anahtar biçimi geçişi ve anahtar yenileme** — Üretimde eski biçim anahtar; JWT secret ve `service_role` yenilemesi kesinti riski taşıyor. Yeni biçim anahtarlara geçiş, sonra yenileme.                                                                                                            | PLATFORM_SETTINGS §4                                                          | Açık        |
 | 2.11 | ⬜       | **"Şifre değiştirirken mevcut şifreyi iste" ayarı** — Kurtarma akışıyla etkileşimi denenip açılır ya da gerekçeyle kapalı kalır.                                                                                                                                                                     | PLATFORM_SETTINGS §4                                                          | Açık        |
 | 2.12 | ⬜       | **İki aşamalı doğrulama (MFA)** — Hiç açık değil. Operatör kurum açıyor ve yönetici şifresi sıfırlıyor, yöneticiler çocuk verisine erişiyor; en az bu iki rolde TOTP.                                                                                                                                | Supabase güvenlik danışmanı                                                   | Yeni, Karar |
-| 2.13 | 🟡 bu PR | **Şifre sıfırlama isteğinin sistem geneli sınırı** — Saatte 100 gönderim; kurtarma adresli hesaplara art arda istekle doldurulup herkesi bir saat kilitleyebilir. Kaynak başına sınırla birleştirilir.                                                                                               | internal_claim_password_reset                                                 | Yeni        |
+| 2.13 | ✅ #501  | **Şifre sıfırlama isteğinin sistem geneli sınırı** — Saatte 100 gönderim; kurtarma adresli hesaplara art arda istekle doldurulup herkesi bir saat kilitleyebilir. Kaynak başına sınırla birleştirilir.                                                                                               | internal_claim_password_reset                                                 | Yeni        |
 | 2.14 | ✅ #495  | **Saklama sürelerinin gerçekten uygulanması** — Hata kayıtları ve e-posta defteri "30 gün" diyor ama ayıklama yalnız bir sonraki yazmada oluyor; yazma yoksa kayıt kalıyor ve hata paneli tarih süzmüyor. Zamanlı bir temizlik (gece işi ya da sağlık kontrolü) ve panelde süzgeç; 2.3 ile birlikte. | 2026-10-18 depo denetimi · DECISION_LOG "Ekran hataları kendi veritabanımıza" | Yeni        |
 
 #### Faz 3 — Pilot kolu
