@@ -13,7 +13,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(14);
+select plan(15);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -157,6 +157,23 @@ select ok(
   not has_table_privilege('anon', 'public.internal_function_calls', 'select')
   and not has_table_privilege('authenticated', 'public.internal_function_calls', 'select'),
   'client roles cannot read the call log'
+);
+
+-- Kurtarma e-postası sınırı açıkça 10 (2026-10-25, ana plan 2.8): on birinci
+-- çağrı durur ve cevap sınırın kendisini taşır.
+select count(*) from (
+  select public.internal_begin_function_call(
+    'recovery-email', '91000000-0000-0000-0000-000000000091', null
+  )
+  from generate_series(1, 10)
+) as ilk_on;
+
+select is(
+  (select public.internal_begin_function_call(
+     'recovery-email', '91000000-0000-0000-0000-000000000091', null
+   ) -> 'limit'),
+  '10'::jsonb,
+  'recovery-email has its own explicit limit of 10 per hour'
 );
 
 select * from finish();
