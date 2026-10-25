@@ -61,9 +61,9 @@
 - **Form / Doğrulama:** `react-hook-form` + `zod`
 - **Sunucu State:** `@tanstack/react-query` v5
 - **Veri Saklama:** Supabase Postgres (eu-central-1, Frankfurt — karar: `DECISION_LOG.md` "Veri şimdilik Supabase'de (Frankfurt) kalır"), yetki RLS'te; demo kipi yerel örnek veriyle çalışır
-- **Test:** Vitest 5.0 — 134 dosya, **1399 test** + pgTAP **99 dosya, 1441 iddia** (2026-10-25'te koşuldu) + HTTP zincir testleri (`create_member_chain.sh`, `bulk_accounts_chain.mjs`)
+- **Test:** Vitest 5.0 — 134 dosya, **1399 test** + pgTAP **100 dosya, 1451 iddia** (2026-10-25'te koşuldu) + HTTP zincir testleri (`create_member_chain.sh`, `bulk_accounts_chain.mjs`)
 - **Edge Functions:** 11 (Deno) — yalnız kimlik ve hesap işleri; liste `supabase/functions/`
-- **Göçler:** 127 (2026-10-25; birleşince canlıyla eşit, sayıyı `migrationOrderIsMonotonic.test.ts` tutar)
+- **Göçler:** 128 (2026-10-25; birleşince canlıyla eşit, sayıyı `migrationOrderIsMonotonic.test.ts` tutar)
 - **Kod Kalitesi:** ESLint 10 (flat config) + typescript-eslint + eslint-plugin-react-hooks **v7** (üç yeni kural `error` seviyesinde etkin, 2026-09-09'da açıldı) + eslint-plugin-react-refresh
 - **CI/CD & Dağıtım:** GitHub Actions + Vercel (`https://orbit-v3-kappa.vercel.app`)
 - **Paket Yöneticisi:** pnpm (v10.4.1)
