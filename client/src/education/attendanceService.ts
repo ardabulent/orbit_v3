@@ -50,10 +50,6 @@ export type AttendanceSessionDetail = {
   records: AttendanceRecordDetail[];
 };
 
-export type LatestAttendanceSessionResult = {
-  session: AttendanceSessionDetail | null;
-};
-
 export type AttendanceSessionListResult = {
   rows: AttendanceSessionDetail[];
   truncated: boolean;
@@ -371,54 +367,6 @@ export function translateAttendanceError(error: unknown): string {
   }
 
   return "Yoklama işlemi sırasında bir hata oluştu.";
-}
-
-/**
- * Aktif kurumun en son yoklama oturumunu ve kayıtlarını çeker (v1.3-01c · 2.C, v1.4-03).
- *
- * Oturum yoksa `{ session: null }` döner.
- */
-export async function loadLatestAttendanceSession(
-  organizationId: string
-): Promise<LatestAttendanceSessionResult> {
-  const { data, error } = await supabase
-    .from("attendance_sessions")
-    .select(
-      `
-      id,
-      class_id,
-      subject_id,
-      session_date,
-      starts_at,
-      archived_at,
-      classes ( id, name, archived_at ),
-      subjects ( id, name, archived_at ),
-      attendance_records (
-        id,
-        student_id,
-        status,
-        students ( id, full_name, archived_at )
-      )
-    `
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null)
-    .order("session_date", { ascending: false })
-    .order("starts_at", { ascending: false, nullsFirst: false })
-    .limit(1);
-
-  if (error) {
-    throw new Error("Yoklama oturumu yüklenemedi.");
-  }
-
-  const rawRows = (data ?? []) as RawAttendanceSessionRow[];
-  if (rawRows.length === 0) {
-    return { session: null };
-  }
-
-  return {
-    session: mapSessionRow(rawRows[0]),
-  };
 }
 
 /**
