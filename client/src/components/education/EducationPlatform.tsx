@@ -284,14 +284,37 @@ export function EducationPlatform({
     setConfirmDialogOpen(true);
   };
 
-  // Öğrenci/veli: kurum listeleri yalnız onları gösteren sekmede okunur.
-  const loadsFor = (...tabs: Section[]) => shouldLoadForTab(role, active, tabs);
+  // Kurum listeleri yalnız onları kullanan sekmede okunur (öğrenci/veli
+  // 2026-10-05, personel 2026-10-25 · ana plan 5.2). İkinci dizi personelin
+  // sekmeleri; listeyi sekme dışında kullanan paneller de orada sayılır.
+  const loadsFor = (
+    tabs: readonly Section[],
+    staffTabs: readonly Section[] = tabs
+  ) => shouldLoadForTab(role, active, tabs, staffTabs);
   const studentsQuery = useStudents({
     search: query,
-    enabled: !isDemoMode && loadsFor("Ödevler"),
+    enabled:
+      !isDemoMode &&
+      loadsFor(
+        ["Ödevler"],
+        // Sınıflar: sınıf paneli öğrenci açar; Kayıt ve Ödemeler: plan
+        // formunun öğrenci listesi; Raporlar ve Yoklama: ad eşlemesi.
+        [
+          "Öğrenciler",
+          "Raporlar",
+          "Yoklama",
+          "Ödevler",
+          "Sınıflar",
+          "Kayıt ve Ödemeler",
+        ]
+      ),
   });
   const membersQuery = useSettingsMembers({
-    enabled: role === "admin" && !isDemoMode,
+    // Öğrenciler: hesap bağlama listeleri; Ders Programı: vekil adları.
+    enabled:
+      role === "admin" &&
+      !isDemoMode &&
+      (active === "Öğrenciler" || active === "Ders Programı"),
   });
   const studentMembers = useMemo(
     () => linkableMembers(membersQuery.data ?? [], "student"),
@@ -421,7 +444,11 @@ export function EducationPlatform({
 
   const guardiansQuery = useGuardians({
     search: guardianQuery,
-    enabled: role === "admin" && !isDemoMode,
+    // Öğrenci paneli Raporlar ve Sınıflar'dan da açılır ve veli bağlar.
+    enabled:
+      role === "admin" &&
+      !isDemoMode &&
+      (active === "Öğrenciler" || Boolean(selectedStudentSnapshot)),
   });
 
   const studentGuardiansQuery = useStudentGuardians(
@@ -602,18 +629,38 @@ export function EducationPlatform({
     enabled:
       !isDemoMode &&
       loadsFor(
-        "Ders Programı",
-        "Sınavlar",
-        "Ödevler",
-        "İletişim",
-        "Kayıt ve Ödemeler"
+        [
+          "Ders Programı",
+          "Sınavlar",
+          "Ödevler",
+          "İletişim",
+          "Kayıt ve Ödemeler",
+        ],
+        [
+          "Ders Programı",
+          "Sınavlar",
+          "Ödevler",
+          "İletişim",
+          "Kayıt ve Ödemeler",
+          "Sınıflar",
+          "Yoklama",
+          "Raporlar",
+          // Takvimdeki sınavlar öğretmenin sınıflarıyla süzülür.
+          "Gün Planı",
+        ]
       ),
   });
   const scheduleQuery = useSchedule({
-    enabled: !isDemoMode && loadsFor("Ders Programı"),
+    enabled:
+      !isDemoMode &&
+      loadsFor(
+        ["Ders Programı"],
+        // Sınıflar: sınıf özetleri ve sınıf panelindeki dersler.
+        ["Ders Programı", "Gün Planı", "Yoklama", "Sınıflar"]
+      ),
   });
   const examQuery = useLatestExam({
-    enabled: !isDemoMode && loadsFor("Sınavlar"),
+    enabled: !isDemoMode && loadsFor(["Sınavlar"]),
   });
   // Sınavlar listesi (C-07) — yönetici ve öğretmen.
   const isStaffRole = role === "admin" || role === "teacher";
@@ -625,13 +672,13 @@ export function EducationPlatform({
   });
   const examPageQuery = isStaffRole ? examListQuery : examQuery;
   const paymentsQuery = usePayments({
-    enabled: !isDemoMode && loadsFor("Kayıt ve Ödemeler"),
+    enabled: !isDemoMode && loadsFor(["Kayıt ve Ödemeler"]),
   });
   const paymentOverviewQuery = usePaymentOverview({
-    enabled: !isDemoMode && loadsFor("Kayıt ve Ödemeler"),
+    enabled: !isDemoMode && loadsFor(["Kayıt ve Ödemeler"]),
   });
   const homeworkQuery = useHomework({
-    enabled: !isDemoMode && loadsFor("Ödevler"),
+    enabled: !isDemoMode && loadsFor(["Ödevler"]),
   });
   const reportAttendanceQuery = useReportAttendanceWeeks({
     enabled: !isDemoMode && active === "Raporlar",
