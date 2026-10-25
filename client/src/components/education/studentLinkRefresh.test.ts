@@ -27,10 +27,13 @@ describe("C-03 — öğrenci paneli listenin güncel satırını gösterir", () 
 
   it("veliye hesap bağlanınca öğrencinin veli listesi de tazelenir", () => {
     // Öğrenci detayındaki "Hesap bağlı değil" rozeti bu sorgudan gelir.
-    const tazeleme = platform.slice(
-      platform.indexOf("const handleLinkGuardianAccount"),
-      platform.indexOf("const handleUnlinkGuardianAccount")
+    // İşlemler 2026-10-25'te (ana plan 5.3) kendi dosyasına taşındı.
+    const islemler = oku("useRecordActions.ts");
+    const tazeleme = islemler.slice(
+      islemler.indexOf("const handleLinkGuardianAccount"),
+      islemler.indexOf("const handleUnlinkGuardianAccount")
     );
+    expect(tazeleme.length).toBeGreaterThan(0);
     expect(tazeleme).toContain(
       "educationKeys.studentGuardians(organizationId)"
     );

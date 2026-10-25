@@ -61,7 +61,7 @@
 - **Form / Doğrulama:** `react-hook-form` + `zod`
 - **Sunucu State:** `@tanstack/react-query` v5
 - **Veri Saklama:** Supabase Postgres (eu-central-1, Frankfurt — karar: `DECISION_LOG.md` "Veri şimdilik Supabase'de (Frankfurt) kalır"), yetki RLS'te; demo kipi yerel örnek veriyle çalışır
-- **Test:** Vitest 5.0 — 134 dosya, **1402 test** + pgTAP **100 dosya, 1451 iddia** (2026-10-25'te koşuldu) + HTTP zincir testleri (`create_member_chain.sh`, `bulk_accounts_chain.mjs`)
+- **Test:** Vitest 5.0 — 134 dosya, **1399 test** + pgTAP **100 dosya, 1451 iddia** (2026-10-25'te koşuldu) + HTTP zincir testleri (`create_member_chain.sh`, `bulk_accounts_chain.mjs`)
 - **Edge Functions:** 11 (Deno) — yalnız kimlik ve hesap işleri; liste `supabase/functions/`
 - **Göçler:** 128 (2026-10-25; birleşince canlıyla eşit, sayıyı `migrationOrderIsMonotonic.test.ts` tutar)
 - **Kod Kalitesi:** ESLint 10 (flat config) + typescript-eslint + eslint-plugin-react-hooks **v7** (üç yeni kural `error` seviyesinde etkin, 2026-09-09'da açıldı) + eslint-plugin-react-refresh
@@ -85,7 +85,10 @@ client/src/
 │   │   ├── shared.tsx        # Badge, StatCard, PageHeader vb. paylaşılan UI parçaları
 │   │   ├── LoginScreen.tsx   # EducationLoginScreen
 │   │   ├── StudentDetail.tsx # Öğrenci profil çekmecesi
-│   │   ├── EducationPlatform.tsx # Kompozisyon kökü (state + localStorage demo kalıcılığı)
+│   │   ├── EducationPlatform.tsx # Kompozisyon kökü: durum, sekme yönlendirmesi, yerleşim (2026-10-25'te bölündü, ana plan 5.3)
+│   │   ├── useEducationLists.ts # Bütün liste sorguları ve türetmeler; sorgu yalnız onu kullanan sekmede çalışır
+│   │   ├── useRecordActions.ts # Öğrenci/sınıf/veli: arşivle–geri al, hesap bağla, veli bağla
+│   │   ├── EducationSidebar.tsx / EducationTopBar.tsx / UnsavedChangesDialog.tsx # Kenar menü, üst çubuk, ayrılma uyarısı
 │   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
 │   │   ├── guardianChild/    # Veli çocuk seçicisi: üst çubukta, bütün veli sekmelerinde geçerli (#423)
 │   │   ├── familyTabLoading.ts # Liste yalnız onu kullanan sekme açıkken / rolün menüsünde varsa okunur (#441; personel de 2026-10-25, ana plan 5.2)
@@ -136,7 +139,9 @@ client/src/
 │   ├── subjectService.ts / classTeacherService.ts  # Ders ve öğretmen ataması (v1.4-11)
 │   ├── feedService.ts      # Günlük akış (v1.4-12)
 │   ├── dayPlanService.ts   # Gün planı: görev ve takvim (v1.4-13)
-│   ├── educationQueries.ts # React Query anahtarları ve hook'ları — [alan, kaynak, kapsam]
+│   ├── educationQueries.ts # Toplayıcı: queries/ altını dışa aktarır; yeni hook buraya değil konu dosyasına (2026-10-25)
+│   ├── queries/            # React Query hook'ları konu başına: educationKeys ([alan, kaynak, kapsam]), roster, schedule,
+│   │                       #   exam, payment, homework, attendance, feed, report, overview
 │   ├── weekDays.ts         # Hafta yedi gün; ISO 1–7 ↔ etiket dönüşümünün tek kaynağı
 │   ├── trDate.ts           # Türkçe tarih biçimlendirici + getOrbitToday (takvim gününün tek kaynağı)
 │   ├── attendanceStatus.ts # Yoklama durumu eşlemesi

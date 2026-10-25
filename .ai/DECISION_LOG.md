@@ -172,6 +172,7 @@
 - Her Edge Function'ın hız sınırı açıkça yazılır; değerler ilk pilottan sonra ölçülür
 - Şifre sıfırlama kaynak başına sınırlanır; IP saklanmaz, anahtarlı özeti bir gün tutulur
 - Personelde de kurum listeleri onları kullanan sekme açılınca okunur
+- Büyük dosyalar konu dosyalarına bölünür; eski adı toplayıcı olarak kalır
 
 ---
 
@@ -4419,3 +4420,25 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Sonuç (ölçüldü):** yönetici girişi **34 → 13**, öğretmen girişi **23 → 10** istek. Yöneticide 12 sekme, öğretmende 9 sekme ve sınıf paneli → öğrenci paneli yolu tarayıcıda tek tek açıldı; hepsi veriyle doldu, hata yok. Bedeli: bir sekme oturumda ilk açıldığında listesi o an okunur; ikinci açılışta önbellekten gelir.
 
 **Reddedilen:** _Tek "açılış özeti" RPC'si (planın yazdığı)_. On ayrı RLS korumalı okumayı tek bir `security definer` fonksiyonda yeniden yazmak, yetki kurallarını ikinci bir yerde kopyalamak demekti (bu depo yetkiyi SQL'de tek yerde tutar) ve her listenin değişiminde iki yeri güncellemeyi gerektirirdi. Üstelik Genel Bakış'ın ihtiyacı zaten üç özet çağrısıyla karşılanıyordu; fazlalık özette değil, gereksiz listelerdeydi. _Girişten sonra arka planda önceden yükleme_: istek sayısını azaltmaz, yalnız zamana yayar; pik yük sorunu aynen kalır.
+
+### Karar: Büyük dosyalar konu dosyalarına bölünür; eski adı toplayıcı olarak kalır
+
+**Durum:** Kabul edildi · uygulandı (5.3 PR'ı)
+**Tarih:** 2026-10-25
+**Onaylayan:** Arda Bülent (ana plan 5.3 sırası; "devam et — gerekli verileri silmediğinden emin ol")
+
+**Bağlam:** Ana plan 5.3: `EducationPlatform.tsx` (1.821 satır) ve `educationQueries.ts` (1.461 satır). İlki yedi ayrı işi birlikte taşıyordu: sekme ve pencere durumu, otuz üç sorgu ve türetmeleri, dokuz kayıt işlemi (arşivle, hesap bağla, veli bağla), kenar menü, üst çubuk, "kaydedilmemiş değişiklik" penceresi ve sekme yönlendirmesi. İkincisi elli üç hook'u tek dosyada tutuyordu. AGENTS.md'nin kuralı satır sayısı değil, bir dosyanın kaç ilgisiz kaygıyı birlikte taşıdığıdır.
+
+**Karar:**
+
+1. **Kod yeniden yazılmadan taşınır.** Bloklar bir betikle olduğu gibi kesilip yeni dosyalara kondu; davranış değişmedi. Kanıt: dört rolün açılışında istek sayısı önce ve sonra birebir aynı (yönetici 11, öğretmen 10, öğrenci 26, veli 30), bütün sekmeler iki kipte de tarayıcıda açıldı.
+2. **Eski dosya adı toplayıcı (barrel) olarak kalır.** `educationQueries.ts` artık yalnız `queries/` altındaki on konu dosyasını dışa aktarıyor. Onu içe aktaran 65 dosya ve testlerin `vi.mock` yolları değişmedi. **Yeni hook ilgili konu dosyasına yazılır, toplayıcıya değil.**
+3. `EducationPlatform.tsx` durum, sekme yönlendirmesi ve yerleşimle kaldı (996 satır). Ayrılanlar: `useEducationLists` (bütün liste sorguları ve türetmeler), `useRecordActions` (kayıt işlemleri), `EducationSidebar`, `EducationTopBar`, `UnsavedChangesDialog`.
+4. **Demo kalıntısı olarak yalnız ölü kod silinir.** Ölü olduğu iki yoldan kanıtlandı: hiçbir dosya çağırmıyor ve tip denetimi temiz. Silinenler: hiçbir ekranın çağırmadığı `useLatestAttendanceSession` hook'u, onun tek kullanıcısı `loadLatestAttendanceSession` ve üç testi, hiç kullanılmayan üç tip. Demo verisi (`demoData.ts`) ve demo kipinin davranışı yerinde: demo paketinde yedi demo işaretinin yedisi duruyor, üretim paketinde hiçbiri yok.
+
+**Reddedilen:**
+
+- _İçe aktaran 65 dosyayı yeni yollara çevirmek._ Davranışa hiçbir şey katmaz, inceleme yükünü on katına çıkarır ve `vi.mock` yollarını tek tek değiştirmeyi gerektirirdi.
+- _Demo kipini bu işte tekilleştirmek (tohumlanmış demo kurumu)._ 2026-09-14 taramasının önerdiği büyük iş (`isDemoMode` 21 dosyada); bu madde dosya bölmedir. Ayrı ve ertelenmiş.
+
+**Bulgu (düzeltilmedi, kapsam dışı):** demo kipinde İletişim sekmesi `daily_feed_posts`'a, Denetim Kaydı sekmesi `organization_audit_feed`'e gerçek istek atıyor ve 400/401 alıyor. Bölmeden önce de birebir aynı; ekrana hata yansımıyor, yalnız demoda. Canlıyı etkilemez.

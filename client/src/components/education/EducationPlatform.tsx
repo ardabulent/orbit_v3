@@ -14,88 +14,32 @@ import {
 } from "./lazyPages";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { readActiveSection, writeActiveSection } from "./activeSectionMemory";
-import { shouldLoadForTab } from "./familyTabLoading";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { OrbitMark } from "@/components/OrbitMark";
-import { LogOut, Menu, PanelLeft, ShieldCheck, X } from "lucide-react";
-import { Link } from "wouter";
 import { toast } from "sonner";
-import { AccountSwitchMenu } from "@/components/auth/AccountSwitchMenu";
 import { clearDemoData, readDemoData, writeDemoData } from "@/lib/demoStorage";
 import { isDemoMode } from "@/auth/runtime";
 import { availableEducationSections } from "@/components/educationAccess";
-import { filterStudentsForRole } from "./scopeFilters";
 import { shouldConfirmLeaving } from "./navigationGuards";
 import { AdminDashboard } from "./dashboards/AdminDashboard";
 import { ClassDetail } from "./ClassDetail";
-import { buildClassSummaries, summaryFor } from "./pages/classSummaries";
-import { buildSubjectUsage } from "./pages/subjectUsage";
-import { currentCoverByAbsent } from "./pages/substitutePeriods";
-import type { ScheduleCover } from "./pages/scheduleGrid";
-import { getOrbitToday } from "@/education/trDate";
+import { summaryFor } from "./pages/classSummaries";
 import type { StudentFilter } from "./pages/studentFilters";
 import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
 import { TeacherDashboard } from "./dashboards/TeacherDashboard";
 import {
-  classes,
   dayPlanTasksByRole,
   initialAttendances,
   initialHomework,
-  paymentOverviewStats,
-  paymentRows,
-  schedule,
-  students,
-  buildPaymentStats,
 } from "./educationData";
-import {
-  useClasses,
-  useGuardians,
-  useHomework,
-  useLatestExam,
-  usePaymentOverview,
-  usePayments,
-  useReportAttendanceWeeks,
-  useReportExamAverages,
-  useCalendarNotices,
-  useReportAttentionStudents,
-  useReportClassComparison,
-  useReportHomeworkWeeks,
-  useSchedule,
-  useStudentGuardians,
-  useStudents,
-  useExams,
-  useMyLessonsToday,
-  usePlansInstallments,
-  useSubstitutes,
-  useTodayLessons,
-  educationKeys,
-} from "@/education/educationQueries";
+import { educationKeys } from "@/education/educationQueries";
 import {
   DEFAULT_REPORT_RANGE,
   type ReportRange,
 } from "@/education/reportService";
 import { useAuth } from "@/auth/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSettingsMembers } from "@/settings/settingsQueries";
-import {
-  archiveStudent,
-  restoreStudent,
-  linkStudentAccount,
-  unlinkStudentAccount,
-} from "@/education/studentService";
-import {
-  archiveGuardian,
-  restoreGuardian,
-  linkGuardianAccount,
-  unlinkGuardianAccount,
-  linkStudentGuardian,
-  unlinkStudentGuardian,
-  restoreStudentGuardianLink,
-  translateGuardianError,
-  GUARDIAN_TOTAL_CAP,
-  type Guardian,
-} from "@/education/guardianService";
+import { GUARDIAN_TOTAL_CAP, type Guardian } from "@/education/guardianService";
 import { HOMEWORK_TOTAL_CAP } from "@/education/homeworkService";
 import { StudentFormDialog } from "./pages/StudentFormDialog";
 import { NewStudentDialog } from "./pages/NewStudentDialog";
@@ -105,39 +49,28 @@ import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
 import { ClassTeachersDialog } from "./pages/ClassTeachersDialog";
 import { PaymentPlanEditorDialog } from "./pages/PaymentPlanEditorDialog";
 import { PaymentPlanDetailDialog } from "./pages/PaymentPlanDetailDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useOrganizationChannel } from "@/realtime/useOrganizationChannel";
 import { ConnectionBanner } from "@/realtime/ConnectionBanner";
 import { useUserChannel } from "@/realtime/useUserChannel";
-import { NotificationBell } from "./NotificationBell";
 import { STUDENT_TOTAL_CAP } from "@/education/studentService";
-import {
-  archiveClass,
-  restoreClass,
-  DEFAULT_CLASS_LIMIT,
-} from "@/education/classService";
+import { DEFAULT_CLASS_LIMIT } from "@/education/classService";
 import { SCHEDULE_TOTAL_CAP } from "@/education/scheduleService";
 import { PAYMENT_TOTAL_CAP } from "@/education/paymentService";
 import { allNav } from "./navigation";
 import { BottomNav } from "./BottomNav";
 import { useApplyOrbitTheme } from "@/theme/orbitTheme";
 import { roleMeta } from "./roleMeta";
-import { linkableMembers } from "@/organization/linkableMembers";
 import { ChildSwitcher } from "./guardianChild/ChildSwitcher";
 import {
   GuardianChildContext,
   useGuardianChildState,
 } from "./guardianChild/guardianChildState";
 import { StudentDetail } from "./StudentDetail";
+import { EducationSidebar } from "./EducationSidebar";
+import { EducationTopBar } from "./EducationTopBar";
+import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
+import { useRecordActions } from "./useRecordActions";
+import { useEducationLists } from "./useEducationLists";
 import type {
   AttendanceState,
   ClassGroup,
@@ -148,19 +81,6 @@ import type {
   Section,
   Student,
 } from "./types";
-
-// Başlık grubun İÇERİĞİNİ adlandırır. Tek bir koşul yetmiyor çünkü aynı grup
-// her rolde farklı maddeler taşıyor; `role !== "admin"` fırçası öğretmende
-// Raporlar'ı, velide Ödemeler'i "hesap ayarı" gibi göstermişti (#147).
-//
-// Açık eşleme bilinçli: bir rolün madde listesi değişirse başlığının da
-// gözden geçirilmesi gerekir ve bu, buraya bakmayı zorunlu kılar.
-const secondaryGroupTitle: Record<Role, string> = {
-  admin: "Kurum yönetimi",
-  teacher: "Raporlar ve Ayarlar",
-  student: "Hesap ve Ayarlar",
-  parent: "Ödemeler ve Ayarlar",
-};
 
 export function EducationPlatform({
   onLogout,
@@ -220,7 +140,6 @@ export function EducationPlatform({
     readDemoData("homework", initialHomework)
   );
   const [message, setMessage] = useState("");
-  const meta = roleMeta[role];
   const currentDisplayName = displayName ?? "";
   const navItems = allNav.filter(item =>
     availableEducationSections(role).includes(item.label)
@@ -284,421 +203,69 @@ export function EducationPlatform({
     setConfirmDialogOpen(true);
   };
 
-  // Kurum listeleri yalnız onları kullanan sekmede okunur (öğrenci/veli
-  // 2026-10-05, personel 2026-10-25 · ana plan 5.2). İkinci dizi personelin
-  // sekmeleri; listeyi sekme dışında kullanan paneller de orada sayılır.
-  const loadsFor = (
-    tabs: readonly Section[],
-    staffTabs: readonly Section[] = tabs
-  ) => shouldLoadForTab(role, active, tabs, staffTabs);
-  const studentsQuery = useStudents({
-    search: query,
-    enabled:
-      !isDemoMode &&
-      loadsFor(
-        ["Ödevler"],
-        // Sınıflar: sınıf paneli öğrenci açar; Kayıt ve Ödemeler: plan
-        // formunun öğrenci listesi; Raporlar ve Yoklama: ad eşlemesi.
-        [
-          "Öğrenciler",
-          "Raporlar",
-          "Yoklama",
-          "Ödevler",
-          "Sınıflar",
-          "Kayıt ve Ödemeler",
-        ]
-      ),
+  const {
+    handleArchiveStudent,
+    handleArchiveClass,
+    handleLinkStudentAccount,
+    handleUnlinkStudentAccount,
+    handleArchiveGuardian,
+    handleLinkGuardianAccount,
+    handleUnlinkGuardianAccount,
+    handleLinkGuardianToStudent,
+    handleUnlinkGuardianFromStudent,
+  } = useRecordActions({
+    organizationId,
+    selectedStudentId: selectedStudentSnapshot?.id,
   });
-  const membersQuery = useSettingsMembers({
-    // Öğrenciler: hesap bağlama listeleri; Ders Programı: vekil adları.
-    enabled:
-      role === "admin" &&
-      !isDemoMode &&
-      (active === "Öğrenciler" || active === "Ders Programı"),
-  });
-  const studentMembers = useMemo(
-    () => linkableMembers(membersQuery.data ?? [], "student"),
-    [membersQuery.data]
-  );
-
-  const handleArchiveStudent = async (student: Student) => {
-    try {
-      await archiveStudent(student.id);
-      // v1.4 ara denetimi: `restoreStudent` yazıldığı günden beri çağıransızdı.
-      // Arşivlenmiş öğrenciyi listeleyen bir ekran yok (`loadStudents`
-      // `archived_at is null` süzüyor), dolayısıyla geri almanın tek
-      // gözlenebilir yeri kullanıcının işlemi yaptığı an. Desen uydurma değil:
-      // v1.4-10'da veli bağı koparma tam olarak böyle geri alınıyor.
-      toast.success("Öğrenci arşivlendi", {
-        description: `${student.name} arşive kaldırıldı.`,
-        action: {
-          label: "Geri al",
-          onClick: () => {
-            void restoreStudent(student.id)
-              .then(async () => {
-                toast.success("Öğrenci geri yüklendi", {
-                  description: `${student.name} arşivden çıkarıldı.`,
-                });
-                await queryClient.invalidateQueries({
-                  queryKey: educationKeys.students(organizationId),
-                });
-              })
-              .catch(err => {
-                toast.error(
-                  err instanceof Error
-                    ? err.message
-                    : "Öğrenci geri yüklenemedi."
-                );
-              });
-          },
-        },
-      });
-      await queryClient.invalidateQueries({
-        queryKey: educationKeys.students(organizationId),
-      });
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Öğrenci arşivlenemedi."
-      );
-    }
-  };
-
-  const handleArchiveClass = async (cls: ClassGroup) => {
-    // Onay penceresi YOK ve bu öğrenci arşivlemesiyle aynı gerekçeye dayanıyor:
-    // arşivleme geri alınabilir bir işlem. Ayrıca `window.confirm` bu depoda
-    // hiç kullanılmıyor — tarayıcıyı bloklar, tasarım diline uymaz ve test
-    // edilemez. Onay gerekseydi yeri `components/ui/alert-dialog.tsx` olurdu.
-    try {
-      await archiveClass(cls.id);
-      toast.success("Sınıf arşivlendi", {
-        description: `${cls.name} arşive kaldırıldı.`,
-        action: {
-          label: "Geri al",
-          onClick: () => {
-            void restoreClass(cls.id)
-              .then(async () => {
-                toast.success("Sınıf geri yüklendi", {
-                  description: `${cls.name} arşivden çıkarıldı.`,
-                });
-                await queryClient.invalidateQueries({
-                  queryKey: educationKeys.classes(organizationId),
-                });
-              })
-              .catch(err => {
-                toast.error(
-                  err instanceof Error ? err.message : "Sınıf geri yüklenemedi."
-                );
-              });
-          },
-        },
-      });
-      await queryClient.invalidateQueries({
-        queryKey: educationKeys.classes(organizationId),
-      });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sınıf arşivlenemedi.");
-    }
-  };
-
-  const handleLinkStudentAccount = async (
-    studentId: string,
-    membershipId: string
-  ) => {
-    await linkStudentAccount(studentId, membershipId);
-    toast.success("Giriş hesabı atandı", {
-      description: "Öğrenciye giriş hesabı bağlandı.",
-    });
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: educationKeys.students(organizationId),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ["settings", "members", { organizationId }],
-      }),
-    ]);
-  };
-
-  const handleUnlinkStudentAccount = async (studentId: string) => {
-    await unlinkStudentAccount(studentId);
-    toast.success("Hesap bağı çözüldü", {
-      description: "Öğrencinin giriş hesabı bağı kaldırıldı.",
-    });
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: educationKeys.students(organizationId),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ["settings", "members", { organizationId }],
-      }),
-    ]);
-  };
 
   const [guardianQuery, setGuardianQuery] = useState("");
   const [guardianFormOpen, setGuardianFormOpen] = useState(false);
   const [guardianForEdit, setGuardianForEdit] = useState<Guardian | null>(null);
 
-  const parentMembers = useMemo(
-    () => linkableMembers(membersQuery.data ?? [], "parent"),
-    [membersQuery.data]
-  );
-
-  const guardiansQuery = useGuardians({
-    search: guardianQuery,
-    // Öğrenci paneli Raporlar ve Sınıflar'dan da açılır ve veli bağlar.
-    enabled:
-      role === "admin" &&
-      !isDemoMode &&
-      (active === "Öğrenciler" || Boolean(selectedStudentSnapshot)),
-  });
-
-  const studentGuardiansQuery = useStudentGuardians(
-    selectedStudentSnapshot?.id ?? "",
-    {
-      enabled: Boolean(selectedStudentSnapshot?.id) && !isDemoMode,
-    }
-  );
-
-  const handleArchiveGuardian = async (guardian: Guardian) => {
-    try {
-      await archiveGuardian(organizationId, guardian.id);
-      toast.success("Veli arşivlendi", {
-        description: `${guardian.fullName} arşive kaldırıldı.`,
-        action: {
-          label: "Geri al",
-          onClick: () => {
-            void restoreGuardian(organizationId, guardian.id)
-              .then(async () => {
-                toast.success("Veli geri yüklendi");
-                await Promise.all([
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.guardians(organizationId),
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.students(organizationId),
-                  }),
-                ]);
-              })
-              .catch(err => {
-                toast.error(translateGuardianError(err));
-              });
-          },
-        },
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.guardians(organizationId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.students(organizationId),
-        }),
-      ]);
-    } catch (err) {
-      toast.error(translateGuardianError(err));
-    }
-  };
-
-  const handleLinkGuardianAccount = async (
-    guardianId: string,
-    membershipId: string
-  ) => {
-    try {
-      await linkGuardianAccount(guardianId, membershipId);
-      toast.success("Giriş hesabı atandı", {
-        description: "Veliye giriş hesabı bağlandı.",
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.guardians(organizationId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["settings", "members", { organizationId }],
-        }),
-        queryClient.invalidateQueries({
-          // Öğrenci detayındaki velinin hesap rozeti bu sorgudan gelir (C-03).
-          queryKey: educationKeys.studentGuardians(organizationId),
-        }),
-      ]);
-    } catch (err) {
-      toast.error(translateGuardianError(err));
-    }
-  };
-
-  const handleUnlinkGuardianAccount = async (guardianId: string) => {
-    try {
-      await unlinkGuardianAccount(guardianId);
-      toast.success("Hesap bağı çözüldü", {
-        description: "Velinin giriş hesabı bağı kaldırıldı.",
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.guardians(organizationId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["settings", "members", { organizationId }],
-        }),
-        queryClient.invalidateQueries({
-          // Öğrenci detayındaki velinin hesap rozeti bu sorgudan gelir (C-03).
-          queryKey: educationKeys.studentGuardians(organizationId),
-        }),
-      ]);
-    } catch (err) {
-      toast.error(translateGuardianError(err));
-    }
-  };
-
-  const handleLinkGuardianToStudent = async (
-    studentId: string,
-    guardianId: string
-  ) => {
-    try {
-      await linkStudentGuardian(organizationId, studentId, guardianId);
-      toast.success("Veli bağlandı", {
-        description: "Öğrenciye veli kaydı bağlandı.",
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.studentGuardians(organizationId, studentId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.guardians(organizationId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.students(organizationId),
-        }),
-      ]);
-    } catch (err) {
-      toast.error(translateGuardianError(err));
-    }
-  };
-
-  const handleUnlinkGuardianFromStudent = async (
-    linkId: string,
-    guardianName: string
-  ) => {
-    try {
-      await unlinkStudentGuardian(organizationId, linkId);
-      toast.success("Veli bağı koparıldı", {
-        description: `${guardianName} velisinin öğrenci bağı kaldırıldı.`,
-        action: {
-          label: "Geri al",
-          onClick: () => {
-            void restoreStudentGuardianLink(organizationId, linkId)
-              .then(async () => {
-                toast.success("Veli bağı geri yüklendi");
-                await Promise.all([
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.studentGuardians(
-                      organizationId,
-                      selectedStudentSnapshot?.id
-                    ),
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.guardians(organizationId),
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: educationKeys.students(organizationId),
-                  }),
-                ]);
-              })
-              .catch(err => {
-                toast.error(translateGuardianError(err));
-              });
-          },
-        },
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.studentGuardians(
-            organizationId,
-            selectedStudentSnapshot?.id
-          ),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.guardians(organizationId),
-        }),
-        queryClient.invalidateQueries({
-          queryKey: educationKeys.students(organizationId),
-        }),
-      ]);
-    } catch (err) {
-      toast.error(translateGuardianError(err));
-    }
-  };
-
-  const classesQuery = useClasses({
-    enabled:
-      !isDemoMode &&
-      loadsFor(
-        [
-          "Ders Programı",
-          "Sınavlar",
-          "Ödevler",
-          "İletişim",
-          "Kayıt ve Ödemeler",
-        ],
-        [
-          "Ders Programı",
-          "Sınavlar",
-          "Ödevler",
-          "İletişim",
-          "Kayıt ve Ödemeler",
-          "Sınıflar",
-          "Yoklama",
-          "Raporlar",
-          // Takvimdeki sınavlar öğretmenin sınıflarıyla süzülür.
-          "Gün Planı",
-        ]
-      ),
-  });
-  const scheduleQuery = useSchedule({
-    enabled:
-      !isDemoMode &&
-      loadsFor(
-        ["Ders Programı"],
-        // Sınıflar: sınıf özetleri ve sınıf panelindeki dersler.
-        ["Ders Programı", "Gün Planı", "Yoklama", "Sınıflar"]
-      ),
-  });
-  const examQuery = useLatestExam({
-    enabled: !isDemoMode && loadsFor(["Sınavlar"]),
-  });
-  // Sınavlar listesi (C-07) — yönetici ve öğretmen.
-  const isStaffRole = role === "admin" || role === "teacher";
-  const examListQuery = useExams({
-    enabled:
-      !isDemoMode &&
-      isStaffRole &&
-      (active === "Sınavlar" || active === "Gün Planı"),
-  });
-  const examPageQuery = isStaffRole ? examListQuery : examQuery;
-  const paymentsQuery = usePayments({
-    enabled: !isDemoMode && loadsFor(["Kayıt ve Ödemeler"]),
-  });
-  const paymentOverviewQuery = usePaymentOverview({
-    enabled: !isDemoMode && loadsFor(["Kayıt ve Ödemeler"]),
-  });
-  const homeworkQuery = useHomework({
-    enabled: !isDemoMode && loadsFor(["Ödevler"]),
-  });
-  const reportAttendanceQuery = useReportAttendanceWeeks({
-    enabled: !isDemoMode && active === "Raporlar",
-    range: reportRange,
-  });
-  const reportExamQuery = useReportExamAverages({
-    enabled: !isDemoMode && active === "Raporlar",
-    range: reportRange,
-  });
-  const reportAttentionQuery = useReportAttentionStudents({
-    enabled: !isDemoMode && active === "Raporlar",
-    weeks: reportRange.weeks,
-  });
-  const reportComparisonQuery = useReportClassComparison({
-    enabled: !isDemoMode && active === "Raporlar",
-    weeks: reportRange.weeks,
-  });
-  const reportHomeworkQuery = useReportHomeworkWeeks({
-    enabled: !isDemoMode && active === "Raporlar",
-    range: reportRange,
+  const {
+    studentsQuery,
+    studentMembers,
+    parentMembers,
+    guardiansQuery,
+    studentGuardiansQuery,
+    classesQuery,
+    scheduleQuery,
+    examQuery,
+    examListQuery,
+    examPageQuery,
+    paymentsQuery,
+    paymentOverviewQuery,
+    homeworkQuery,
+    reportAttendanceQuery,
+    reportExamQuery,
+    reportAttentionQuery,
+    reportComparisonQuery,
+    reportHomeworkQuery,
+    activeStudents,
+    activeClasses,
+    calendarNoticesQuery,
+    calendarExams,
+    activeSchedule,
+    attendanceLessonsQuery,
+    classSummaries,
+    subjectUsage,
+    scheduleCovers,
+    parentInstallmentsQuery,
+    activePayments,
+    activePaymentOverviewStats,
+    activeHomework,
+    activeGuardians,
+    visibleStudents,
+  } = useEducationLists({
+    role,
+    active,
+    query,
+    guardianQuery,
+    reportRange,
+    selectedStudentId: selectedStudentSnapshot?.id,
+    hasSelectedClass: Boolean(selectedClassId),
+    guardianChild,
+    demoHomework: homework,
   });
 
   // Aktif kurumun Realtime kanalına tekil abonelik (v1.3-05).
@@ -706,13 +273,6 @@ export function EducationPlatform({
   const organizationChannel = useOrganizationChannel();
   // Kişiye özel bildirim ve mesaj kanalı (2026-10-12).
   useUserChannel();
-
-  const activeStudents = useMemo(() => {
-    if (isDemoMode) {
-      return students;
-    }
-    return studentsQuery.data?.rows ?? [];
-  }, [studentsQuery.data?.rows]);
 
   // Liste tazelenince panel de tazelenir (C-03). Öğrenci arama yüzünden
   // listeden düştüyse son bilinen hâli gösterilir; boş panel çizilmez.
@@ -724,154 +284,9 @@ export function EducationPlatform({
     );
   }, [activeStudents, selectedStudentSnapshot]);
 
-  const activeClasses = useMemo(() => {
-    if (isDemoMode) {
-      return classes;
-    }
-    return classesQuery.data?.rows ?? [];
-  }, [classesQuery.data?.rows]);
-
-  // Gün Planı takvimi: yönetici bütün sınavları, öğretmen okuttuğu
-  // sınıfların (activeClasses RLS ile daraltılmış) ve kurum geneli sınavları.
-  const calendarNoticesQuery = useCalendarNotices({
-    enabled: !isDemoMode && active === "Gün Planı",
-  });
-  const calendarExams = useMemo(() => {
-    const visibleClassIds = new Set(activeClasses.map(c => c.id));
-    return (examListQuery.data?.rows ?? [])
-      .filter(
-        exam =>
-          role === "admin" ||
-          exam.classId === null ||
-          visibleClassIds.has(exam.classId)
-      )
-      .map(exam => ({
-        id: exam.id,
-        name: exam.name,
-        examDate: exam.examDate,
-        className: exam.className,
-      }));
-  }, [examListQuery.data, activeClasses, role]);
-
-  const activeSchedule = useMemo(() => {
-    if (isDemoMode) {
-      return schedule;
-    }
-    const rows = scheduleQuery.data?.rows ?? [];
-    // Veli: yalnız seçili çocuğun sınıfları; iki çocuğun dersi karışmaz.
-    if (guardianChild.active) {
-      const classIds = guardianChild.classIds;
-      return classIds
-        ? rows.filter(item => item.classId && classIds.has(item.classId))
-        : [];
-    }
-    return rows;
-  }, [scheduleQuery.data?.rows, guardianChild.active, guardianChild.classIds]);
-
-  const todayLessonsForClasses = useTodayLessons({
-    enabled:
-      !isDemoMode &&
-      (active === "Sınıflar" ||
-        Boolean(selectedClassId) ||
-        (active === "Yoklama" && role === "admin")),
-  });
-  // Yoklama · Bugün: öğretmen yalnız kendi derslerini (vekillik dahil) görür.
-  const myLessonsForAttendance = useMyLessonsToday({
-    enabled: !isDemoMode && active === "Yoklama" && role !== "admin",
-  });
-  const attendanceLessonsQuery =
-    role === "admin" ? todayLessonsForClasses : myLessonsForAttendance;
-  const classSummaries = useMemo(
-    () =>
-      buildClassSummaries(activeSchedule, todayLessonsForClasses.data ?? []),
-    [activeSchedule, todayLessonsForClasses.data]
-  );
-  const subjectUsage = useMemo(
-    () => buildSubjectUsage(activeSchedule),
-    [activeSchedule]
-  );
-  // Ders programında "Vekil: …" — yalnız yönetici (öğretmen başkalarının
-  // izin kaydını görmez, RLS).
-  const substitutesQuery = useSubstitutes({
-    enabled: !isDemoMode && role === "admin" && active === "Ders Programı",
-  });
-  const scheduleCovers = useMemo(() => {
-    const names = new Map(
-      (membersQuery.data ?? []).map(m => [m.membershipId, m.displayName])
-    );
-    const covers = new Map<string, ScheduleCover>();
-    for (const [absentId, row] of currentCoverByAbsent(
-      substitutesQuery.data?.rows ?? [],
-      getOrbitToday()
-    )) {
-      covers.set(absentId, {
-        substitute: names.get(row.substituteMembershipId) || "vekil",
-        endsOn: row.endsOn,
-      });
-    }
-    return covers;
-  }, [substitutesQuery.data, membersQuery.data]);
   const selectedClass = selectedClassId
     ? (activeClasses.find(c => c.id === selectedClassId) ?? null)
     : null;
-
-  // Veli ödeme görünümü: planlarının taksitleri tek sorguda (2026-09-29).
-  const parentInstallmentsQuery = usePlansInstallments({
-    planIds: (paymentsQuery.data?.rows ?? []).map(row => row.id),
-    enabled: !isDemoMode && role === "parent" && active === "Kayıt ve Ödemeler",
-  });
-
-  const activePayments = useMemo(() => {
-    if (isDemoMode) {
-      return paymentRows;
-    }
-    const rows = paymentsQuery.data?.rows ?? [];
-    // Veli: yalnız seçili çocuğun planları.
-    if (guardianChild.active) {
-      const childId = guardianChild.child?.id;
-      return childId ? rows.filter(row => row.studentId === childId) : [];
-    }
-    return rows;
-  }, [paymentsQuery.data?.rows, guardianChild.active, guardianChild.child]);
-
-  const activePaymentOverviewStats = useMemo(() => {
-    if (isDemoMode) {
-      return paymentOverviewStats;
-    }
-    return buildPaymentStats(paymentOverviewQuery.data ?? null);
-  }, [paymentOverviewQuery.data]);
-
-  const activeHomework = useMemo(() => {
-    if (isDemoMode) {
-      return homework;
-    }
-    return homeworkQuery.data?.rows ?? [];
-  }, [homework, homeworkQuery.data?.rows]);
-
-  const activeGuardians = useMemo(() => {
-    if (isDemoMode) {
-      return [];
-    }
-    return guardiansQuery.data?.rows ?? [];
-  }, [guardiansQuery.data?.rows]);
-
-  const visibleStudents = useMemo(() => {
-    const roleStudents = filterStudentsForRole(
-      activeStudents,
-      role,
-      isDemoMode
-    );
-    if (isDemoMode) {
-      return roleStudents.filter(student => {
-        const searchTarget = [student.name, student.code, student.group]
-          .filter(Boolean)
-          .join(" ")
-          .toLocaleLowerCase("tr");
-        return searchTarget.includes(query.toLocaleLowerCase("tr"));
-      });
-    }
-    return roleStudents;
-  }, [activeStudents, role, query]);
 
   useEffect(() => {
     writeDemoData("attendances", attendances);
@@ -1349,256 +764,36 @@ export function EducationPlatform({
     <GuardianChildContext.Provider value={guardianChild}>
       <div className="min-h-screen bg-[#f6f8fc] dark:bg-[#0b1120] text-slate-900">
         <div className="flex min-h-screen">
-          <aside
-            className={`fixed inset-y-0 left-0 z-40 flex w-[258px] flex-col border-r border-slate-200 bg-white px-3 py-4 transition-all lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${mobileNav ? "translate-x-0" : "-translate-x-full"} ${navCollapsed ? "lg:w-[74px] lg:px-2" : "lg:w-[258px]"}`}
-          >
-            <div className="mb-7 flex items-center justify-between px-2">
-              <div className="flex items-center gap-2.5">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,.12)] dark:bg-[#1e293b]">
-                  <OrbitMark
-                    inverted
-                    className="h-full w-full object-contain"
-                  />
-                </span>
-                <div className={navCollapsed ? "lg:hidden" : ""}>
-                  <p className="font-orbit text-[18px] font-extrabold tracking-[-.055em] text-slate-900">
-                    ORBIT
-                  </p>
-                  <p className="-mt-0.5 text-[9px] font-bold uppercase tracking-[.13em] text-slate-400">
-                    Education
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setMobileNav(false)}
-                aria-label="Menüyü kapat"
-                className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 lg:hidden"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div
-              className={`mb-5 rounded-xl border border-blue-100 bg-blue-50/65 px-3 py-3 ${navCollapsed ? "lg:hidden" : ""}`}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className={`grid h-8 w-8 place-items-center rounded-lg ${meta.color}`}
-                >
-                  <meta.icon className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-[11px] font-extrabold text-slate-800">
-                    {currentDisplayName}
-                  </p>
-                  <p className="mt-0.5 text-[10px] font-medium text-slate-500">
-                    {meta.label}
-                  </p>
-                </div>
-              </div>
-            </div>
-            {/*
-            `flex-1 overflow-y-auto` olmadan menü, ekran yüksekliğini aşınca
-            kesiliyordu ve kaydırılamıyordu: `lg:h-screen` yüksekliği sabitliyor
-            ama taşan içeriğe ne yapılacağını söylemiyor. Küçük dizüstü
-            ekranlarda alttaki maddelere hiç ulaşılamıyordu.
-          */}
-            <nav className="-mr-1 flex-1 space-y-1 overflow-y-auto pr-1">
-              {(["Ana çalışma alanı", "Kurum yönetimi"] as const).map(group => {
-                const groupItems = navItems.filter(
-                  item => item.group === group
-                );
-                if (groupItems.length === 0) return null;
-
-                const groupTitle =
-                  group === "Kurum yönetimi"
-                    ? secondaryGroupTitle[role]
-                    : group;
-
-                return (
-                  <div
-                    key={group}
-                    className={
-                      group === "Kurum yönetimi"
-                        ? "mt-6 space-y-1"
-                        : "space-y-1"
-                    }
-                  >
-                    <p
-                      className={`mb-2 px-3 text-[9px] font-extrabold uppercase tracking-[.14em] text-slate-400 ${navCollapsed ? "lg:hidden" : ""}`}
-                    >
-                      {groupTitle}
-                    </p>
-                    {groupItems.map(item => {
-                      const Icon = item.icon;
-                      const selected = active === item.label;
-                      return (
-                        <button
-                          key={item.label}
-                          onClick={() => navigate(item.label)}
-                          // Şerit hâlindeyken etiket gizlendiği için erişilebilir
-                          // ad ve fare üzerinde ipucu `title` ile korunuyor.
-                          title={navCollapsed ? item.label : undefined}
-                          className={`flex h-9 w-full items-center gap-3 rounded-lg text-left text-[12px] font-semibold transition ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"} ${selected ? "bg-slate-900 text-white shadow-[0_7px_14px_rgba(15,23,42,.10)]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
-                        >
-                          <Icon
-                            className={`h-4 w-4 shrink-0 ${selected ? "text-white" : "text-slate-400"}`}
-                          />
-                          <span
-                            className={`flex-1 ${navCollapsed ? "lg:hidden" : ""}`}
-                          >
-                            {item.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </nav>
-            <div className="mt-auto space-y-1 border-t border-slate-100 pt-4">
-              {/*
-              Platform paneline giden tek görünür yol. Bağlantı yokken operatör
-              panele ancak adresi elle yazarak ulaşabiliyordu; kurucu ekip
-              üyeleri hem kurum üyesi hem operatör olduğu için girişte doğrudan
-              dershane paneline düşüyor ve panelin var olduğunu göremiyordu.
-              Yalnızca gerçekten operatör olana gösterilir.
-            */}
-              {canAccessPlatform ? (
-                <Link
-                  href="/platform"
-                  title={navCollapsed ? "Platform yönetimi" : undefined}
-                  className={`flex h-9 w-full items-center gap-3 rounded-lg text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100 ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"}`}
-                >
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" />
-                  <span className={navCollapsed ? "lg:hidden" : ""}>
-                    Platform yönetimi
-                  </span>
-                </Link>
-              ) : null}
-              <button
-                onClick={onLogout}
-                title={navCollapsed ? "Çıkış Yap" : undefined}
-                className={`flex h-9 w-full items-center gap-3 rounded-lg text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100 ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"}`}
-              >
-                <LogOut className="h-4 w-4 shrink-0 text-slate-400" />
-                <span className={navCollapsed ? "lg:hidden" : ""}>
-                  Çıkış Yap
-                </span>
-              </button>
-            </div>
-          </aside>
-          {mobileNav ? (
-            <button
-              aria-label="Menüyü kapat"
-              onClick={() => setMobileNav(false)}
-              className="fixed inset-0 z-30 bg-slate-950/20 lg:hidden"
-            />
-          ) : null}
+          <EducationSidebar
+            role={role}
+            displayName={currentDisplayName}
+            navItems={navItems}
+            active={active}
+            mobileNav={mobileNav}
+            navCollapsed={navCollapsed}
+            onCloseMobileNav={() => setMobileNav(false)}
+            onNavigate={navigate}
+            canAccessPlatform={canAccessPlatform}
+            onLogout={onLogout}
+          />
           {/* `overflow-x-clip` (2026-10-15): geniş bir tablo içeriği taşırsa
               bütün sayfa yana kaymaz — üst çubuk ve kenar çubuğu düğmesi
               yerinde kalır, tablo kendi kutusunda kayar. `hidden` değil
               `clip`: kaydırma kabı oluşturmaz, yapışkan üst çubuk çalışır. */}
           <main className="min-w-0 flex-1 overflow-x-clip">
             <ConnectionBanner channelStatus={organizationChannel.status} />
-            <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-[#f6f8fc]/90 dark:bg-[#0b1120]/90 px-4 backdrop-blur sm:px-6 lg:px-8">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setMobileNav(true)}
-                  aria-label="Menüyü aç"
-                  className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 lg:hidden"
-                >
-                  <Menu className="h-4 w-4" />
-                </button>
-                {/*
-                Masaüstünde menü daraltma. Mobildeki düğmeden ayrı: orada menü
-                çekmece olarak açılıp kapanıyor, burada simge şeridine iniyor.
-                Tek düğmeyle iki davranışı yönetmek, ekran genişliğini JS'te
-                okumayı gerektirirdi.
-              */}
-                <button
-                  onClick={() => setNavCollapsed(value => !value)}
-                  aria-label={
-                    navCollapsed ? "Menüyü genişlet" : "Menüyü daralt"
-                  }
-                  aria-pressed={navCollapsed}
-                  title={navCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
-                  className="hidden h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 lg:grid"
-                >
-                  <PanelLeft className="h-4 w-4" />
-                </button>
-                <div>
-                  <p className="text-[11px] font-semibold text-slate-500">
-                    {meta.description}
-                  </p>
-                  {/* Akademik dönem burada yazılıydı ve hiçbir yerden gelmiyordu:
-                    ne `organizations` tablosunda ne kimlikte böyle bir alan var.
-                    Her kuruma aynı dönemi söylüyordu. Kurum adı da artık
-                    korumalı; çözülemediğinde başlık boş kalır, yarım kalmış bir
-                    ayıraç bırakmaz. */}
-                  <p className="text-[10px] text-slate-400">
-                    {[branchName, organizationName].filter(Boolean).join(" · ")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                {/* Zil (2026-10-12): v1.5-22'de sahte olduğu için kaldırılmıştı;
-                  artık gerçek bildirimleri sayıyor. Demoda yok. */}
-                {!isDemoMode ? (
-                  <NotificationBell onNavigate={navigate} />
-                ) : null}
-                <div className="hidden sm:block">
-                  <ChildSwitcher />
-                </div>
-                <AccountSwitchMenu />
-                {canSwitchRole ? (
-                  <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:flex">
-                    {(Object.keys(roleMeta) as Role[]).map(itemRole => (
-                      <button
-                        key={itemRole}
-                        onClick={() => changeRole(itemRole)}
-                        className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${role === itemRole ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}
-                      >
-                        {roleMeta[itemRole].short}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                {canSwitchRole ? (
-                  <button
-                    onClick={() => {
-                      const next =
-                        role === "parent"
-                          ? "admin"
-                          : (Object.keys(roleMeta) as Role[])[
-                              (Object.keys(roleMeta) as Role[]).indexOf(role) +
-                                1
-                            ];
-                      changeRole(next);
-                    }}
-                    aria-label="Demo rolünü değiştir"
-                    className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white sm:hidden"
-                  >
-                    {currentDisplayName
-                      ? currentDisplayName
-                          .split(" ")
-                          .filter(Boolean)
-                          .map(word => word[0])
-                          .join("")
-                      : "O"}
-                  </button>
-                ) : (
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white">
-                    {currentDisplayName
-                      ? currentDisplayName
-                          .split(" ")
-                          .filter(Boolean)
-                          .map(word => word[0])
-                          .join("")
-                      : "O"}
-                  </span>
-                )}
-              </div>
-            </header>
+            <EducationTopBar
+              role={role}
+              displayName={currentDisplayName}
+              organizationName={organizationName}
+              branchName={branchName}
+              navCollapsed={navCollapsed}
+              onOpenMobileNav={() => setMobileNav(true)}
+              onToggleNavCollapsed={() => setNavCollapsed(value => !value)}
+              onNavigate={navigate}
+              canSwitchRole={canSwitchRole}
+              onChangeRole={changeRole}
+            />
             <div className="sm:hidden">
               <ChildSwitcher variant="compact" />
             </div>
@@ -1777,44 +972,24 @@ export function EducationPlatform({
             )}
           </>
         )}
-        <AlertDialog
+        <UnsavedChangesDialog
           open={confirmDialogOpen}
           onOpenChange={setConfirmDialogOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Kaydedilmemiş Değişiklikler</AlertDialogTitle>
-              <AlertDialogDescription>
-                Kaydedilmemiş değişiklikleriniz var. Sayfadan ayrılırsanız bu
-                değişiklikler kaybolacak. Devam etmek istediğinize emin misiniz?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel
-                onClick={() => {
-                  setConfirmDialogOpen(false);
-                  setPendingNavAction(null);
-                }}
-              >
-                Vazgeç
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  setIsAttendanceDirty(false);
-                  setIsExamDirty(false);
-                  setConfirmDialogOpen(false);
-                  if (pendingNavAction) {
-                    const action = pendingNavAction;
-                    setPendingNavAction(null);
-                    action();
-                  }
-                }}
-              >
-                Devam Et
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          onCancel={() => {
+            setConfirmDialogOpen(false);
+            setPendingNavAction(null);
+          }}
+          onConfirm={() => {
+            setIsAttendanceDirty(false);
+            setIsExamDirty(false);
+            setConfirmDialogOpen(false);
+            if (pendingNavAction) {
+              const action = pendingNavAction;
+              setPendingNavAction(null);
+              action();
+            }
+          }}
+        />
       </div>
     </GuardianChildContext.Provider>
   );

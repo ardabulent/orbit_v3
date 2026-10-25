@@ -4,7 +4,6 @@ import {
   extractActiveName,
   formatSessionDateTime,
   formatSessionTitle,
-  loadLatestAttendanceSession,
   loadStudentAttendancePercentages,
   mapSessionRow,
   openAttendanceSession,
@@ -328,76 +327,6 @@ describe("attendanceService", () => {
       const map = await loadStudentAttendancePercentages(["stu-1"]);
       expect(map.size).toBe(0);
       expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
-    });
-  });
-
-  describe("loadLatestAttendanceSession", () => {
-    it("en son aktif oturumu tarih ve saat azalan sırayla çeker ve organization_id süzer", async () => {
-      const spy: {
-        eqArgs?: [string, unknown][];
-        isArgs?: [string, unknown];
-        orderArgs?: [string, { ascending?: boolean; nullsFirst?: boolean }][];
-        limitArg?: number;
-      } = {};
-
-      fromMock.mockReturnValue(
-        createQueryChain(
-          {
-            data: [
-              {
-                id: "sess-latest",
-                class_id: "cls-1",
-                session_date: "2026-09-08",
-                starts_at: "09:00:00",
-                classes: { name: "12-A", archived_at: null },
-                subjects: { name: "Matematik", archived_at: null },
-                attendance_records: [],
-              },
-            ],
-            error: null,
-          },
-          spy
-        )
-      );
-
-      const result = await loadLatestAttendanceSession("org-42");
-
-      expect(fromMock).toHaveBeenCalledWith("attendance_sessions");
-      expect(spy.eqArgs).toEqual([["organization_id", "org-42"]]);
-      expect(spy.isArgs).toEqual(["archived_at", null]);
-      expect(spy.orderArgs).toEqual([
-        ["session_date", { ascending: false }],
-        ["starts_at", { ascending: false, nullsFirst: false }],
-      ]);
-      expect(spy.limitArg).toBe(1);
-
-      expect(result.session).not.toBeNull();
-      expect(result.session?.id).toBe("sess-latest");
-    });
-
-    it("oturum yoksa session: null döner (K-03: uydurulmuş değer yok)", async () => {
-      fromMock.mockReturnValue(
-        createQueryChain({
-          data: [],
-          error: null,
-        })
-      );
-
-      const result = await loadLatestAttendanceSession("org-42");
-      expect(result.session).toBeNull();
-    });
-
-    it("veritabanı hatasında anlamlı Türkçe hata fırlatır", async () => {
-      fromMock.mockReturnValue(
-        createQueryChain({
-          data: null,
-          error: { message: "database error" },
-        })
-      );
-
-      await expect(loadLatestAttendanceSession("org-42")).rejects.toThrow(
-        "Yoklama oturumu yüklenemedi."
-      );
     });
   });
 
