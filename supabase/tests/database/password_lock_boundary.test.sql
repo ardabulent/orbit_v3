@@ -15,7 +15,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(19);
+select plan(20);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -203,10 +203,23 @@ select is(
           not like '%must_change_password%'
   ),
   'branches.branches_select_member, '
-  || 'organizations.organizations_select_member, '
   || 'platform_operators.platform_operators_select_operator, '
   || 'profiles.profiles_update_self',
-  'exactly four policies skip the password lock, and every one of them is an identity read'
+  'exactly three policies skip the password lock, and every one of them is an identity read'
+);
+
+-- 2026-10-25 (göç 20261122000000, ana plan 5.1): `organizations_select_member`
+-- ve operatör kuralı tek `organizations_select` kuralına girdi. Kilitsiz olan
+-- yalnız üye dalı: kilitli kullanıcı kurumunun adını görür (giriş akışı ve
+-- "kurum kapatıldı" ekranı), operatör dalı kilidi taşır.
+select ok(
+  (
+    select pg_get_expr(p.polqual, p.polrelid) like '((id = ANY (( SELECT current_user_member_org_ids()%'
+       and pg_get_expr(p.polqual, p.polrelid) like '%OR (( SELECT current_user_is_platform_operator()%AND (NOT ( SELECT current_user_must_change_password()%'
+    from pg_policy as p
+    where p.polrelid = 'public.organizations'::regclass and p.polname = 'organizations_select'
+  ),
+  'organizations_select: only the member branch skips the lock'
 );
 
 -- 2026-10-17 (göç 20261106000000): `memberships_select_self` ve

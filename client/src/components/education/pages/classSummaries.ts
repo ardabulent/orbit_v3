@@ -6,7 +6,7 @@ import type { ScheduleItem } from "../types";
  *
  * "Hangi ders, hangi öğretmen" bilgisi `class_teachers`'tan değil **ders
  * programından** gelir: öğretmen `class_teachers`'ta yalnız kendi atamasını
- * görebiliyor (`class_teachers_select_self`), programda ise okuttuğu sınıfın
+ * görebiliyor (`class_teachers_select`, kendi satırı dalı), programda ise okuttuğu sınıfın
  * bütün derslerini. Kart iki rolde de aynı şeyi söylesin diye kaynak ortak.
  *
  * Bugünkü yoklama `today_lessons`'tan gelir; yoklama DERS BAŞINA alınır
