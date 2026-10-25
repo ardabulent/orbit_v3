@@ -61,7 +61,7 @@
 - **Form / Doğrulama:** `react-hook-form` + `zod`
 - **Sunucu State:** `@tanstack/react-query` v5
 - **Veri Saklama:** Supabase Postgres (eu-central-1, Frankfurt — karar: `DECISION_LOG.md` "Veri şimdilik Supabase'de (Frankfurt) kalır"), yetki RLS'te; demo kipi yerel örnek veriyle çalışır
-- **Test:** Vitest 5.0 — 134 dosya, **1399 test** + pgTAP **100 dosya, 1451 iddia** (2026-10-25'te koşuldu) + HTTP zincir testleri (`create_member_chain.sh`, `bulk_accounts_chain.mjs`)
+- **Test:** Vitest 5.0 — 134 dosya, **1402 test** + pgTAP **100 dosya, 1451 iddia** (2026-10-25'te koşuldu) + HTTP zincir testleri (`create_member_chain.sh`, `bulk_accounts_chain.mjs`)
 - **Edge Functions:** 11 (Deno) — yalnız kimlik ve hesap işleri; liste `supabase/functions/`
 - **Göçler:** 128 (2026-10-25; birleşince canlıyla eşit, sayıyı `migrationOrderIsMonotonic.test.ts` tutar)
 - **Kod Kalitesi:** ESLint 10 (flat config) + typescript-eslint + eslint-plugin-react-hooks **v7** (üç yeni kural `error` seviyesinde etkin, 2026-09-09'da açıldı) + eslint-plugin-react-refresh
@@ -88,7 +88,7 @@ client/src/
 │   │   ├── EducationPlatform.tsx # Kompozisyon kökü (state + localStorage demo kalıcılığı)
 │   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
 │   │   ├── guardianChild/    # Veli çocuk seçicisi: üst çubukta, bütün veli sekmelerinde geçerli (#423)
-│   │   ├── familyTabLoading.ts # Liste yalnız onu gösteren sekme açıkken / rolün menüsünde varsa okunur (#441)
+│   │   ├── familyTabLoading.ts # Liste yalnız onu kullanan sekme açıkken / rolün menüsünde varsa okunur (#441; personel de 2026-10-25, ana plan 5.2)
 │   │   ├── activeSectionMemory.ts # Açık sekme yenilemede korunur (C-01)
 │   │   ├── lazyPages.ts      # Sekmeler ihtiyaç anında yüklenir (paket bölme)
 │   │   │   (pages/substitutePeriods.ts: vekilliği kurum saatiyle süren/yaklaşan/geçmiş diye ayırır, #369)

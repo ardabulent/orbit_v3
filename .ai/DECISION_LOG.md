@@ -171,6 +171,7 @@
 - Ayrılan kurum önce kapatılır, 30 gün sonra boşaltılır
 - Her Edge Function'ın hız sınırı açıkça yazılır; değerler ilk pilottan sonra ölçülür
 - Şifre sıfırlama kaynak başına sınırlanır; IP saklanmaz, anahtarlı özeti bir gün tutulur
+- Personelde de kurum listeleri onları kullanan sekme açılınca okunur
 
 ---
 
@@ -4398,3 +4399,23 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 **Bilinen sınır:** on ayrı kaynağı olan bir saldırgan sistem sınırını yine doldurabilir. Bedeli artık tek bilgisayardan yapılamayacak kadar yüksek. Görülürse sıradaki adım CAPTCHA.
 
 **Doğrulama borcu (K-12):** birleşmeden sonra canlıda bir "Şifremi unuttum" isteğiyle `source_known = true` görülmeli. `false` çıkarsa başlık fonksiyona ulaşmıyor demektir; koruma o hâlde kapalıdır ama hiçbir şeyi bozmaz.
+
+---
+
+### Karar: Personelde de kurum listeleri onları kullanan sekme açılınca okunur
+
+**Durum:** Kabul edildi · uygulandı (5.2 PR'ı)
+**Tarih:** 2026-10-25
+**Onaylayan:** Arda Bülent (ana plan 5.2 sırası; "devam et")
+
+**Bağlam:** Ana plan 5.2: _"Girişte 20'yi aşkın istek; tek bir açılış özeti çağrısı."_ Ölçüldü (yerel, gerçek kip): yönetici girişi **34**, öğretmen girişi **23** istek. Yarısından fazlası henüz açılmamış sekmelerin listeleri (öğrenci, veli, sınıf, ders programı, sınav, ödeme, ödev) ve onların özet çağrılarıydı. Öğrenci ve velide bu listeler 2026-10-05'ten beri yalnız onları gösteren sekmede okunuyordu (`familyTabLoading.ts`). Personelde "sekmeler anında açılsın" diye girişte okunuyordu, ama personelin Genel Bakış'ı (`AdminDashboard`, `TeacherDashboard`) bu listeleri hiç kullanmıyor; kendi sorgularıyla çalışıyor.
+
+**Karar:**
+
+1. Personelde de liste yalnız onu kullanan sekme açıkken okunur. Her liste için personelin sekmeleri açıkça yazılır: `shouldLoadForTab`'ın `staffTabs` dizisi.
+2. Sekme dışındaki kullanımlar haritalandı ve sayıldı: sınıf paneli (Sınıflar'dan açılır, öğrenci ve ders programı ister), öğrenci paneli (veli listesi; Raporlar ve Sınıflar'dan da açılır, bu yüzden veli listesi panel açıkken de okunur), ödeme planı formu (öğrenci listesi).
+3. Öğrenci ve velinin davranışı birebir aynı: `staffTabs` yalnız personele uygulanır.
+
+**Sonuç (ölçüldü):** yönetici girişi **34 → 13**, öğretmen girişi **23 → 10** istek. Yöneticide 12 sekme, öğretmende 9 sekme ve sınıf paneli → öğrenci paneli yolu tarayıcıda tek tek açıldı; hepsi veriyle doldu, hata yok. Bedeli: bir sekme oturumda ilk açıldığında listesi o an okunur; ikinci açılışta önbellekten gelir.
+
+**Reddedilen:** _Tek "açılış özeti" RPC'si (planın yazdığı)_. On ayrı RLS korumalı okumayı tek bir `security definer` fonksiyonda yeniden yazmak, yetki kurallarını ikinci bir yerde kopyalamak demekti (bu depo yetkiyi SQL'de tek yerde tutar) ve her listenin değişiminde iki yeri güncellemeyi gerektirirdi. Üstelik Genel Bakış'ın ihtiyacı zaten üç özet çağrısıyla karşılanıyordu; fazlalık özette değil, gereksiz listelerdeydi. _Girişten sonra arka planda önceden yükleme_: istek sayısını azaltmaz, yalnız zamana yayar; pik yük sorunu aynen kalır.

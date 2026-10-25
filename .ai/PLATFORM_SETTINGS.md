@@ -674,6 +674,8 @@ Yukarıdaki tablodaki "açık rıza, taahhütname veya yeterlilik kararı" ifade
 >
 > 📌 **Beklenen değişim (2026-10-25, ana plan 5.1, göç `20261122000000`) — merge sonrası canlıda ölçülecek:** `multiple_permissive_policies` **6 → 0** (`class_teachers`, `exam_absences`, `exam_section_results`, `organizations`, `payment_plans`, `substitute_assignments` tek okuma kuralına indi). `authenticated_security_definer_function_executable` **+1** (`current_user_visible_branch_ids`, `current_user_*_ids` ailesiyle aynı kalıp; −1 de 5.5'te `exam_ranking` kaldırıldığı için düşmüştü). Yerel eşdeğerlik: 130 kullanıcı × 15 tablo, fark 0; aynı 1950 sorgu 5,5 → 2,3 sn.
 >
+> ✅ **Ölçüldü (2026-10-25, #504 merge sonrası, canlı danışman):** performans listesinde `multiple_permissive_policies` **yok** (6 → 0) ve `auth_rls_initplan` yok; kalan yalnız iki INFO kategorisi: `unindexed_foreign_keys` 45, `unused_index` 54 (ana plan 5.4, veri büyüyünce). Salt okunur katalog sorgusu da aynı: satır değeriyle yetki çağıran okuma kuralı 0, birden çok okuma kuralı olan tablo 0.
+>
 > 📌 **`rls_enabled_no_policy` üçünün üçü de tasarım gereği:** üçü de yalnız `service_role` veya `definer` fonksiyon üzerinden okunuyor, `authenticated` hiç politika almıyor. Politika eklemek, bugün kapalı olan bir yolu açmak olurdu.
 >
 > ✅ **Bağımsız olarak yeniden ölçüldü (2026-09-19, gerçek kullanım turu · `ROADMAP` §4.23): altı kategorinin altısı da birebir aynı** — 40 / 3 / 1 / 33 / 21 / 17. Yani bu kutu güncel ve taban tutuyor.
