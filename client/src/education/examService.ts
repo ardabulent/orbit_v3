@@ -12,8 +12,8 @@ import { formatTrDate } from "./trDate";
  * ⛔ İki okuma yolu var, birbirinin yerine geçmez (DECISION_LOG)
  * =========================================================================
  *
- * - `exam_ranking(uuid)`: SIRALAMA yolu. `security definer`, satır bazında
- *   maskeleme yapar, yetkisiz isimleri `null`'lar. Bu parçada KULLANILMAZ.
+ * - ~~`exam_ranking(uuid)`~~: SIRALAMA yolu. Hiç çağrılmadı ve az katılımlı
+ *   sınavda kimlik ele verdiği için 2026-10-25'te kaldırıldı (ana plan 5.5).
  * - `student_latest_exam_scores(uuid[])`: LİSTE yolu. Maskeleme YOKTUR;
  *   RLS doğrudan uygulanır ve çağıran yalnız yetkili olduğu satırları alır.
  *

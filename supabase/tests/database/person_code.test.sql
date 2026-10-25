@@ -8,7 +8,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(14);
+select plan(16);
 
 -- Kurulum: iki kurum, üç kullanıcı. Adresler 9000'li aralıkta: yerel örnek
 -- kurum (`pnpm yerel:tohum`) 1000'den başlayan numaraları alır ve çakışmamalı.
@@ -163,6 +163,34 @@ select throws_ok(
 );
 
 reset role;
+
+-- Tahsis yarışı (2026-10-25, ana plan 5.5) ------------------------------------
+--
+-- Tahsis → auth hesabı → üyelik. Ortadaki anda hesap var, üyelik yok; tahsis
+-- yalnız üyeliklere baksaydı aynı anda açılan ikinci üye aynı kodu alırdı.
+insert into public.organizations (id, name, slug, code)
+values ('b3000000-0000-0000-0000-000000000003', 'Kurum G', 'kurum-g', 7961);
+
+insert into public.organization_memberships (organization_id, user_id, role, status, person_code)
+values ('b3000000-0000-0000-0000-000000000003', 'a3000000-0000-0000-0000-000000000003', 'teacher', 'active', 1001);
+
+select is(
+  public.internal_next_person_code('b3000000-0000-0000-0000-000000000003'),
+  1002,
+  'with no account in flight the next code follows the memberships'
+);
+
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
+)
+values ('a4000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000',
+        'authenticated', 'authenticated', '79611002@orbit.invalid', '', now(), now());
+
+select is(
+  public.internal_next_person_code('b3000000-0000-0000-0000-000000000003'),
+  1003,
+  'an account opened but not yet a member holds its code: the next request gets the next one'
+);
 
 select * from finish();
 

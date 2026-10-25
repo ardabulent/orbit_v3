@@ -96,15 +96,22 @@ for (const entry of summary) {
   }
 }
 
-// Bilinmeyen lisanslar için uyarı bas (düşürmez)
+// Bilinmeyen lisans da düşürür (2026-10-25, ana plan 5.5). Lisans beyan
+// etmeyen paket hukuken "izin verilmemiş" demektir. Önceden yalnız uyarıydı,
+// çünkü listede bir tane vardı (`khroma`, `mermaid` üzerinden) ve düşürmek
+// bütün işi durdururdu; paket 2026-09-07'de (68ac85c) kullanılmayan
+// `streamdown` ile birlikte gitti, liste temiz. Yeni bir lisanssız paket artık
+// sessizce giremez: ya yukarı akışta lisans sorulur, ya paket değiştirilir, ya
+// da bilinçli kabul edilip PLATFORM_SETTINGS §5'e yazılır.
 if (unknownPackages.length > 0) {
-  console.warn("⚠️  UYARI: Lisansı tespit edilemeyen (Unknown) paketler:");
+  console.error("❌ HATA: Lisansı tespit edilemeyen (Unknown) paketler:");
   for (const pkg of unknownPackages) {
-    console.warn(`    - ${pkg.name} (${pkg.version})`);
+    console.error(`    - ${pkg.name} (${pkg.version})`);
   }
-  console.warn(
-    "    Not: Unknown paketler derlemeyi düşürmez ancak incelenmelidir.\n"
+  console.error(
+    `Lisans kontrolü BAŞARISIZ (${unknownPackages.length} paket lisans beyan etmiyor).\n`
   );
+  process.exit(1);
 }
 
 // Yasaklı lisanslar bulunduysa ayrıntıları bas ve 1 ile çık

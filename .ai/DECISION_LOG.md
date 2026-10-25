@@ -1111,6 +1111,8 @@ Sentetik e-posta alan adı ayrı bir modüle kondu çünkü **derleyicinin göre
 
 **Kapsam dışı bırakıldı:** İki RPC arasında `person_code` yarışı mümkün — tahsis ile ekleme ayrı işlemler ve advisory lock arada bırakılıyor. `organization_memberships_org_person_code_idx` benzersiz indeksi yakalıyor; ikinci istek hata alır ve yaratılan kullanıcı geri alınır. Sonuç güvenli tarafta olduğu için bilinçli olarak bırakıldı.
 
+> **Sonradan düzeltme (2026-10-25, ana plan 5.5):** yarış kapatıldı. Yerelde aynı anda dört istek ölçüldü: biri başarılı, üçü hata — "güvenli tarafta" doğruydu ama kullanıcı hata görüyordu. Tahsis artık açılmış ama üyeliği yazılmamış hesapları da sayıyor (`internal_next_person_code`, göç `20261121000000`) ve Edge tarafı çakışmada (adres var ya da GoTrue'nun kendi yarışından kodsuz 500) kısa rastgele beklemeyle beş kez yeniden deniyor. Ölçüm: eşzamanlı 8 istekte 8 başarı, 8 farklı numara, üyeliksiz kalan hesap yok.
+
 ---
 
 ### Karar: Silme koruması korunacakları değil, korunmayacakları sayar
@@ -1470,6 +1472,8 @@ Buradaki incelik şu: öğrenci **tüm sıralamayı** görmek zorunda. Kaçınc�
 Yani gizlenmesi gereken şey **satır değil, aynı satırın bazı sütunları**. RLS satır gizler; bu isteği politikayla ifade etmek mümkün değil.
 
 **Karar:** Sıralama, tablo üzerinden değil `public.exam_ranking(uuid)` fonksiyonundan okunur. Fonksiyon `SECURITY DEFINER`'dır, yetkiyi içeride çözer ve her satır için ayrı ayrı "çağıran bu öğrenciyi görebilir mi" sorusunu sorar. Cevap hayırsa **isim ve kimlik `null` döner, sıra ve puan durur.**
+
+> **Sonradan düzeltme (2026-10-25, ana plan 5.5):** `exam_ranking` kaldırıldı (göç `20261121000000`). İstemci onu hiç çağırmadı; sınav ekranları `exam_results`'ı RLS ile okuyor. Az katılımlı sınavda maskeli satırlar kimliği ele veriyordu (iki kişilik sınavda öğrencinin görmediği tek satır öbür öğrencidir). Sıralama bir gün istenirse en az üç katılımcı kuralıyla yeniden tasarlanır; bu kararın maskeleme gerekçesi o gün yeniden okunur.
 
 - Yetkisiz çağırana hata değil **boş küme** döner: sıralamayı görmeye hakkı olmayan biri "bu sınav var ama göremiyorsun" bilgisini de almamalı.
 - Sıralamayı görme koşulu, sınavda **en az bir öğrenciyi görebiliyor olmak**. Sınava girmemiş ve orada kimseyi okutmayan biri isimsiz puan dağılımını bile göremez — o dağılım ona ait bir bilgi değil.
