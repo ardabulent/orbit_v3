@@ -21,6 +21,7 @@ export const METRIC_KEYS = [
   "net_trend",
   "exam_missed",
   "homework_pct",
+  "target_gap",
 ] as const;
 
 export type MetricKey = (typeof METRIC_KEYS)[number];
@@ -39,6 +40,11 @@ export type MetricDefinition = {
   direction: Direction;
   /** Ders seçilmeden ölçülemeyen ölçüt. */
   needsSubject?: boolean;
+  /**
+   * Öğrenciye uygulanmıyorsa (ör. hedefi girilmemiş) genel durumda hiç
+   * sayılmaz — "yetersiz veri" diye de yazılmaz. Verilmezse her zaman uygulanır.
+   */
+  appliesTo?: (row: TrackingStudentRow, subjectId?: string) => boolean;
   value: (row: TrackingStudentRow, subjectId?: string) => number | undefined;
   detail: (row: TrackingStudentRow, subjectId?: string) => string;
 };
@@ -84,6 +90,33 @@ const attendancePercent = (row: TrackingStudentRow) =>
 
 const subjectOf = (row: TrackingStudentRow, subjectId?: string) =>
   subjectId ? row.subjectNets.find(s => s.subjectId === subjectId) : undefined;
+
+/**
+ * Hedefe uzaklığın kaynağı: ders seçiliyse o dersin hedefi ve ders neti,
+ * değilse toplam hedef ve son üç denemenin ortalaması.
+ */
+const targetBasis = (row: TrackingStudentRow, subjectId?: string) => {
+  if (subjectId) {
+    const target = row.targets.find(t => t.subjectId === subjectId);
+    if (!target) return undefined;
+    const subject = subjectOf(row, subjectId);
+    return {
+      target: target.targetNet,
+      label: subject?.subjectName ?? "Ders",
+      current:
+        subject && subject.examCount >= MIN_EXAMS ? subject.avgNet : undefined,
+      have: subject?.examCount ?? 0,
+    };
+  }
+  const target = row.targets.find(t => !t.subjectId);
+  if (!target) return undefined;
+  return {
+    target: target.targetNet,
+    label: "Toplam",
+    current: hasTwoExams(row) ? row.netAvg3 : undefined,
+    have: examResultCount(row),
+  };
+};
 
 export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
   attendance_pct: {
@@ -215,6 +248,32 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
           )} · ${row.homeworkSubmitted}/${row.homeworkExpected}`
         : insufficient(row.homeworkExpected, "bitmiş ödev", MIN_HOMEWORK),
   },
+  target_gap: {
+    key: "target_gap",
+    label: "Hedefe uzaklık (net)",
+    shortLabel: "Hedef",
+    unit: "net",
+    direction: "lower_better",
+    appliesTo: (row, subjectId) => targetBasis(row, subjectId) !== undefined,
+    value: (row, subjectId) => {
+      const basis = targetBasis(row, subjectId);
+      return basis?.current === undefined
+        ? undefined
+        : round2(basis.target - basis.current);
+    },
+    detail: (row, subjectId) => {
+      const basis = targetBasis(row, subjectId);
+      if (!basis) return "Hedef girilmemiş";
+      if (basis.current === undefined) {
+        return insufficient(basis.have, "deneme", MIN_EXAMS);
+      }
+      const gap = round2(basis.target - basis.current);
+      return (
+        `${basis.label} hedef ${formatNet(basis.target)} · ort. ${formatNet(basis.current)} · ` +
+        (gap > 0 ? `${formatNet(gap)} net uzak` : "hedefte")
+      );
+    },
+  },
 };
 
 /**
@@ -230,6 +289,7 @@ export const CODE_DEFAULT_LIMITS: LimitsByMetric = {
   net_trend: { risk: -5, safe: 0 },
   exam_missed: { risk: 2, safe: 1 },
   homework_pct: { risk: 60, safe: 80 },
+  target_gap: { risk: 10, safe: 5 },
 };
 
 /** Kişisel seçim > kurum varsayılanı > kod varsayılanı. */

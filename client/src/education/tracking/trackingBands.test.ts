@@ -29,6 +29,7 @@ const row = (
   subjectNets: [],
   homeworkExpected: 4,
   homeworkSubmitted: 4,
+  targets: [],
   ...over,
 });
 
@@ -292,5 +293,29 @@ describe("genel durumda eksik veri", () => {
     expect(ranked.detail).toBe(
       "Yetersiz veri: hiçbir ölçüt için yeterli kayıt yok"
     );
+  });
+});
+
+describe("hedef genel durumda", () => {
+  const limits = resolveLimits({}, {});
+
+  it("hedefi olmayan öğrencide hedef ne sayılır ne eksik yazılır", () => {
+    const [ranked] = rankRows([row("a")], {
+      criterion: "overall",
+      limits,
+      sort: { key: "criticality", dir: "desc" },
+    });
+    expect(ranked.overall.insufficientLabels).not.toContain("Hedef");
+    expect(ranked.overall.riskLabels).not.toContain("Hedef");
+  });
+
+  it("hedefin 10 netten fazla gerisindeki öğrenci riskli sayılır", () => {
+    const [ranked] = rankRows([row("a", { targets: [{ targetNet: 65 }] })], {
+      criterion: "overall",
+      limits,
+      sort: { key: "criticality", dir: "desc" },
+    });
+    expect(ranked.overall.riskLabels).toEqual(["Hedef"]);
+    expect(ranked.band).toBe("risk");
   });
 });

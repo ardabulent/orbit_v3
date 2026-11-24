@@ -7,23 +7,27 @@ import {
 } from "@/education/tracking/trackingMetrics";
 import type { TrackingStudentRow } from "@/education/tracking/trackingTypes";
 import { BandBadge } from "./BandBadge";
+import { StudentTargetsEditor } from "./StudentTargetsEditor";
 import { formatMetricValue, formatNumber } from "./trackingFormat";
 
 /**
  * Öğrenci profili (Takip içinde): her ölçüt kendi bandıyla, ders ders net
- * tablosu ve öğrenci sayfasına bağlantı. Hedefler (2. dilim) ve notlar
- * (3. dilim) buraya eklenecek.
+ * tablosu ve öğrenci sayfasına bağlantı. Hedefler burada düzenlenir
+ * (4.10b); notlar (4.10c) buraya eklenecek.
  */
 export function TrackingStudentProfile({
   row,
   limits,
   onBack,
   onOpenStudent,
+  canEditTargets = false,
 }: {
   row: TrackingStudentRow;
   limits: LimitsByMetric;
   onBack?: () => void;
   onOpenStudent?: (studentId: string) => void;
+  /** Yalnız kullanıcı deneyimi; yazma yetkisi RLS'te. */
+  canEditTargets?: boolean;
 }) {
   const overall = evaluateOverall(row, limits);
   return (
@@ -57,30 +61,30 @@ export function TrackingStudentProfile({
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {METRIC_KEYS.filter(key => !TRACKING_METRICS[key].needsSubject).map(
-          key => {
-            const metric = TRACKING_METRICS[key];
-            const value = metric.value(row);
-            return (
-              <div key={key} className="rounded-xl border border-slate-100 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-bold text-slate-500">
-                    {metric.label}
-                  </p>
-                  <BandBadge
-                    band={bandFor(value, metric.direction, limits[key])}
-                  />
-                </div>
-                <p className="mt-1 text-[18px] font-extrabold text-slate-900">
-                  {formatMetricValue(metric, value)}
+        {METRIC_KEYS.filter(key => {
+          const metric = TRACKING_METRICS[key];
+          if (metric.needsSubject) return false;
+          return !metric.appliesTo || metric.appliesTo(row);
+        }).map(key => {
+          const metric = TRACKING_METRICS[key];
+          const value = metric.value(row);
+          return (
+            <div key={key} className="rounded-xl border border-slate-100 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-bold text-slate-500">
+                  {metric.label}
                 </p>
-                <p className="text-[11px] text-slate-500">
-                  {metric.detail(row)}
-                </p>
+                <BandBadge
+                  band={bandFor(value, metric.direction, limits[key])}
+                />
               </div>
-            );
-          }
-        )}
+              <p className="mt-1 text-[18px] font-extrabold text-slate-900">
+                {formatMetricValue(metric, value)}
+              </p>
+              <p className="text-[11px] text-slate-500">{metric.detail(row)}</p>
+            </div>
+          );
+        })}
       </div>
 
       {row.subjectNets.length > 0 ? (
@@ -110,7 +114,10 @@ export function TrackingStudentProfile({
                   <td className="py-2 pr-3">
                     <BandBadge
                       band={bandFor(
-                        subject.avgNet,
+                        TRACKING_METRICS.subject_net.value(
+                          row,
+                          subject.subjectId
+                        ),
                         "higher_better",
                         limits.subject_net
                       )}
@@ -127,6 +134,7 @@ export function TrackingStudentProfile({
           Bu aralıkta ders ders sonucu girilmiş deneme yok.
         </p>
       )}
+      {canEditTargets ? <StudentTargetsEditor row={row} /> : null}
     </section>
   );
 }

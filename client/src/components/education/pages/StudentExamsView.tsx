@@ -12,6 +12,7 @@ import {
   PageHeader,
 } from "../shared";
 import type { Role } from "../types";
+import { StudentTargetsCard } from "./StudentTargetsCard";
 
 /** Türkçe ondalık: 28,5 — 28.5 değil. */
 function formatNumber(value: number): string {
@@ -87,6 +88,7 @@ function StudentExamsBody({ studentId }: { studentId: string }) {
   const { upcoming, results } = query.data;
   return (
     <div className="mt-6 space-y-6">
+      <StudentTargetsCard studentId={studentId} />
       <section>
         <h2 className="mb-2 text-[13px] font-extrabold text-slate-800">
           Yaklaşan sınavlar

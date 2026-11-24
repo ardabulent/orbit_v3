@@ -15,6 +15,12 @@ export type TrackingSubjectNet = {
   examCount: number;
 };
 
+/** Hedef net (4.10b): `subjectId` yoksa toplam hedef. */
+export type TrackingTarget = {
+  subjectId?: string;
+  targetNet: number;
+};
+
 export type TrackingStudentRow = {
   studentId: string;
   studentName: string;
@@ -36,4 +42,5 @@ export type TrackingStudentRow = {
   subjectNets: TrackingSubjectNet[];
   homeworkExpected: number;
   homeworkSubmitted: number;
+  targets: TrackingTarget[];
 };
