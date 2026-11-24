@@ -1116,6 +1116,8 @@ Sentetik e-posta alan adı ayrı bir modüle kondu çünkü **derleyicinin göre
 
 > **Sonradan düzeltme (2026-10-25, ana plan 5.5):** yarış kapatıldı. Yerelde aynı anda dört istek ölçüldü: biri başarılı, üçü hata — "güvenli tarafta" doğruydu ama kullanıcı hata görüyordu. Tahsis artık açılmış ama üyeliği yazılmamış hesapları da sayıyor (`internal_next_person_code`, göç `20261121000000`) ve Edge tarafı çakışmada (adres var ya da GoTrue'nun kendi yarışından kodsuz 500) kısa rastgele beklemeyle beş kez yeniden deniyor. Ölçüm: eşzamanlı 8 istekte 8 başarı, 8 farklı numara, üyeliksiz kalan hesap yok.
 
+> 🔴 **Sonradan düzeltme (2026-11-24):** bu düzeltme **kurum kurmayı kırdı** ve beş hafta fark edilmedi. `bootstrap-organization` yöneticinin `<kurum>1000@orbit.invalid` hesabını kurulumdan **önce** açıyor; yeni tahsis o hesabı "uçuşta" sayıp 1001 bekledi ve kurulum `person code mismatch` (23514) ile geri alındı. pgTAP görmedi, çünkü kurulum fonksiyonu yalnız yetki testlerinde çağrılıyordu; Edge'in sırasını (önce hesap, sonra kurulum) uçtan uca kuran test yoktu. Bulan: Takip PR'ının (#509) tarayıcı denemesi için çalışan `yerel:tohum`. Düzeltme (göç `20261123000000`): tahsis isteğe bağlı `pending_user_id` alır, kurulum kendi açtığı hesabı saymaz; başka bekleyen hesaplar yine sayılır, yarış koruması olduğu gibi kalır. `person_code.test.sql` artık kurumu Edge'in sırasıyla kuruyor; temiz veritabanında `yerel:tohum` baştan sona geçti (kişi kodları 1000–1004 sırayla).
+
 ---
 
 ### Karar: Silme koruması korunacakları değil, korunmayacakları sayar
@@ -4038,6 +4040,8 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 - Canlı güncelleme düzenleyenin yazdıklarını ezmez: veri gelirken kullanıcı yazıyorsa yazdıkları korunur ve uyarı çıkar; kendi kaydının yankısı uyarı sayılmaz (sınav detayı).
 - Çalışma süresi ve kota alarmı yeni sağlayıcı olmadan GitHub Actions'ta; alarm kanalı GitHub'ın başarısız zamanlanmış iş e-postası.
 - Personelin girişte listeleri birlikte okuması **değiştirilmedi**: ölçüldü, her liste artık ≤15 ms; ertelemek her sekmeye bekleme ekler. Kalan maliyet yıllık iki toplam, `v1.5-27`.
+
+**Sonradan düzeltme (2026-11-24):** eşdeğerlik ölçümü **okumayı** karşılaştırdı, yazının geri dönüşünü değil — ve bir fark kaçtı. `branches_select_member` görünür şubeleri `branches` tablosundan sorgu başında bir kez sayıyordu; arayüz şubeyi `insert(...).select()` ile eklediği için (`branchService.createBranch`) yeni satır o listede yoktu, RETURNING okuma kuralına takıldı ve **yönetici yeni şube ekleyemedi** (5.1 birleştiğinden beri). Düzeltme (göç `20261123000000`): liste yalnız üyeliklerden çıkar — kurum geneli üyelik `organization_id` ile, şubeli üyelik `id` ile (`current_user_org_wide_member_org_ids`, `current_user_member_branch_ids`); `current_user_visible_branch_ids` kaldırıldı. Görünürlük aynı, fark aynı sorguda eklenen satırın da görünmesi (`branch_insert_reads_back.test.sql`). **Ders:** bir okuma kuralını dizi fonksiyonuna çevirirken dizi, kuralın koruduğu tablonun **kendisinden** türetiliyorsa aynı ifadedeki INSERT … RETURNING kırılır. 5.1'in diğer dizileri (kurum, üyelik, öğrenci, sınıf) korunan tablodan değil üyelik ve kayıt tablolarından türediği için bu kusuru taşımıyor; bir sonraki dönüşümde bu soru sorulur.
 
 ### Karar: Arşiv tek ekranda toplanır: Ayarlar → Arşiv
 
