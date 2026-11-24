@@ -8,7 +8,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(19);
 
 -- Kurulum: iki kurum, üç kullanıcı. Adresler 9000'li aralıkta: yerel örnek
 -- kurum (`pnpm yerel:tohum`) 1000'den başlayan numaraları alır ve çakışmamalı.
@@ -190,6 +190,45 @@ select is(
   public.internal_next_person_code('b3000000-0000-0000-0000-000000000003'),
   1003,
   'an account opened but not yet a member holds its code: the next request gets the next one'
+);
+
+-- Kurum kurma (2026-11-24) ----------------------------------------------------
+--
+-- 🔴 5.5'in yarış koruması kurulumu kırmıştı: Edge önce yöneticinin
+-- `<kurum>1000@orbit.invalid` hesabını açar, sonra kurulumu 1000 ile çağırır.
+-- Tahsis o hesabı "uçuşta" sayıp 1001 bekliyor ve kurulum reddediliyordu.
+-- Kurulum artık kendi açtığı hesabı saymaz; başka bekleyen hesaplar sayılır.
+select is(
+  public.internal_next_person_code(
+    'b3000000-0000-0000-0000-000000000003',
+    'a4000000-0000-0000-0000-000000000004'
+  ),
+  1002,
+  'the account being set up is not counted against itself'
+);
+
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
+)
+values ('a5000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000',
+        'authenticated', 'authenticated', '79621000@orbit.invalid', '', now(), now());
+
+select is(
+  (public.internal_bootstrap_organization(
+     'Kurum H', 'kurum-h', 7962, 'Merkez',
+     'a5000000-0000-0000-0000-000000000005', 1000,
+     'a5000000-0000-0000-0000-000000000005'
+   ) ->> 'login_number'),
+  '79621000',
+  'a new institution is set up with its first admin as 1000'
+);
+
+select is(
+  public.internal_next_person_code(
+    (select id from public.organizations where code = 7962)
+  ),
+  1001,
+  'after setup the next member gets 1001'
 );
 
 select * from finish();
