@@ -39,6 +39,7 @@ const CONTENT_TABLE_LABELS: Record<string, string> = {
   client_error_reports: "ekran hata kaydı",
   tracking_threshold_defaults: "takip varsayılan sınırı",
   student_targets: "hedef net",
+  student_followup_notes: "takip notu",
 };
 
 export type ContentLine = { table: string; label: string; rows: number };
