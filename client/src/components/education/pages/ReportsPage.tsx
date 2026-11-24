@@ -1,4 +1,6 @@
+import { lazy, Suspense, useState } from "react";
 import { isDemoMode } from "@/auth/runtime";
+import type { Criterion } from "@/education/tracking/trackingMetrics";
 import { formatTrWeekLabel, getOrbitToday } from "@/education/trDate";
 import type {
   AttentionStudent,
@@ -28,6 +30,11 @@ import { AttentionList } from "./AttentionList";
 import { ClassComparisonTable } from "./ClassComparisonTable";
 import { ReportsToolbar } from "./ReportsToolbar";
 
+// Takip ayrı parça: Genel bakışı açan kullanıcı Takip kodunu indirmez.
+const TrackingTab = lazy(() =>
+  import("./tracking/TrackingTab").then(m => ({ default: m.TrackingTab }))
+);
+
 export type ReportsPageProps = {
   role: Role;
   isDemo?: boolean;
@@ -52,7 +59,11 @@ export type ReportsPageProps = {
     error: Error | null;
   };
   onOpenStudent?: (studentId: string) => void;
+  /** Takip sekmesindeki öğrenci arama listesi (görünür öğrenciler). */
+  students?: { id: string; name: string; group: string | null }[];
 };
+
+type ReportsView = "overview" | "tracking";
 
 const formatNet = (value: number) =>
   value.toLocaleString("tr-TR", { maximumFractionDigits: 1 });
@@ -84,9 +95,14 @@ export function ReportsPage({
   comparison,
   attention,
   onOpenStudent,
+  students = [],
 }: ReportsPageProps) {
   const isTeacher = role === "teacher";
   const activeDemo = DEMO_BUILD && isDemo;
+  const [view, setView] = useState<ReportsView>("overview");
+  const [trackingCriterion, setTrackingCriterion] = useState<
+    Criterion | undefined
+  >(undefined);
 
   // Hafta aralığı alt başlığı: her iki haftalık fonksiyon (devam ve ödev)
   // aynı 4 takvim haftasını ölçer (v1.4-16 · #278 / K-06).
@@ -157,118 +173,175 @@ export function ReportsPage({
             : "Akademik, devam ve operasyon görünümünü karar vermeyi kolaylaştıracak şekilde izleyin."
         }
       />
-      {!activeDemo && range && onRangeChange ? (
-        <ReportsToolbar
-          classes={classes}
-          range={range}
-          onRangeChange={onRangeChange}
-          allLabel={allLabel}
-        />
-      ) : null}
-      {error ? (
-        <ErrorState
-          className="mt-6"
-          title="Raporlar görüntülenemedi"
-          message={
-            error.message || "Rapor verileri yüklenirken bir hata oluştu."
+      <div
+        role="tablist"
+        aria-label="Rapor görünümü"
+        className="mt-4 inline-flex gap-1 rounded-xl border border-slate-200 bg-white p-1"
+      >
+        {(
+          [
+            ["overview", "Genel bakış"],
+            ["tracking", "Takip"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={view === value}
+            onClick={() => {
+              setView(value);
+              if (value === "overview") setTrackingCriterion(undefined);
+            }}
+            className={`rounded-lg px-4 py-1.5 text-[12px] font-bold transition ${
+              view === value
+                ? "bg-slate-900 text-white"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {view === "tracking" ? (
+        <Suspense
+          fallback={
+            <div className="mt-6">
+              <CardSkeleton />
+            </div>
           }
-          onRetry={onRetry}
-        />
-      ) : isLoading ? (
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-        </div>
+        >
+          <TrackingTab
+            role={role}
+            isDemo={isDemo}
+            classes={classes}
+            students={students}
+            onOpenStudent={onOpenStudent}
+            initialCriterion={trackingCriterion}
+          />
+        </Suspense>
       ) : (
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <ReportCard
-            title="Devam görünümü"
-            subtitle={weekSubtitle}
-            values={attendanceValues}
-            labels={attendanceLabels}
-            color="bg-emerald-500"
-          />
-          <ReportCard
-            title="Deneme gelişimi"
-            subtitle={examSubtitle}
-            values={examValues}
-            labels={examLabels}
-            color="bg-violet-500"
-            {...(activeDemo
-              ? {}
-              : {
-                  scaleMax: netMax * 1.15,
-                  valueLabels: netExams.map(e =>
-                    e.averageNet !== undefined ? formatNet(e.averageNet) : ""
-                  ),
-                })}
-          />
-          <ReportCard
-            title="Ödev tamamlama"
-            subtitle={weekSubtitle}
-            values={homeworkValues}
-            labels={homeworkLabels}
-            color="bg-blue-500"
-          />
-          {scoredExams.length > 0 ? (
-            <ReportCard
-              title="Puanlı sınavlar"
-              subtitle={`Son ${range?.weeks ?? 4} sınav · başarı yüzdesi · ${scopeLabel}`}
-              values={scoredExams.map(e => e.averagePercent)}
-              labels={scoredExams.map(examLabel)}
-              valueLabels={scoredExams.map(e =>
-                e.averagePercent !== undefined
-                  ? `%${formatNet(e.averagePercent)}`
-                  : ""
-              )}
-              color="bg-amber-500"
+        <>
+          {!activeDemo && range && onRangeChange ? (
+            <ReportsToolbar
+              classes={classes}
+              range={range}
+              onRangeChange={onRangeChange}
+              allLabel={allLabel}
             />
           ) : null}
-        </div>
-      )}
-      {!activeDemo && range && attention && onOpenStudent && !error ? (
-        <AttentionList
-          rows={attention.rows}
-          isLoading={attention.isLoading}
-          error={attention.error}
-          weeks={range.weeks}
-          onOpenStudent={onOpenStudent}
-        />
-      ) : null}
-      {!activeDemo && range && onRangeChange && comparison && !error ? (
-        <ClassComparisonTable
-          rows={comparison.rows}
-          isLoading={comparison.isLoading}
-          error={comparison.error}
-          weeks={range.weeks}
-          selectedClassId={range.classId}
-          onSelectClass={classId => onRangeChange({ ...range, classId })}
-          today={getOrbitToday()}
-        />
-      ) : null}
-      {actions.length > 0 ? (
-        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          <h2 className="font-display text-[17px] font-extrabold text-slate-900">
-            Raporu aksiyona dönüştür
-          </h2>
-          <p className="mt-1 text-[11px] text-slate-500">
-            Raporlar yalnızca izleme için değil, eğitim ekibinin bir sonraki
-            adımını netleştirmek için kullanılmalıdır.
-          </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            {actions.map(action => (
-              <ActionLine
-                key={action.title}
-                title={action.title}
-                detail={action.detail}
-                icon={action.icon}
-                tone={action.tone}
+          {error ? (
+            <ErrorState
+              className="mt-6"
+              title="Raporlar görüntülenemedi"
+              message={
+                error.message || "Rapor verileri yüklenirken bir hata oluştu."
+              }
+              onRetry={onRetry}
+            />
+          ) : isLoading ? (
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+              <CardSkeleton />
+              <CardSkeleton />
+              <CardSkeleton />
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+              <ReportCard
+                title="Devam görünümü"
+                subtitle={weekSubtitle}
+                values={attendanceValues}
+                labels={attendanceLabels}
+                color="bg-emerald-500"
               />
-            ))}
-          </div>
-        </section>
-      ) : null}
+              <ReportCard
+                title="Deneme gelişimi"
+                subtitle={examSubtitle}
+                values={examValues}
+                labels={examLabels}
+                color="bg-violet-500"
+                {...(activeDemo
+                  ? {}
+                  : {
+                      scaleMax: netMax * 1.15,
+                      valueLabels: netExams.map(e =>
+                        e.averageNet !== undefined
+                          ? formatNet(e.averageNet)
+                          : ""
+                      ),
+                    })}
+              />
+              <ReportCard
+                title="Ödev tamamlama"
+                subtitle={weekSubtitle}
+                values={homeworkValues}
+                labels={homeworkLabels}
+                color="bg-blue-500"
+              />
+              {scoredExams.length > 0 ? (
+                <ReportCard
+                  title="Puanlı sınavlar"
+                  subtitle={`Son ${range?.weeks ?? 4} sınav · başarı yüzdesi · ${scopeLabel}`}
+                  values={scoredExams.map(e => e.averagePercent)}
+                  labels={scoredExams.map(examLabel)}
+                  valueLabels={scoredExams.map(e =>
+                    e.averagePercent !== undefined
+                      ? `%${formatNet(e.averagePercent)}`
+                      : ""
+                  )}
+                  color="bg-amber-500"
+                />
+              ) : null}
+            </div>
+          )}
+          {!activeDemo && range && attention && onOpenStudent && !error ? (
+            <AttentionList
+              rows={attention.rows}
+              isLoading={attention.isLoading}
+              error={attention.error}
+              weeks={range.weeks}
+              onOpenStudent={onOpenStudent}
+              onOpenTracking={() => {
+                setTrackingCriterion("overall");
+                setView("tracking");
+              }}
+            />
+          ) : null}
+          {!activeDemo && range && onRangeChange && comparison && !error ? (
+            <ClassComparisonTable
+              rows={comparison.rows}
+              isLoading={comparison.isLoading}
+              error={comparison.error}
+              weeks={range.weeks}
+              selectedClassId={range.classId}
+              onSelectClass={classId => onRangeChange({ ...range, classId })}
+              today={getOrbitToday()}
+            />
+          ) : null}
+          {actions.length > 0 ? (
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
+              <h2 className="font-display text-[17px] font-extrabold text-slate-900">
+                Raporu aksiyona dönüştür
+              </h2>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Raporlar yalnızca izleme için değil, eğitim ekibinin bir sonraki
+                adımını netleştirmek için kullanılmalıdır.
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {actions.map(action => (
+                  <ActionLine
+                    key={action.title}
+                    title={action.title}
+                    detail={action.detail}
+                    icon={action.icon}
+                    tone={action.tone}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
+      )}
     </>
   );
 }

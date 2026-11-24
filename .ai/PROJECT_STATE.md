@@ -141,7 +141,7 @@ client/src/
 │   ├── dayPlanService.ts   # Gün planı: görev ve takvim (v1.4-13)
 │   ├── educationQueries.ts # Toplayıcı: queries/ altını dışa aktarır; yeni hook buraya değil konu dosyasına (2026-10-25)
 │   ├── queries/            # React Query hook'ları konu başına: educationKeys ([alan, kaynak, kapsam]), roster, schedule,
-│   │                       #   exam, payment, homework, attendance, feed, report, overview
+│   │                       #   exam, payment, homework, attendance, feed, report, overview, tracking
 │   ├── weekDays.ts         # Hafta yedi gün; ISO 1–7 ↔ etiket dönüşümünün tek kaynağı
 │   ├── trDate.ts           # Türkçe tarih biçimlendirici + getOrbitToday (takvim gününün tek kaynağı)
 │   ├── attendanceStatus.ts # Yoklama durumu eşlemesi
@@ -159,6 +159,9 @@ client/src/
 │   ├── accountForRecord.ts / useOpenAccountForRecord.ts # Var olan öğrenci/veli kaydına hesap aç + bağla; liste fiş kapanınca tazelenir (1.7, 2026-10-23). Ekranı `pages/AssignAccountPopover.tsx` (öğrenci + veli ortak), pencere sayfada sabit: `OpenAccountHost.tsx` + `openAccountRequest.ts` → `OpenAccountDialog.tsx`
 │   ├── overviewService.ts  # Yönetici Genel Bakış kartlarının verisi
 │   ├── attentionReasons.ts # Dikkat listesindeki öğrencinin nedenleri, ekranda okunacak haliyle
+│   ├── trackingService.ts  # Raporlar → Takip: `tracking_student_metrics` ham sayıları + kurum varsayılan sınırları (2026-11-24)
+│   ├── tracking/           # Takip'in saf hesabı: ölçüt tanımları (trackingMetrics), bant/genel durum/sıra (trackingBands),
+│   │                       #   kişisel son seçim (trackingPrefs, tarayıcıda); ekranı `pages/tracking/`
 │   ├── reportCsv.ts        # Sınıf karşılaştırması → Excel'in Türkçe ayarında açılan CSV (biçim kuralları `lib/turkishCsv.ts`)
 │   ├── dataExportService.ts # Kurum verisini dışa aktarma: 5 küme → Excel/CSV; önce denetim kaydı (`record_data_export`), sonra dosya (2026-10-24)
 │   └── studentExamService.ts / studentHomeworkService.ts # Öğrenci ve velinin sınav ve ödev görünümü (karar 2026-09-28)

@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import type { OrganizationMember } from "@/organization/memberService";
+import type { TrackingStudentRow } from "@/education/tracking/trackingTypes";
 import type {
   AttendanceState,
   ClassGroup,
@@ -981,3 +982,53 @@ export const demoActiveConversation: ActiveConversation = {
     },
   ],
 };
+
+/**
+ * Takip sekmesinin demo satırları (2026-11-24). Demo öğrencilerinin devam ve
+ * puanından türetilir; gerçek modda hiç kullanılmaz (`DEMO_BUILD` kapısı,
+ * `scripts/check-demo-leak.mjs`). Fonksiyon, dizi değil: modül düzeyinde
+ * `students.map(...)` çalışsaydı paketleyici demo dizisini atamazdı.
+ */
+export const demoTrackingRows = (): TrackingStudentRow[] =>
+  students.map((student, index) => {
+    const attendance = student.attendance ?? 90;
+    const lessons = 20;
+    const attended = Math.round((attendance / 100) * lessons);
+    const late = index % 3;
+    const net = Math.round(((student.score ?? 70) / 100) * 90 * 10) / 10;
+    return {
+      studentId: student.id,
+      studentName: student.name,
+      classNames: student.group ?? "",
+      lessonCount: lessons,
+      presentCount: Math.max(attended - late, 0),
+      lateCount: Math.min(late, attended),
+      absentCount: lessons - attended,
+      excusedCount: index % 2,
+      absenceStreak: attendance < 80 ? 3 : attendance < 90 ? 1 : 0,
+      examExpected: 4,
+      examMissed: attendance < 80 ? 2 : 0,
+      lastNet: net,
+      previousNet: Math.round((net + (index % 2 === 0 ? 4 : -6)) * 10) / 10,
+      netAvg3: net,
+      classAvgLast: 60,
+      subjectNets: [
+        {
+          subjectId: "demo-mat",
+          subjectName: "Matematik",
+          avgNet: Math.round(net * 0.35 * 10) / 10,
+          classAvg: 21,
+          examCount: 3,
+        },
+        {
+          subjectId: "demo-tur",
+          subjectName: "Türkçe",
+          avgNet: Math.round(net * 0.3 * 10) / 10,
+          classAvg: 19,
+          examCount: 3,
+        },
+      ],
+      homeworkExpected: 9,
+      homeworkSubmitted: Math.min(9, Math.round((attendance / 100) * 9)),
+    };
+  });

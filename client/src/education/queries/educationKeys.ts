@@ -247,4 +247,24 @@ export const educationKeys = {
       "reportHomeworkWeeks",
       { organizationId, weeks: range.weeks, classId: range.classId },
     ] as const,
+  // Takip (2026-11-24): sınırlar anahtarda YOK — sınır değişince sorgu
+  // tekrarlanmaz, bant istemcide yeniden hesaplanır.
+  trackingMetrics: (
+    organizationId: string,
+    weeks: ReportWeeks,
+    classId: string | undefined,
+    studentId: string | undefined
+  ) =>
+    [
+      "education",
+      "trackingMetrics",
+      {
+        organizationId,
+        weeks,
+        classId: classId ?? null,
+        studentId: studentId ?? null,
+      },
+    ] as const,
+  trackingDefaults: (organizationId: string) =>
+    ["education", "trackingDefaults", { organizationId }] as const,
 };
