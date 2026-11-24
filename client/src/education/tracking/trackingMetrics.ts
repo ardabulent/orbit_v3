@@ -43,8 +43,27 @@ export type MetricDefinition = {
   detail: (row: TrackingStudentRow, subjectId?: string) => string;
 };
 
-const MIN_LESSONS = 5;
-const MIN_HOMEWORK = 3;
+/**
+ * En az veri (karar 2026-11-24, kurum sahibi: "geçmiş veri yoksa zorla
+ * hesaplamasın, yeterli veri yok desin"). Tek bir kayıttan bant çıkarılmaz:
+ * altında kalan öğrenci "Yetersiz veri" sayılır ve neyin eksik olduğu yazılır.
+ */
+export const MIN_DATA = {
+  lessons: 5,
+  homework: 3,
+  exams: 2,
+} as const;
+const MIN_LESSONS = MIN_DATA.lessons;
+const MIN_HOMEWORK = MIN_DATA.homework;
+const MIN_EXAMS = MIN_DATA.exams;
+
+const insufficient = (have: number, unit: string, need: number) =>
+  `Yetersiz veri: ${have} ${unit}, en az ${need} gerekir`;
+
+/** Bu aralıkta en az iki net deneme sonucu var mı (önceki net ancak o zaman dolu). */
+const hasTwoExams = (row: TrackingStudentRow) => row.previousNet !== undefined;
+const examResultCount = (row: TrackingStudentRow) =>
+  row.previousNet !== undefined ? 2 : row.lastNet !== undefined ? 1 : 0;
 
 const formatNet = (value: number) =>
   value.toLocaleString("tr-TR", { maximumFractionDigits: 1 });
@@ -78,7 +97,7 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
       const percent = attendancePercent(row);
       const attended = row.presentCount + row.lateCount;
       return percent === undefined
-        ? `${row.lessonCount} ders · en az ${MIN_LESSONS} ders gerekir`
+        ? insufficient(row.lessonCount, "ders", MIN_LESSONS)
         : `Devam %${percent} · ${attended}/${row.lessonCount} ders`;
     },
   },
@@ -89,7 +108,10 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
     unit: "adet",
     direction: "lower_better",
     value: row => (row.lessonCount >= MIN_LESSONS ? row.lateCount : undefined),
-    detail: row => `${row.lateCount} geç kalma · ${row.lessonCount} ders`,
+    detail: row =>
+      row.lessonCount >= MIN_LESSONS
+        ? `${row.lateCount} geç kalma · ${row.lessonCount} ders`
+        : insufficient(row.lessonCount, "ders", MIN_LESSONS),
   },
   absence_streak: {
     key: "absence_streak",
@@ -97,10 +119,11 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
     shortLabel: "Üst üste devamsızlık",
     unit: "adet",
     direction: "lower_better",
-    value: row => (row.lessonCount >= 1 ? row.absenceStreak : undefined),
+    value: row =>
+      row.lessonCount >= MIN_LESSONS ? row.absenceStreak : undefined,
     detail: row =>
-      row.lessonCount === 0
-        ? "Bu aralıkta ders yok"
+      row.lessonCount < MIN_LESSONS
+        ? insufficient(row.lessonCount, "ders", MIN_LESSONS)
         : row.absenceStreak === 0
           ? "Son derse geldi"
           : `Son ${row.absenceStreak} derse gelmedi`,
@@ -108,13 +131,13 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
   net_avg: {
     key: "net_avg",
     label: "Toplam net (son 3 deneme)",
-    shortLabel: "Net",
+    shortLabel: "Toplam net",
     unit: "net",
     direction: "higher_better",
-    value: row => row.netAvg3,
+    value: row => (hasTwoExams(row) ? row.netAvg3 : undefined),
     detail: row =>
-      row.netAvg3 === undefined
-        ? "Bu aralıkta deneme sonucu yok"
+      !hasTwoExams(row) || row.netAvg3 === undefined
+        ? insufficient(examResultCount(row), "deneme", MIN_EXAMS)
         : `Son 3 deneme ort. ${formatNet(row.netAvg3)} net` +
           (row.classAvgLast !== undefined
             ? ` · sınıf ${formatNet(row.classAvgLast)}`
@@ -127,10 +150,17 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
     unit: "net",
     direction: "higher_better",
     needsSubject: true,
-    value: (row, subjectId) => subjectOf(row, subjectId)?.avgNet,
+    value: (row, subjectId) => {
+      const subject = subjectOf(row, subjectId);
+      return subject && subject.examCount >= MIN_EXAMS
+        ? subject.avgNet
+        : undefined;
+    },
     detail: (row, subjectId) => {
       const subject = subjectOf(row, subjectId);
-      if (!subject) return "Bu derste sonuç yok";
+      if (!subject || subject.examCount < MIN_EXAMS) {
+        return insufficient(subject?.examCount ?? 0, "deneme", MIN_EXAMS);
+      }
       return (
         `${subject.subjectName} ${formatNet(subject.avgNet)} net` +
         (subject.classAvg !== undefined
@@ -142,7 +172,7 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
   net_trend: {
     key: "net_trend",
     label: "Net eğilimi (son − önceki)",
-    shortLabel: "Net düşüşü",
+    shortLabel: "Net eğilimi",
     unit: "net",
     direction: "higher_better",
     value: row =>
@@ -154,7 +184,7 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
         ? `${formatNet(row.previousNet)} → ${formatNet(row.lastNet)} (${signed(
             round2(row.lastNet - row.previousNet)
           )})`
-        : "En az iki deneme gerekir",
+        : insufficient(examResultCount(row), "deneme", MIN_EXAMS),
   },
   exam_missed: {
     key: "exam_missed",
@@ -162,10 +192,10 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
     shortLabel: "Girilmeyen deneme",
     unit: "adet",
     direction: "lower_better",
-    value: row => (row.examExpected >= 1 ? row.examMissed : undefined),
+    value: row => (row.examExpected >= MIN_EXAMS ? row.examMissed : undefined),
     detail: row =>
-      row.examExpected === 0
-        ? "Bu aralıkta deneme yok"
+      row.examExpected < MIN_EXAMS
+        ? insufficient(row.examExpected, "deneme", MIN_EXAMS)
         : `Girmediği deneme: ${row.examMissed} / ${row.examExpected}`,
   },
   homework_pct: {
@@ -183,7 +213,7 @@ export const TRACKING_METRICS: Record<MetricKey, MetricDefinition> = {
         ? `Ödev %${Math.round(
             (row.homeworkSubmitted / row.homeworkExpected) * 100
           )} · ${row.homeworkSubmitted}/${row.homeworkExpected}`
-        : `${row.homeworkExpected} bitmiş ödev · en az ${MIN_HOMEWORK} gerekir`,
+        : insufficient(row.homeworkExpected, "bitmiş ödev", MIN_HOMEWORK),
   },
 };
 

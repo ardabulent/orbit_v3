@@ -62,6 +62,8 @@ export type OverallResult = {
   band: Band;
   riskLabels: string[];
   mediumLabels: string[];
+  /** En az veriyi karşılamadığı için değerlendirilmeyen ölçütler. */
+  insufficientLabels: string[];
 };
 
 /**
@@ -81,6 +83,7 @@ export function evaluateOverall(
     band: "insufficient",
     riskLabels: [],
     mediumLabels: [],
+    insufficientLabels: [],
   };
   for (const key of METRIC_KEYS) {
     const metric = TRACKING_METRICS[key];
@@ -99,6 +102,9 @@ export function evaluateOverall(
     } else if (band === "safe") {
       result.safe += 1;
     } else {
+      if (band === "insufficient") {
+        result.insufficientLabels.push(metric.shortLabel);
+      }
       continue;
     }
     result.evaluated += 1;
@@ -157,15 +163,24 @@ export function rankRows(
         ...overall.riskLabels.map(label => `${label} riskli`),
         ...overall.mediumLabels.map(label => `${label} orta`),
       ];
+      const missing =
+        overall.insufficientLabels.length > 0
+          ? `Yetersiz veri: ${overall.insufficientLabels.join(", ")}`
+          : "";
       return {
         row,
         band: overall.band,
         detail:
           overall.evaluated === 0
-            ? "Ölçülebilen ölçüt yok"
-            : reasons.length > 0
-              ? reasons.join(" · ")
-              : `${overall.evaluated} ölçütte güvenli`,
+            ? "Yetersiz veri: hiçbir ölçüt için yeterli kayıt yok"
+            : [
+                reasons.length > 0
+                  ? reasons.join(" · ")
+                  : `${overall.evaluated} ölçütte güvenli`,
+                missing,
+              ]
+                .filter(Boolean)
+                .join(" · "),
         overall,
       };
     }

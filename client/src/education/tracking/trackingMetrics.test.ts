@@ -112,3 +112,60 @@ describe("trackingMetrics", () => {
     expect(limits.net_avg).toBeNull();
   });
 });
+
+describe("en az veri (karar 2026-11-24: yeterli veri yoksa hesaplanmaz)", () => {
+  it("beşten az derste üst üste devamsızlık ölçülmez ve neden yazılır", () => {
+    const az = row({ lessonCount: 3, absenceStreak: 3 });
+    expect(TRACKING_METRICS.absence_streak.value(az)).toBeUndefined();
+    expect(TRACKING_METRICS.absence_streak.detail(az)).toBe(
+      "Yetersiz veri: 3 ders, en az 5 gerekir"
+    );
+    expect(TRACKING_METRICS.late_count.detail(az)).toBe(
+      "Yetersiz veri: 3 ders, en az 5 gerekir"
+    );
+  });
+
+  it("tek denemeyle toplam net ve eğilim hesaplanmaz", () => {
+    const tek = row({ previousNet: undefined, netAvg3: 38 });
+    expect(TRACKING_METRICS.net_avg.value(tek)).toBeUndefined();
+    expect(TRACKING_METRICS.net_avg.detail(tek)).toBe(
+      "Yetersiz veri: 1 deneme, en az 2 gerekir"
+    );
+    expect(TRACKING_METRICS.net_trend.detail(tek)).toBe(
+      "Yetersiz veri: 1 deneme, en az 2 gerekir"
+    );
+    const hic = row({
+      lastNet: undefined,
+      previousNet: undefined,
+      netAvg3: undefined,
+    });
+    expect(TRACKING_METRICS.net_avg.detail(hic)).toBe(
+      "Yetersiz veri: 0 deneme, en az 2 gerekir"
+    );
+  });
+
+  it("derste tek deneme varsa ders neti hesaplanmaz", () => {
+    const tek = row({
+      subjectNets: [
+        {
+          subjectId: "mat",
+          subjectName: "Matematik",
+          avgNet: 20,
+          examCount: 1,
+        },
+      ],
+    });
+    expect(TRACKING_METRICS.subject_net.value(tek, "mat")).toBeUndefined();
+    expect(TRACKING_METRICS.subject_net.detail(tek, "mat")).toBe(
+      "Yetersiz veri: 1 deneme, en az 2 gerekir"
+    );
+  });
+
+  it("tek beklenen denemede girilmeyen deneme ölçülmez", () => {
+    const tek = row({ examExpected: 1, examMissed: 1 });
+    expect(TRACKING_METRICS.exam_missed.value(tek)).toBeUndefined();
+    expect(TRACKING_METRICS.exam_missed.detail(tek)).toBe(
+      "Yetersiz veri: 1 deneme, en az 2 gerekir"
+    );
+  });
+});

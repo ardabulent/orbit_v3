@@ -243,3 +243,54 @@ describe("rankRows", () => {
     ]);
   });
 });
+
+describe("genel durumda eksik veri", () => {
+  it("ölçülemeyen ölçütler gerekçede yazılır, bant onlarsız hesaplanır", () => {
+    const limits = resolveLimits({}, {});
+    const r = row("a", {
+      lessonCount: 10,
+      presentCount: 5,
+      absentCount: 5,
+      homeworkExpected: 1,
+      homeworkSubmitted: 1,
+      examExpected: 1,
+      previousNet: undefined,
+    });
+    const [ranked] = rankRows([r], {
+      criterion: "overall",
+      limits,
+      sort: { key: "criticality", dir: "desc" },
+    });
+    expect(ranked.band).toBe("risk");
+    expect(ranked.detail).toBe(
+      "Devam riskli · Yetersiz veri: Toplam net, Net eğilimi, Girilmeyen deneme, Ödev"
+    );
+  });
+
+  it("hiçbir ölçüt ölçülemiyorsa bunu söyler", () => {
+    const limits = resolveLimits({}, {});
+    const [ranked] = rankRows(
+      [
+        row("a", {
+          lessonCount: 2,
+          presentCount: 2,
+          examExpected: 0,
+          lastNet: undefined,
+          previousNet: undefined,
+          netAvg3: undefined,
+          homeworkExpected: 0,
+          homeworkSubmitted: 0,
+        }),
+      ],
+      {
+        criterion: "overall",
+        limits,
+        sort: { key: "criticality", dir: "desc" },
+      }
+    );
+    expect(ranked.band).toBe("insufficient");
+    expect(ranked.detail).toBe(
+      "Yetersiz veri: hiçbir ölçüt için yeterli kayıt yok"
+    );
+  });
+});
