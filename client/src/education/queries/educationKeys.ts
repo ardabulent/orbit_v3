@@ -267,4 +267,6 @@ export const educationKeys = {
     ] as const,
   trackingDefaults: (organizationId: string) =>
     ["education", "trackingDefaults", { organizationId }] as const,
+  studentTargets: (organizationId: string, studentId: string) =>
+    ["education", "studentTargets", { organizationId, studentId }] as const,
 };

@@ -138,6 +138,7 @@ const ENTITY_LABELS: Record<string, string> = {
   payment_plan: "Ödeme Planı",
   installment: "Taksit",
   tracking_threshold_default: "Takip Varsayılan Sınırı",
+  student_target: "Hedef Net",
 };
 
 /**
@@ -173,6 +174,7 @@ const TRIGGER_ACTIONS: Record<string, string[]> = {
   payment_plan: ["created", "updated", "archived", "restored"],
   installment: ["created", "updated", "archived", "restored"],
   tracking_threshold_default: ["created", "updated"],
+  student_target: ["created", "updated"],
 };
 
 const VERB_LABELS: Record<string, string> = {

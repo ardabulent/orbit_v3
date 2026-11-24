@@ -1030,5 +1030,12 @@ export const demoTrackingRows = (): TrackingStudentRow[] =>
       ],
       homeworkExpected: 9,
       homeworkSubmitted: Math.min(9, Math.round((attendance / 100) * 9)),
+      targets:
+        index % 2 === 0
+          ? [
+              { targetNet: Math.round(net + 8) },
+              { subjectId: "demo-mat", targetNet: 30 },
+            ]
+          : [],
     };
   });

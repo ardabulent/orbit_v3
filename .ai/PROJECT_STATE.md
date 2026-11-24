@@ -160,6 +160,7 @@ client/src/
 │   ├── overviewService.ts  # Yönetici Genel Bakış kartlarının verisi
 │   ├── attentionReasons.ts # Dikkat listesindeki öğrencinin nedenleri, ekranda okunacak haliyle
 │   ├── trackingService.ts  # Raporlar → Takip: `tracking_student_metrics` ham sayıları + kurum varsayılan sınırları (2026-11-24)
+│   ├── studentTargetService.ts # Hedef net (`student_targets`): oku, tek upsert ile yaz; kaldırma değeri boşaltır (4.10b). Ekranı `pages/tracking/StudentTargetsEditor.tsx`, öğrenci/veli `pages/StudentTargetsCard.tsx`
 │   ├── tracking/           # Takip'in saf hesabı: ölçüt tanımları (trackingMetrics), bant/genel durum/sıra (trackingBands),
 │   │                       #   kişisel son seçim (trackingPrefs, tarayıcıda); ekranı `pages/tracking/`
 │   ├── reportCsv.ts        # Sınıf karşılaştırması → Excel'in Türkçe ayarında açılan CSV (biçim kuralları `lib/turkishCsv.ts`)

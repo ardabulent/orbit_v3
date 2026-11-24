@@ -33,6 +33,7 @@ const row = (over: Partial<TrackingStudentRow> = {}): TrackingStudentRow => ({
   ],
   homeworkExpected: 4,
   homeworkSubmitted: 1,
+  targets: [],
   ...over,
 });
 
@@ -165,6 +166,44 @@ describe("en az veri (karar 2026-11-24: yeterli veri yoksa hesaplanmaz)", () => 
     const tek = row({ examExpected: 1, examMissed: 1 });
     expect(TRACKING_METRICS.exam_missed.value(tek)).toBeUndefined();
     expect(TRACKING_METRICS.exam_missed.detail(tek)).toBe(
+      "Yetersiz veri: 1 deneme, en az 2 gerekir"
+    );
+  });
+});
+
+describe("hedefe uzaklık (4.10b)", () => {
+  const hedefli = row({
+    targets: [{ targetNet: 45 }, { subjectId: "mat", targetNet: 25 }],
+  });
+
+  it("toplam hedef son üç denemenin ortalamasıyla karşılaştırılır", () => {
+    expect(TRACKING_METRICS.target_gap.value(hedefli)).toBe(11);
+    expect(TRACKING_METRICS.target_gap.detail(hedefli)).toBe(
+      "Toplam hedef 45 · ort. 34 · 11 net uzak"
+    );
+  });
+
+  it("ders seçiliyse o dersin hedefi kullanılır", () => {
+    expect(TRACKING_METRICS.target_gap.value(hedefli, "mat")).toBe(3.5);
+    expect(TRACKING_METRICS.target_gap.detail(hedefli, "mat")).toBe(
+      "Matematik hedef 25 · ort. 21,5 · 3,5 net uzak"
+    );
+  });
+
+  it("hedefin üstündeki öğrenci hedefte sayılır", () => {
+    const ustte = row({ targets: [{ targetNet: 30 }] });
+    expect(TRACKING_METRICS.target_gap.value(ustte)).toBe(-4);
+    expect(TRACKING_METRICS.target_gap.detail(ustte)).toBe(
+      "Toplam hedef 30 · ort. 34 · hedefte"
+    );
+  });
+
+  it("hedef yoksa ölçüt uygulanmaz; tek denemede yetersiz veri", () => {
+    expect(TRACKING_METRICS.target_gap.appliesTo?.(row())).toBe(false);
+    expect(TRACKING_METRICS.target_gap.detail(row())).toBe("Hedef girilmemiş");
+    const tek = row({ targets: [{ targetNet: 45 }], previousNet: undefined });
+    expect(TRACKING_METRICS.target_gap.value(tek)).toBeUndefined();
+    expect(TRACKING_METRICS.target_gap.detail(tek)).toBe(
       "Yetersiz veri: 1 deneme, en az 2 gerekir"
     );
   });

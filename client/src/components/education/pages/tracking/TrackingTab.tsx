@@ -332,6 +332,9 @@ export function TrackingTab({
           limits={limits}
           onBack={mode === "class" ? () => setProfileId(undefined) : undefined}
           onOpenStudent={onOpenStudent}
+          canEditTargets={
+            !activeDemo && (role === "admin" || role === "teacher")
+          }
         />
       ) : mode === "student" ? (
         <p className="mt-4 rounded-2xl border border-dashed border-slate-200 p-6 text-center text-[12px] text-slate-500">

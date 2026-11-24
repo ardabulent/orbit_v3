@@ -88,6 +88,7 @@ export function evaluateOverall(
   for (const key of METRIC_KEYS) {
     const metric = TRACKING_METRICS[key];
     if (metric.needsSubject && !subjectId) continue;
+    if (metric.appliesTo && !metric.appliesTo(row, subjectId)) continue;
     const band = bandFor(
       metric.value(row, subjectId),
       metric.direction,

@@ -9,6 +9,7 @@ import {
 import type {
   TrackingStudentRow,
   TrackingSubjectNet,
+  TrackingTarget,
 } from "./tracking/trackingTypes";
 
 /**
@@ -71,6 +72,21 @@ function parseSubjectNets(value: unknown): TrackingSubjectNet[] {
   return subjects;
 }
 
+function parseTargets(value: unknown): TrackingTarget[] {
+  if (!Array.isArray(value)) return [];
+  const targets: TrackingTarget[] = [];
+  for (const item of value as Record<string, unknown>[]) {
+    const targetNet = toNumber(item?.target_net);
+    if (targetNet === undefined) continue;
+    targets.push(
+      typeof item.subject_id === "string" && item.subject_id
+        ? { subjectId: item.subject_id, targetNet }
+        : { targetNet }
+    );
+  }
+  return targets;
+}
+
 type MetricsRow = Record<string, unknown>;
 
 export function mapTrackingRow(row: MetricsRow): TrackingStudentRow | null {
@@ -97,6 +113,7 @@ export function mapTrackingRow(row: MetricsRow): TrackingStudentRow | null {
     subjectNets: parseSubjectNets(row.subject_nets),
     homeworkExpected: toCount(row.homework_expected),
     homeworkSubmitted: toCount(row.homework_submitted),
+    targets: parseTargets(row.targets),
   };
 }
 

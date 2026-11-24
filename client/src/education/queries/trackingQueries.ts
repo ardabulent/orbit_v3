@@ -1,6 +1,10 @@
 // Takip sekmesinin sorguları (2026-11-24).
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
+import {
+  loadStudentTargets,
+  type StudentTarget,
+} from "../studentTargetService";
 import type { TrackingStudentRow } from "../tracking/trackingTypes";
 import {
   loadTrackingDefaults,
@@ -45,5 +49,25 @@ export function useTrackingDefaults(options?: { enabled?: boolean }) {
     queryFn: () => loadTrackingDefaults(organizationId),
     enabled: isEnabled,
     staleTime: 10 * 60 * 1000,
+  });
+}
+
+/**
+ * Öğrencinin hedefleri (4.10b): öğrenci ve velinin sınav ekranı okur.
+ * Takip'teki düzenleyici satırdaki `targets`'ı kullanır, bunu değil.
+ */
+export function useStudentTargets(
+  studentId: string | undefined,
+  options?: { enabled?: boolean }
+) {
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId ?? "";
+  const isEnabled =
+    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(studentId);
+
+  return useQuery<StudentTarget[], Error>({
+    queryKey: educationKeys.studentTargets(organizationId, studentId ?? ""),
+    queryFn: () => loadStudentTargets(studentId ?? ""),
+    enabled: isEnabled,
   });
 }
