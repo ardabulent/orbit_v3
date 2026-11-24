@@ -7,13 +7,14 @@ import {
 } from "@/education/tracking/trackingMetrics";
 import type { TrackingStudentRow } from "@/education/tracking/trackingTypes";
 import { BandBadge } from "./BandBadge";
+import { FollowupNotes } from "./FollowupNotes";
 import { StudentTargetsEditor } from "./StudentTargetsEditor";
 import { formatMetricValue, formatNumber } from "./trackingFormat";
 
 /**
  * Öğrenci profili (Takip içinde): her ölçüt kendi bandıyla, ders ders net
  * tablosu ve öğrenci sayfasına bağlantı. Hedefler burada düzenlenir
- * (4.10b); notlar (4.10c) buraya eklenecek.
+ * (4.10b); not ve görüşme kaydı da burada (4.10c).
  */
 export function TrackingStudentProfile({
   row,
@@ -135,6 +136,7 @@ export function TrackingStudentProfile({
         </p>
       )}
       {canEditTargets ? <StudentTargetsEditor row={row} /> : null}
+      {canEditTargets ? <FollowupNotes studentId={row.studentId} /> : null}
     </section>
   );
 }
