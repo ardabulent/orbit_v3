@@ -37,6 +37,7 @@ const CONTENT_TABLE_LABELS: Record<string, string> = {
   messages: "mesaj",
   notifications: "bildirim",
   client_error_reports: "ekran hata kaydı",
+  tracking_threshold_defaults: "takip varsayılan sınırı",
 };
 
 export type ContentLine = { table: string; label: string; rows: number };

@@ -137,6 +137,7 @@ const ENTITY_LABELS: Record<string, string> = {
   feed_post: "Duyuru",
   payment_plan: "Ödeme Planı",
   installment: "Taksit",
+  tracking_threshold_default: "Takip Varsayılan Sınırı",
 };
 
 /**
@@ -171,6 +172,7 @@ const TRIGGER_ACTIONS: Record<string, string[]> = {
   feed_post: ["created", "updated", "archived", "restored"],
   payment_plan: ["created", "updated", "archived", "restored"],
   installment: ["created", "updated", "archived", "restored"],
+  tracking_threshold_default: ["created", "updated"],
 };
 
 const VERB_LABELS: Record<string, string> = {

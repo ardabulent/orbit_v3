@@ -732,6 +732,7 @@ export function EducationPlatform({
             const student = activeStudents.find(s => s.id === studentId);
             if (student) setSelectedStudentSnapshot(student);
           }}
+          students={activeStudents}
           isLoading={
             !isDemoMode &&
             (reportAttendanceQuery.isLoading ||

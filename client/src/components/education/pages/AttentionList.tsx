@@ -15,17 +15,29 @@ export function AttentionList({
   onOpenStudent,
   isLoading = false,
   error = null,
+  onOpenTracking,
 }: {
   rows: AttentionStudent[] | undefined;
   weeks: number;
   onOpenStudent: (studentId: string) => void;
   isLoading?: boolean;
   error?: Error | null;
+  /** Takip sekmesini genel durumla açar (2026-11-24); sınırlar orada seçilir. */
+  onOpenTracking?: () => void;
 }) {
   return (
     <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-      <div className="border-b border-slate-100 p-4">
-        <h2 className="flex items-center gap-2 font-display text-[16px] font-extrabold text-slate-900">
+      <div className="relative border-b border-slate-100 p-4">
+        {onOpenTracking ? (
+          <button
+            type="button"
+            onClick={onOpenTracking}
+            className="absolute right-4 top-4 rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
+          >
+            Takip'te aç
+          </button>
+        ) : null}
+        <h2 className="flex items-center gap-2 pr-24 font-display text-[16px] font-extrabold text-slate-900">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           Dikkat listesi
           {rows && rows.length > 0 ? (

@@ -173,6 +173,7 @@
 - Şifre sıfırlama kaynak başına sınırlanır; IP saklanmaz, anahtarlı özeti bir gün tutulur
 - Personelde de kurum listeleri onları kullanan sekme açılınca okunur
 - Büyük dosyalar konu dosyalarına bölünür; eski adı toplayıcı olarak kalır
+- Takip sekmesi: sınırları kullanıcı yazar, bant istemcide hesaplanır
 
 ---
 
@@ -4442,3 +4443,30 @@ O gün iki seçenek var: Sentry'nin AB bölgesi (kişisel veri gönderimi kapal�
 - _Demo kipini bu işte tekilleştirmek (tohumlanmış demo kurumu)._ 2026-09-14 taramasının önerdiği büyük iş (`isDemoMode` 21 dosyada); bu madde dosya bölmedir. Ayrı ve ertelenmiş.
 
 **Bulgu (düzeltilmedi, kapsam dışı):** demo kipinde İletişim sekmesi `daily_feed_posts`'a, Denetim Kaydı sekmesi `organization_audit_feed`'e gerçek istek atıyor ve 400/401 alıyor. Bölmeden önce de birebir aynı; ekrana hata yansımıyor, yalnız demoda. Canlıyı etkilemez.
+
+### Karar: Takip sekmesi: sınırları kullanıcı yazar, bant istemcide hesaplanır
+
+**Durum:** Kabul edildi · 1. dilim uygulandı (4.10a PR'ı); 4.10b ve 4.10c bekliyor
+**Tarih:** 2026-11-24
+**Onaylayan:** Arda Bülent (keşif konuşması; her soru ayrı ayrı yanıtlandı, tasarım üç bölümde onaylandı)
+
+**Bağlam:** Kurum sahibi: _"Yönetici ve öğretmenler sorumlu olduğu sınıf ve öğrencilerin takiplerini yapabilsin diye devam durumu, sınav netleri gibi veriler filtrelemek ve takip etmek istiyorum … %80 yazılırsa %80 altı devam durumu olanları riskli olarak sıralasın diğerlerini orta ve güvenli diye sıralasın."_ Raporlar'daki dikkat listesi (2026-09-29) bunun sabit eşikli küçük bir hâliydi.
+
+**Karar:**
+
+1. **Kapsam:** bugünkü veriler (devam, geç kalma, üst üste devamsızlık, toplam ve ders ders net, net eğilimi, girilmeyen deneme, ödev) ve bileşik "genel durum"; ayrıca **hedef net** (4.10b) ve **öğretmen notu / görüşme kaydı** (4.10c). **Ödeme gecikmesi Takip'e girmez:** öğretmenin öğrencinin borcunu görmesi KVKK açısından gereksiz bir ifşadır.
+2. **Yer:** ayrı bir sekme değil, Raporlar'ın içinde "Genel bakış · Takip". Dikkat listesi kalır (sabit eşikleri değişmez) ve "Takip'te aç" bağlantısı alır.
+3. **Bantlar:** kullanıcı **iki sınırı da** yazar (riskli, güvenli); ölçütün yönü sabittir. **Sınırın kendisi üst banda düşer** (80 yazılınca %80 orta). En az veriyi karşılamayan öğrenci "güvenli" değil **"Yetersiz veri"** sayılır ve listenin sonunda durur. Kurum sahibi: _"geçmiş veri yoksa zorla hesaplamasın, yeterli veri yok desin"_. En az veri: devam, geç kalma ve üst üste devamsızlık **5 ders**; toplam net, ders neti, net eğilimi ve girilmeyen deneme **2 deneme** (ders netinde o derste); ödev **3 bitmiş ödev**. Ekran neyin eksik olduğunu yazar ("Yetersiz veri: 1 deneme, en az 2 gerekir"); genel durum ölçülemeyen ölçütleri gerekçede ayrıca sayar.
+4. **Genel durum:** önce riskli ölçüt sayısı, eşitlikte orta ölçüt sayısı. Ağırlıklı puan reddedildi: "bu puan neden 62" sorusu cevaplanamaz.
+5. **Sınırların saklanması:** kurum varsayılanı veritabanında (`tracking_threshold_defaults`, yalnız tam yönetici yazar, yön kuralı `check` ile), kişinin son seçimi tarayıcıda.
+6. **Hesabın yeri:** tek `security definer` fonksiyon (`tracking_student_metrics`) yalnız **ham sayı** döndürür; bant, genel durum ve sıra istemcide saf fonksiyonlarla hesaplanır. Sınırlar sorgu anahtarına girmez: 80'i 75 yapmak yeni istek doğurmaz. Kim hangi öğrenciyi görür ise sunucuda kalır: `classes_select`'in yönetici dalları (şube kapsamı dahil) ve okutan öğretmen (vekillik dahil). Kapsam dışı sınıf ya da öğrenci hata değil boş sonuç döndürür (varlık sızdırmaz).
+7. **Hedef net (4.10b):** toplam ve isteğe bağlı ders ders; yönetici ve okutan öğretmen yazar, öğrenci ve veli görür ama değiştiremez. **Bilinen sınır:** sınav türü (TYT/AYT) alanı yok; toplam hedef her denemenin toplamıyla karşılaştırılır, ekranda uyarı gösterilir. Sınav türü ayrı bir iştir.
+8. **Notlar (4.10c):** personel görür (yönetici hepsini; öğretmen okuttuğu öğrencinin notunu, yazanı fark etmeksizin), öğrenci ve veli görmez; yalnız yazan ya da yönetici düzeltir/arşivler. Metin denetim kaydına yazılmaz. Notlar öğrenci kaydı durdukça kalır, ayrı saklama süresi yok; kurum boşaltmasıyla silinir (`organization_id` taşıyan her tablo boşaltmaya kendiliğinden girer, 2026-11-18).
+
+**Ölçüldü (yerel, 1 kurum × 20 sınıf × 30 öğrenci × 12 hafta; 34.200 yoklama, 28.800 bölüm sonucu):** bütün sınıflar 12 hafta ≈ 102 ms, 4 hafta ≈ 52 ms, tek sınıf 18–35 ms, tek öğrenci ≈ 9 ms. Plan doğrusal: her kaynak bir kez geçiliyor, yoklama ve bölüm sonuçları dizinle okunuyor; dizin eklenmedi.
+
+**Reddedilen:**
+
+- _Sınırları sunucuya göndermek._ Her sınır değişikliği yeni sorgu olurdu; karşılığında güvenlik kazancı yok, çünkü sınır bir görünüm, yetki değil.
+- _Ham tabloları istemciye çekip orada hesaplamak._ Çok veri taşır ve öğretmen kapsamını istemcide yeniden kurmak gerekir ("istemciye güvenilmez").
+- _Tek sayı + sabit pay ya da sınıf ortalamasına göre orta bant._ Kurum sahibi iki sınırı kendisi yazmayı seçti.
